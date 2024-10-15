@@ -1,8 +1,8 @@
 obstacle1:
     type: "sphere"
     radius: 0.1
-    translation: [0.6,-0.0,0.27]  # tx,ty,tz [-0.1,-0.05,1.05] 
-    rotation: [0, 0, 0, 1] #qx,qy,qz,qw    
+    translation: [0.6,0.09,0.32]  # tx,ty,tz  
+    rotation: [0.0, 0.0, 0.0, 1] #qx,qy,qz,qw 
 
 support_link_0:
     in_hpp: True
@@ -16,5 +16,5 @@ support_link_0:
 collision_pairs: 
     - ["panda_leftfinger_0", "obstacle1"]
     - ["panda_rightfinger_0", "obstacle1"]
-    - ["panda_rightfinger_0", "support_link_0"]
+    
 
