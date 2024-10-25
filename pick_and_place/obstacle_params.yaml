@@ -1,10 +1,20 @@
 obstacle1:
     type: "sphere"
-    radius: 0.175
-    translation: [0,0,0.825]  # tx,ty,tz
-    rotation: [0, 0, 0, 1] #qx,qy,qz,qw    
+    radius: 0.1
+    translation: [0.6,0.09,0.32]  # tx,ty,tz  
+    rotation: [0.0, 0.0, 0.0, 1] #qx,qy,qz,qw 
+
+support_link_0:
+    in_hpp: True
+    type: "box"
+    x: 1.703
+    y: 0.803
+    z: 0.76
+    translation: [0, 0, -0.38]  # tx,ty,tz
+    rotation: [0, 0, 0, 1] #qx,qy,qz,qw
+
 collision_pairs: 
     - ["panda_leftfinger_0", "obstacle1"]
     - ["panda_rightfinger_0", "obstacle1"]
-    - ["panda_rightfinger_0", "support_link_0"]
+    
 
