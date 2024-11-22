@@ -1,0 +1,29 @@
+obstacle1:
+    type: "capsule"
+    radius: 0.1
+    halfLength : 0.2
+    translation: [0.79,0,0.45] 
+    rotation: [0.5, 0.5, 0.5, -0.5]
+
+obstacle2:
+    type: "capsule"
+    radius: 0.1
+    halfLength : 0.2
+    translation: [0.35,0,0.15] 
+    rotation: [0.5, 0.5, 0.5, -0.5]
+
+support_link_0:
+    in_hpp: True
+    type: "box"
+    x: 1.703
+    y: 0.803
+    z: 0.76
+    translation: [0, 0, -0.38]  # tx,ty,tz
+    rotation: [0, 0, 0, 1] #qx,qy,qz,qw
+
+collision_pairs: 
+    - ["panda_leftfinger_0", "obstacle1"]
+    - ["panda_leftfinger_0", "obstacle2"]
+    - ["panda_link5_sc_capsule_1", "obstacle2"]
+    
+
