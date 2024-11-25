@@ -36,6 +36,4 @@ log/
 *.rqt_cache
 
 # Test-related ignores
-tests/__pycache__/
-tests/*.pyc
 
