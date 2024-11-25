@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 # Project definition
 #
-project(agimus_demos LANGUAGES CXX)
+project(01_lfc_alone LANGUAGES CXX)
 
 #
 # Options
