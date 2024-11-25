@@ -15,10 +15,6 @@ install/
 log/
 .colcon/
 
-# ROS 2 specific ignores
-ros2_ws/build/
-ros2_ws/install/
-ros2_ws/log/
 
 # Ignore launch and configuration backup files
 *.launch.py~
