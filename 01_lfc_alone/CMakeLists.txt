@@ -5,10 +5,6 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 project(01_lfc_alone LANGUAGES CXX)
 
-#
-# Options
-#
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 #
 # Handle dependencies by reading the package.xml
