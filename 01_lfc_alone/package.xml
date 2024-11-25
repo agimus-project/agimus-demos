@@ -3,7 +3,7 @@
   <name>01_lfc_alone</name>
   <version>0.0.0</version>
   <description>
-    agimus_demos contains all the demos of AGIMUS project's
+    01_lfc_alone contains the entry points for a simple Panda demo with the LFC
   </description>
   <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
   <author>Maximilien Naveau</author>
