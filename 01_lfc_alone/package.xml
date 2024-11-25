@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>agimus_demos</name>
+  <name>01_lfc_alone</name>
   <version>0.0.0</version>
   <description>
     agimus_demos contains all the demos of AGIMUS project's
