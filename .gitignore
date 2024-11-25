@@ -1,0 +1,52 @@
+# Python ignores
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+*.bak
+build/
+*.log
+
+# ROS 2 build system ignores
+build/
+install/
+log/
+.colcon/
+
+# ROS 2 specific ignores
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Ignore launch and configuration backup files
+*.launch.py~
+*.yaml~
+*.yml~
+*.xml~
+
+# Editor and IDE ignores
+.vscode/
+.idea/
+*.iml
+*.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# CMake ignores
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# ROS-specific files
+*.bag
+*.db3  # For ROS 2 bag files
+*.rviz
+*.rqt_cache
+
+# Test-related ignores
+tests/__pycache__/
+tests/*.pyc
+
