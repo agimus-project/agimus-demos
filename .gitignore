@@ -17,10 +17,7 @@ log/
 
 
 # Ignore launch and configuration backup files
-*.launch.py~
-*.yaml~
-*.yml~
-*.xml~
+*~
 
 # Editor and IDE ignores
 .vscode/
