@@ -1,64 +1,39 @@
 linear_feedback_controller:
-  chainable_controller:
-    command_prefix: {
-      type: "string",
-      description: "Names of the downstream controller that takes the robot state as references.",
-      default_value: ""
-    }
-    reference_prefix: {
-      type: "string",
-      description: "Names of the downstream controller that takes the robot state as references.",
-      default_value: ""
-    }
-  srdf: {
-    type: string,
-    description: "Path to the SRDF file.",
-    validation: { not_empty<>: [] }
-  }
-  moving_joint_names: {
-    type: string_array,
-    description: "list of active joint names used by the controller.",
-    validation: { not_empty<>: [] }
-  }
-  p_gains: {
-    type: double_array,
-    description: "Proportional gains for the PD controller.",
-    validation: { not_empty<>: [] }
-  }
-  d_gains: {
-    type: double_array,
-    description: "Derivation gains for the PD controller.",
-    validation: { not_empty<>: [] }
-  }
-  default_configuration_name: {
-    type: string,
-    description: "Name of the default configuration in the SRDF file.",
-    validation: { not_empty<>: [] }
-  }
-  robot_has_free_flyer: {
-    type: bool,
-    description: "Has the robot a freeflyer or not?",
-  }
-  from_pd_to_lf_duration: {
-    type: double,
-    description: "Duration **in seconds** of transition between the PD and the LF controllers.",
-    validation: {
-      gt_eq<>: 0.0
-    }
-  }
-  plugin_type: {
-    type: string,
-    description: "Specifies the name of the state estimator plugin to load.",
-    validation: {
-      not_empty<>: [],
-      one_of<>: [["PINOCCHIO", "RBDL"]]
-    },
-  }
-  base_type: {
-    type: string,
-    description: "Specifies if the base is fixed, floating or planar.",
-    validation: {
-      not_empty<>: [],
-      one_of<>: [["FIXED", "FLOATING", "PLANAR"]]
-    },
-  }
+  ros__parameters:
+    moving_joint_names: [
+      'fer_joint_1',
+      'fer_joint_2',
+      'fer_joint_3',
+      'fer_joint_4',
+      'fer_joint_5',
+      'fer_joint_6',
+      'fer_joint_7'
+    ]
+    fer_joint_1:
+      p: 0.0
+      d: 0.0
+    fer_joint_2:
+      p: 0.0
+      d: 0.0
+    fer_joint_3:
+      p: 0.0
+      d: 0.0
+    fer_joint_4:
+      p: 0.0
+      d: 0.0
+    fer_joint_5:
+      p: 0.0
+      d: 0.0
+    fer_joint_6:
+      p: 0.0
+      d: 0.0
+    fer_joint_7:
+      p: 0.0
+      d: 0.0
+    chainable_controller:
+      command_prefix: 'fer_'
+      reference_prefix: ''
+    joint_velocity_filter_coefficient: 0.9
+    pd_to_lf_transition_duration: '0.1'
+    remove_gravity_compensation_effort: 'true'
+    robot_has_free_flyer: 'false'
