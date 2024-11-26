@@ -8,7 +8,7 @@ This is the expected result:
 ![expected result](https://github.com/agimus-project/agimus-demos/blob/topic/mnaveau/demo00_readme/agimus_demo_00_franka_controller/doc/demo_00_result.png)
 ```
 cd src
-git clone -b humble_devel git@github.com:agimus-project/franka_description.git
+git clone -b humble_devel https://github.com/agimus-project/agimus-demos.git
 cd ..
 source install/setup.bash
 colcon build
