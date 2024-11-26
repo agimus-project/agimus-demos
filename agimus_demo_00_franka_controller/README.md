@@ -10,7 +10,7 @@ This is the expected result:
 cd src
 git clone -b humble_devel https://github.com/agimus-project/agimus-demos.git
 cd ..
-source install/setup.bash
 colcon build
+source install/setup.bash
 ros2 launch agimus_demo_00_franka_controller bringup_gz_simulation.launch.py
 ```
