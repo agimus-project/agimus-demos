@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import os
 import xacro
 
 from ament_index_python.packages import get_package_share_directory
+
+from controller_manager.launch_utils import generate_load_controller_launch_description
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, ExecuteProcess, RegisterEventHandler
@@ -30,6 +33,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import  LaunchConfiguration
 from launch.actions import AppendEnvironmentVariable
 from launch_ros.actions import Node
+
 
 def get_robot_description(context: LaunchContext, arm_id, load_gripper, franka_hand):
     arm_id_str = context.perform_substitution(arm_id)
@@ -125,14 +129,26 @@ def prepare_launch_description():
     
     load_joint_state_broadcaster = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-                'joint_state_broadcaster'],
+             'joint_state_broadcaster'],
         output='screen'
     )
-    
-    joint_impedance_example_controller = ExecuteProcess(
+
+    linear_feedback_controller = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-                'joint_impedance_example_controller'],
+             'linear_feedback_controller'],
         output='screen'
+    )
+
+    linear_feedback_controller_yaml = str(
+        Path(get_package_share_directory("agimus_demo_01_lfc_alone")) /
+        "config" /
+        "lfc.yaml"
+    )
+
+    linear_feedback_controller = generate_load_controller_launch_description(
+        controller_name='state_estimation_controller',
+        controller_type='pal_base_ros_controller/StateEstimationController',
+        controller_params_file=linear_feedback_controller_yaml
     )
 
     return LaunchDescription([
@@ -152,7 +168,7 @@ def prepare_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_broadcaster,
-                on_exit=[joint_impedance_example_controller],
+                on_exit=[linear_feedback_controller],
             )
         ),
         Node(
