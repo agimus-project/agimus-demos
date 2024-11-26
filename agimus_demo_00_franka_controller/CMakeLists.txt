@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 # Project definition
 #
-project(demo_00_franka_controller LANGUAGES CXX)
+project(agimus_demo_00_franka_controller LANGUAGES CXX)
 
 
 #
