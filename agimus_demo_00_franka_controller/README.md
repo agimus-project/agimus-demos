@@ -5,7 +5,7 @@ The purpose of this demo is to simply check whether your installation is done co
 To verify it is correctly working, after launching the bringup launch file, a gazebo and a rviz simulations should be appearing with the panda in it.
 
 This is the expected result:
-![expected result](./agimus_demo_00_franka_controller/doc/images/demo_00_result.png)
+![expected result](./doc/images/demo_00_result.png)
 
 ## Start the demo in simulation using the Panda robot.
 
