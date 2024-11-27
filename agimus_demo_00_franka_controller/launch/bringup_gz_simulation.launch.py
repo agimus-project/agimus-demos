@@ -69,7 +69,6 @@ def get_robot_description(context: LaunchContext, arm_id, load_gripper, franka_h
     return [robot_state_publisher]
 
 
-
 def prepare_launch_description():
     # Configure ROS nodes for launch
     load_gripper_name = 'load_gripper'
@@ -82,7 +81,7 @@ def prepare_launch_description():
 
     load_gripper_launch_argument = DeclareLaunchArgument(
             load_gripper_name,
-            default_value='false',
+            default_value='true',
             description='true/false for activating the gripper')
     franka_hand_launch_argument = DeclareLaunchArgument(
             franka_hand_name,
@@ -90,7 +89,7 @@ def prepare_launch_description():
             description='Default value: franka_hand')
     arm_id_launch_argument = DeclareLaunchArgument(
             arm_id_name,
-            default_value='fr3',
+            default_value='fer',
             description='Available values: fr3, fp3 and fer')
 
     # Get robot description
