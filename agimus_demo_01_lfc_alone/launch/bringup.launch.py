@@ -18,7 +18,9 @@ import xacro
 
 from ament_index_python.packages import get_package_share_directory
 
-from controller_manager.launch_utils import generate_load_controller_launch_description
+from controller_manager.launch_utils import (
+    generate_load_controller_launch_description
+)
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, ExecuteProcess, RegisterEventHandler
@@ -94,7 +96,7 @@ def prepare_launch_description():
             description='Default value: franka_hand')
     arm_id_launch_argument = DeclareLaunchArgument(
             arm_id_name,
-            default_value='fr3',
+            default_value='fer',
             description='Available values: fr3, fp3 and fer')
 
     # Get robot description
@@ -104,10 +106,11 @@ def prepare_launch_description():
 
     # Gazebo Sim
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    gz_verbose = ''  # ' -v 3'
     gazebo_empty_world = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
-        launch_arguments={'gz_args': 'empty.sdf -r', }.items(),
+        launch_arguments={'gz_args': 'empty.sdf -r' + gz_verbose, }.items(),
     )
 
     # Spawn
@@ -133,22 +136,24 @@ def prepare_launch_description():
         output='screen'
     )
 
-    linear_feedback_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'linear_feedback_controller'],
-        output='screen'
+    joint_state_estimator_yaml = str(
+        Path(get_package_share_directory("agimus_demo_01_lfc_alone")) /
+        "config" /
+        "joint_state_estimator.yaml"
+    )
+    load_joint_state_estimator = generate_load_controller_launch_description(
+      controller_name='joint_state_estimator',
+      controller_params_file=joint_state_estimator_yaml
     )
 
     linear_feedback_controller_yaml = str(
         Path(get_package_share_directory("agimus_demo_01_lfc_alone")) /
         "config" /
-        "lfc.yaml"
+        "linear_feedback_controller.yaml"
     )
-
-    linear_feedback_controller = generate_load_controller_launch_description(
-        controller_name='state_estimation_controller',
-        controller_type='pal_base_ros_controller/StateEstimationController',
-        controller_params_file=linear_feedback_controller_yaml
+    load_linear_feedback_controller = generate_load_controller_launch_description(
+      controller_name='linear_feedback_controller',
+      controller_params_file=linear_feedback_controller_yaml
     )
 
     return LaunchDescription([
@@ -168,7 +173,13 @@ def prepare_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_broadcaster,
-                on_exit=[linear_feedback_controller],
+                on_exit=[load_linear_feedback_controller],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_linear_feedback_controller.entities[-1],
+                on_exit=[load_joint_state_estimator]
             )
         ),
         Node(
