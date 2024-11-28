@@ -7,7 +7,6 @@ Expected behavior: robot not moving, lfc is implementing a default PD+ controlle
 ## Install dependencies and build.
 
 ```bash
-cd ~/ros2_ws
 vcs import src < src/agimus-demos/agimus_demo_01_lfc_alone/dependencies.repos
 colcon build --symlink-install
 source install/setup.bash
