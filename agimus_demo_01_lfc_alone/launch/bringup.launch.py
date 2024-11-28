@@ -28,13 +28,14 @@ from launch.event_handlers import OnProcessExit
 
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, LaunchConfiguration
 from launch import LaunchContext, LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import  LaunchConfiguration
 from launch.actions import AppendEnvironmentVariable
+
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 
 def get_robot_description(context: LaunchContext, arm_id, load_gripper, franka_hand):
@@ -136,24 +137,28 @@ def prepare_launch_description():
         output='screen'
     )
 
-    joint_state_estimator_yaml = str(
-        Path(get_package_share_directory("agimus_demo_01_lfc_alone")) /
-        "config" /
-        "joint_state_estimator.yaml"
+    joint_state_estimator_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_01_lfc_alone"),
+            "config",
+            "joint_state_estimator.yaml",
+        ]
     )
     load_joint_state_estimator = generate_load_controller_launch_description(
       controller_name='joint_state_estimator',
-      controller_params_file=joint_state_estimator_yaml
+      controller_params_file=joint_state_estimator_params
     )
 
-    linear_feedback_controller_yaml = str(
-        Path(get_package_share_directory("agimus_demo_01_lfc_alone")) /
-        "config" /
-        "linear_feedback_controller.yaml"
+    linear_feedback_controller_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_01_lfc_alone"),
+            "config",
+            "linear_feedback_controller.yaml",
+        ]
     )
     load_linear_feedback_controller = generate_load_controller_launch_description(
       controller_name='linear_feedback_controller',
-      controller_params_file=linear_feedback_controller_yaml
+      controller_params_file=linear_feedback_controller_params
     )
 
     return LaunchDescription([
