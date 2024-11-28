@@ -4,6 +4,11 @@ repositories:
     url: https://github.com/agimus-project/franka_description
     version: humble_devel
 
+  vcs_repos/linear_feedback_controller:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller
+    version: humble-devel
+
   vcs_repos/linear_feedback_controller_msgs:
     type: git
     url: https://github.com/loco-3d/linear-feedback-controller-msgs
