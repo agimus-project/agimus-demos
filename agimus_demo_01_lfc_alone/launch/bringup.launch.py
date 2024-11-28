@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import os
 import xacro
 
 from ament_index_python.packages import get_package_share_directory
+
+from controller_manager.launch_utils import (
+    generate_load_controller_launch_description
+)
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, ExecuteProcess, RegisterEventHandler
@@ -23,13 +28,15 @@ from launch.event_handlers import OnProcessExit
 
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, LaunchConfiguration
 from launch import LaunchContext, LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import  LaunchConfiguration
 from launch.actions import AppendEnvironmentVariable
+
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
 
 def get_robot_description(context: LaunchContext, arm_id, load_gripper, franka_hand):
     arm_id_str = context.perform_substitution(arm_id)
@@ -90,7 +97,7 @@ def prepare_launch_description():
             description='Default value: franka_hand')
     arm_id_launch_argument = DeclareLaunchArgument(
             arm_id_name,
-            default_value='fr3',
+            default_value='fer',
             description='Available values: fr3, fp3 and fer')
 
     # Get robot description
@@ -100,10 +107,11 @@ def prepare_launch_description():
 
     # Gazebo Sim
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    gz_verbose = ''  # ' -v 3'
     gazebo_empty_world = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
-        launch_arguments={'gz_args': 'empty.sdf -r', }.items(),
+        launch_arguments={'gz_args': 'empty.sdf -r' + gz_verbose, }.items(),
     )
 
     # Spawn
@@ -125,14 +133,32 @@ def prepare_launch_description():
     
     load_joint_state_broadcaster = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-                'joint_state_broadcaster'],
+             'joint_state_broadcaster'],
         output='screen'
     )
-    
-    joint_impedance_example_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-                'joint_impedance_example_controller'],
-        output='screen'
+
+    joint_state_estimator_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_01_lfc_alone"),
+            "config",
+            "joint_state_estimator.yaml",
+        ]
+    )
+    load_joint_state_estimator = generate_load_controller_launch_description(
+      controller_name='joint_state_estimator',
+      controller_params_file=joint_state_estimator_params
+    )
+
+    linear_feedback_controller_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_01_lfc_alone"),
+            "config",
+            "linear_feedback_controller.yaml",
+        ]
+    )
+    load_linear_feedback_controller = generate_load_controller_launch_description(
+      controller_name='linear_feedback_controller',
+      controller_params_file=linear_feedback_controller_params
     )
 
     return LaunchDescription([
@@ -152,7 +178,13 @@ def prepare_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_broadcaster,
-                on_exit=[joint_impedance_example_controller],
+                on_exit=[load_linear_feedback_controller],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_linear_feedback_controller.entities[-1],
+                on_exit=[load_joint_state_estimator]
             )
         ),
         Node(
