@@ -8,6 +8,8 @@ Expected behavior: robot not moving, LFC is implementing a default PD+ controlle
 
 ```bash
 vcs import src < src/agimus-demos/agimus_demo_01_lfc_alone/dependencies.repos
+rosdep update --rosdistro $ROS_DISTRO
+rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO --skip-keys libfranka
 colcon build --symlink-install
 source install/setup.bash
 ```
