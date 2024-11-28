@@ -158,10 +158,16 @@ def prepare_launch_description():
     )
 
     # PD plus
-    pd_plus_demo = Node(
+    pd_plus_controller_yaml = str(
+        Path(get_package_share_directory(package_name)) /
+        "config" /
+        "pd_plus_controller.yaml"
+    )
+    pd_plus_controller = Node(
         package='linear_feedback_controller',
-        executable='pd_plus_demo',
+        executable='pd_plus_controller',
         output='screen',
+        parameters=[pd_plus_controller_yaml]
     )
 
     return LaunchDescription([
@@ -193,7 +199,7 @@ def prepare_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_estimator.entities[-1],
-                on_exit=[pd_plus_demo]
+                on_exit=[pd_plus_controller]
             )
         ),
         Node(
