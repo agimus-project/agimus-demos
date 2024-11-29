@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>agimus_demo_01_lfc_alone</name>
+  <name>agimus_demos_common</name>
   <version>0.0.0</version>
   <description>
-    agimus_demo_01_lfc_alone contains the entry points for a simple Panda demo with the LFC
+    agimus_demos_common
   </description>
-  <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
-  <author>Maximilien Naveau</author>
+  <maintainer email="mederic.fourmy@gmail.com">Mederic Fourmy</maintainer>
+  <author>Mederic Fourmy</author>
 
   <license>BSD-2</license>
   <url type="website">https://www.agimus-project.eu/</url>
@@ -14,15 +14,6 @@
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
-
-  <depend>controller_interface</depend>
-  <depend>hardware_interface</depend>
-  <depend>pluginlib</depend>
-  <depend>realtime_tools</depend>
-  <depend>pinocchio</depend>
-  <depend>linear_feedback_controller</depend>
-  <depend>linear_feedback_controller_msgs</depend>
-  
   <exec_depend>ros2launch</exec_depend>
 
   <export>

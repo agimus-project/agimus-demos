@@ -19,3 +19,9 @@ source install/setup.bash
 cd workspace
 reset && source install/setup.bash && ros2 launch agimus_demo_01_lfc_alone bringup.launch.py
 ```
+
+
+## Start the demo on hardware using the Panda robot.
+```bash
+ros2 launch agimus_demo_01_lfc_alone bringup_hw.launch.py arm_id:=fer robot_ip:=<fci-ip>
+```
