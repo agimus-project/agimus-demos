@@ -1,4 +1,4 @@
-AGIMUS demo 01 lfc alone
+AGIMUS demo 02 simple pd plus
 --------------------------------
 
 The purpose of this demo is to run the [linear_feedback_controller](https://github.com/loco-3d/linear-feedback-controller) (LFC) in simulation and on the real robot.
