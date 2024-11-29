@@ -30,12 +30,12 @@ def launch_setup(
     load_gripper = LaunchConfiguration("load_gripper")
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
-    franka_controllers_path = LaunchConfiguration("franka_controllers_path")
+    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
 
     arm_id_str = context.perform_substitution(arm_id)
-    franka_controllers_path_str = context.perform_substitution(franka_controllers_path)
+    franka_controllers_params_str = context.perform_substitution(franka_controllers_params)
 
     robot_description = ParameterValue(
         Command(
@@ -78,7 +78,7 @@ def launch_setup(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            franka_controllers_path_str,
+            franka_controllers_params_str,
             {"robot_description": robot_description},
             {"arm_id": arm_id},
             {"load_gripper": load_gripper},
@@ -174,7 +174,7 @@ def generate_launch_description():
             ),
         ),
         DeclareLaunchArgument(
-            "franka_controllers_path",
+            "franka_controllers_params",
             description="Path to the yaml file use to define controller parameters.",
         ),
         DeclareLaunchArgument(

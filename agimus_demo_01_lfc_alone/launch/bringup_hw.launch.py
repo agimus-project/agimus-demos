@@ -3,7 +3,9 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
+    RegisterEventHandler,
 )
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
@@ -22,7 +24,7 @@ def launch_setup(
     fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
     use_rviz = LaunchConfiguration("use_rviz")
 
-    franka_controllers_path = PathJoinSubstitution(
+    franka_controllers_params = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_01_lfc_alone"),
             "config",
@@ -73,14 +75,19 @@ def launch_setup(
             "use_fake_hardware": use_fake_hardware,
             "fake_sensor_commands": fake_sensor_commands,
             "use_rviz": use_rviz,
-            "franka_controllers_path": franka_controllers_path,
+            "franka_controllers_params": franka_controllers_params,
         }.items(),
     )
 
     return [
         franka_bringup_launch,
-        load_joint_state_estimator,
         load_linear_feedback_controller,
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=load_linear_feedback_controller.entities[-1],
+                on_exit=[load_joint_state_estimator]
+            )
+        ),
     ]
 
 
