@@ -105,7 +105,8 @@ def launch_setup(
         ],
     )
     load_joint_state_broadcaster = generate_load_controller_launch_description(
-        "joint_state_broadcaster"
+        controller_name="joint_state_broadcaster",
+        controller_type="franka_robot_state_broadcaster/FrankaRobotStateBroadcaster"
     )
     load_franka_robot_state_broadcaster = Node(
         package="controller_manager",
