@@ -33,7 +33,6 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import AppendEnvironmentVariable
-
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -82,6 +81,7 @@ def prepare_launch_description():
     load_gripper_name = 'load_gripper'
     franka_hand_name = 'franka_hand'
     arm_id_name = 'arm_id'
+    package_name = 'agimus_demo_01_lfc_alone'
 
     load_gripper = LaunchConfiguration(load_gripper_name)
     franka_hand = LaunchConfiguration(franka_hand_name)
@@ -139,7 +139,7 @@ def prepare_launch_description():
 
     joint_state_estimator_params = PathJoinSubstitution(
         [
-            FindPackageShare("agimus_demo_01_lfc_alone"),
+            FindPackageShare(package_name),
             "config",
             "joint_state_estimator.yaml",
         ]
@@ -151,7 +151,7 @@ def prepare_launch_description():
 
     linear_feedback_controller_params = PathJoinSubstitution(
         [
-            FindPackageShare("agimus_demo_01_lfc_alone"),
+            FindPackageShare(package_name),
             "config",
             "linear_feedback_controller.yaml",
         ]
