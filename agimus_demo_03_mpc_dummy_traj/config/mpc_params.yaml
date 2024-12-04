@@ -1,0 +1,17 @@
+ocp:
+  dt: 0.01
+  horizon_size: 20
+  armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  gripper_weight: 500
+  state_weight: 5
+  control_weight: 0.001
+  max_qp_iter: 100
+  max_iter: 10
+  use_constraints: True
+  activate_callback: False
+  increasing_weights:
+    max: 100.0
+    percent: 0.9
+    time_reach_percent: 6
+save_predictions_and_refs: True
+rate: 100
