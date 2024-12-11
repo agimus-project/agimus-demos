@@ -183,19 +183,6 @@ def prepare_launch_description():
         controller_params_file=linear_feedback_controller_params,
     )
 
-    # PD plus
-    pd_plus_controller_yaml = str(
-        Path(get_package_share_directory(package_name))
-        / "config"
-        / "pd_plus_controller.yaml"
-    )
-    pd_plus_controller = Node(
-        package="linear_feedback_controller",
-        executable="pd_plus_controller",
-        output="screen",
-        parameters=[pd_plus_controller_yaml],
-    )
-
     # MPC
     mpc_params_yaml = str(
         Path(get_package_share_directory(package_name)) / "config" / "mpc_params.yaml"
