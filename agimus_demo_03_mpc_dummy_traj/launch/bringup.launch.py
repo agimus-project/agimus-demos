@@ -184,15 +184,12 @@ def prepare_launch_description():
     )
 
     # MPC
-    mpc_params_yaml = str(
-        Path(get_package_share_directory(package_name)) / "config" / "mpc_params.yaml"
-    )
     mpc_controller = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         name="agimus_controller_node",
         output="screen",
-        parameters=[mpc_params_yaml],
+        parameters=[],
     )
 
     return LaunchDescription(
