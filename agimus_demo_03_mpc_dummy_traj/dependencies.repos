@@ -26,8 +26,8 @@ repositories:
 
   vcs_repos/franka_ros:
     type: git
-    url: https://github.com/frankaemika/franka_ros
-    version: develop
+    url: https://github.com/agimus-project/franka_ros2
+    version: v0.1.15
 
   vcs_repos/agimus_controller:
     type: git

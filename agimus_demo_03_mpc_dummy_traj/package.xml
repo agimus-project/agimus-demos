@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>agimus_demo_03_mpc_dummy_traj</name>
   <version>0.0.0</version>
-  <description>
-    agimus_demo_03_mpc_dummy_traj contains the entry points for a simple Panda demo with LFC and
-    a MPC sending commands while following a dummy trajectory.
-  </description>
-  <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
-  <author>Maximilien Naveau</author>
+  <description> agimus_demo_03_mpc_dummy_traj contains the entry points for a simple Panda demo with
+    LFC and a MPC sending commands while following a dummy trajectory. </description>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
 
   <license>BSD-2</license>
   <url type="website">https://www.agimus-project.eu/</url>
@@ -15,27 +14,28 @@
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
+  <!-- ROS dependencies -->
+  <depend>xacro</depend>
+  <depend>ros2controlcli</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>linear_feedback_controller</depend>
+  <depend>rviz2</depend>
+  <depend>controller_manager</depend>
+  <depend>ros_gz_sim</depend>
+  <depend>joint_state_broadcaster</depend>
 
-  <!-- <build_depend>eigen</build_depend>
-  <buildtool_export_depend>eigen3_cmake_module</buildtool_export_depend>
-  <build_export_depend>eigen</build_export_depend>
-  
-  <depend>rclcpp</depend>
-  <depend>rclcpp_lifecycle</depend>
-  <depend>controller_interface</depend>
-  <depend>hardware_interface</depend>
-  <depend>pluginlib</depend>
-  <depend>realtime_tools</depend>
-  <depend>pinocchio</depend>
-  <depend>linear_feedback_controller_msgs</depend> -->
 
+  <!-- Run-time dependencies -->
+  <exec_depend>linear_feedback_controller_msgs</exec_depend>
   <exec_depend>ros2launch</exec_depend>
+  <exec_depend>coal</exec_depend>
+  <exec_depend>colmpc</exec_depend>
+  <exec_depend>mim_solvers</exec_depend>
+  <exec_depend>franka_ros</exec_depend>
+  <exec_depend>agimus_controller_ros</exec_depend>
 
-  <!-- <test_depend>example-robot-data</test_depend>
-  <test_depend>gtest</test_depend> -->
 
   <export>
     <build_type>ament_cmake</build_type>
-    <controller_interface plugin="${prefix}/controller_plugins.xml" />
   </export>
 </package>
