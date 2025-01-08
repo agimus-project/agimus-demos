@@ -5,7 +5,6 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 project(agimus_demo_03_mpc_dummy_traj LANGUAGES CXX)
 
-
 #
 # Handle dependencies by reading the package.xml
 #
@@ -26,7 +25,4 @@ endif()
 #
 # Installation
 #
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
-
-ament_auto_package()
+ament_auto_package(INSTALL_TO_SHARE config launch)
