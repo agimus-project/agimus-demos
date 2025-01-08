@@ -81,12 +81,19 @@ def launch_setup(
     )
 
     # MPC
+    mpc_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare(package_name),
+            "config",
+            "mpc_params.yaml",
+        ]
+    )
     mpc_controller = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         name="agimus_controller_node",
         output="screen",
-        parameters=[],
+        parameters=[mpc_yaml],
     )
 
     return [

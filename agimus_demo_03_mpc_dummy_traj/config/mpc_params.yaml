@@ -1,64 +1,32 @@
-#agimus_controller_node:
-#  ros__parameters:
-ocp:
-  dt:
-    type: double
-    default_value: 0.01
-    description: "Step time of the OCP"
-  horizon_size:
-    type: int
-    default_value: 20
-    description: "Number of nodes of the OCP"
-  armature:
-    type: double_array
-    default_value: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    description: "Armature for each OCP node"
-  gripper_weight:
-    type: int
-    default_value: 500
-    description: ""
-  state_weight:
-    type: int
-    default_value: 5
-    description: ""
-  control_weight:
-    type: double
-    default_value: 0.001
-    description: ""
-  max_qp_iter:
-    type: int
-    default_value: 100
-    description: "Maximum number of qp iterations of the solver"
-  max_iter:
-    type: int
-    default_value: 10
-    description: "Maximum number of iterations of the solver"
-  use_constraints:
-    type: bool
-    default_value: True
-    description: "if True we have Collisions constraints and we use CSQP solver, if False we use FDDP solver"
-  activate_callback:
-    type: bool
-    default_value: False
-    description: "Whether or not we want to use solver callbacks"
-moving_joint_names:
-  type: string_array
-  default_value:
-    [
-      "fer_joint1",
-      "fer_joint2",
-      "fer_joint3",
-      "fer_joint4",
-      "fer_joint5",
-      "fer_joint6",
-      "fer_joint7",
-    ]
-  description: "The name of the joints we use"
-publish_debug_datas:
-  type: bool
-  default_value: True
-  description: "Wether we publish debug datas or not"
-rate:
-  type: int
-  default_value: 100
-  description: "Rate of mpc node"
+agimus_controller_node:
+  ros__parameters:
+    ocp:
+      dt: 0.01
+      horizon_size: 20
+      armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      gripper_weight: 500.0
+      state_weight: 5.0
+      control_weight: 0.001
+      max_qp_iter: 100
+      max_iter: 10
+      use_constraints: True
+      activate_callback: False
+      increasing_weights:
+        max: 100.0
+        percent: 0.9
+        time_reach_percent: 6
+      effector_frame_name: "fer_link8"
+    moving_joint_names:
+      [
+        "fer_joint1",
+        "fer_joint2",
+        "fer_joint3",
+        "fer_joint4",
+        "fer_joint5",
+        "fer_joint6",
+        "fer_joint7",
+      ]
+    save_predictions_and_refs: True
+    rate: 100.0
+    package_name: "agimus_demo_03_mpc_dummy_traj"
+    path_to_yaml: "config/mpc_params.yaml"
