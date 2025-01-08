@@ -31,7 +31,8 @@
   <exec_depend>coal</exec_depend>
   <exec_depend>colmpc</exec_depend>
   <exec_depend>mim_solvers</exec_depend>
-  <exec_depend>franka_ros</exec_depend>
+  <exec_depend>franka_bringup</exec_depend>
+  <exec_depend>franka_gazebo_bringup</exec_depend>
   <exec_depend>agimus_controller_ros</exec_depend>
 
 
