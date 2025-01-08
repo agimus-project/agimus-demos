@@ -14,18 +14,15 @@
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
-  <!-- ROS dependencies -->
-  <depend>xacro</depend>
-  <depend>ros2controlcli</depend>
-  <depend>robot_state_publisher</depend>
-  <depend>linear_feedback_controller</depend>
-  <depend>rviz2</depend>
-  <depend>controller_manager</depend>
-  <depend>ros_gz_sim</depend>
-  <depend>joint_state_broadcaster</depend>
-
-
   <!-- Run-time dependencies -->
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>ros2controlcli</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>linear_feedback_controller</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>linear_feedback_controller_msgs</exec_depend>
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>coal</exec_depend>

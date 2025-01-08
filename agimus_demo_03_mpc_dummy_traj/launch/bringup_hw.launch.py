@@ -40,6 +40,7 @@ def launch_setup(
             "joint_state_estimator.yaml",
         ]
     )
+
     load_joint_state_estimator = generate_load_controller_launch_description(
         controller_name="joint_state_estimator",
         controller_params_file=joint_state_estimator_params,
@@ -52,6 +53,7 @@ def launch_setup(
             "linear_feedback_controller.yaml",
         ]
     )
+
     load_linear_feedback_controller = generate_load_controller_launch_description(
         controller_name="linear_feedback_controller",
         controller_params_file=linear_feedback_controller_params,
@@ -81,19 +83,20 @@ def launch_setup(
     )
 
     # MPC
-    mpc_yaml = PathJoinSubstitution(
+    mpc_controller_yaml = PathJoinSubstitution(
         [
             FindPackageShare(package_name),
             "config",
             "mpc_params.yaml",
         ]
     )
+
     mpc_controller = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         name="agimus_controller_node",
         output="screen",
-        parameters=[mpc_yaml],
+        parameters=[mpc_controller_yaml],
     )
 
     return [
