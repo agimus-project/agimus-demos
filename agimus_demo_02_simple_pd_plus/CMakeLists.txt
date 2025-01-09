@@ -5,7 +5,6 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 project(agimus_demo_02_simple_pd_plus LANGUAGES CXX)
 
-
 #
 # Handle dependencies by reading the package.xml
 #

@@ -22,7 +22,7 @@
   <depend>pinocchio</depend>
   <depend>linear_feedback_controller</depend>
   <depend>linear_feedback_controller_msgs</depend>
-  
+
   <exec_depend>ros2launch</exec_depend>
 
   <export>

@@ -24,7 +24,6 @@ from controller_manager.launch_utils import generate_load_controller_launch_desc
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
     load_gripper = LaunchConfiguration("load_gripper")
@@ -35,7 +34,9 @@ def launch_setup(
     rviz_config_path = LaunchConfiguration("rviz_config_path")
 
     arm_id_str = context.perform_substitution(arm_id)
-    franka_controllers_params_str = context.perform_substitution(franka_controllers_params)
+    franka_controllers_params_str = context.perform_substitution(
+        franka_controllers_params
+    )
 
     robot_description = ParameterValue(
         Command(
@@ -106,7 +107,7 @@ def launch_setup(
     )
     load_joint_state_broadcaster = generate_load_controller_launch_description(
         controller_name="joint_state_broadcaster",
-        controller_type="franka_robot_state_broadcaster/FrankaRobotStateBroadcaster"
+        controller_type="franka_robot_state_broadcaster/FrankaRobotStateBroadcaster",
     )
     load_franka_robot_state_broadcaster = Node(
         package="controller_manager",

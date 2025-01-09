@@ -85,7 +85,7 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_linear_feedback_controller.entities[-1],
-                on_exit=[load_joint_state_estimator]
+                on_exit=[load_joint_state_estimator],
             )
         ),
     ]
