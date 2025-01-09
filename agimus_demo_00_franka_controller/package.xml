@@ -13,7 +13,7 @@
   <url type="repository">https://github.com/agimus-project/agimus-demos</url>
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
-  
+
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>franka_description</exec_depend>
 

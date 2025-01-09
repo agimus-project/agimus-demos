@@ -23,7 +23,7 @@ def launch_setup(
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
     use_rviz = LaunchConfiguration("use_rviz")
-    package_name = 'agimus_demo_02_simple_pd_plus'
+    package_name = "agimus_demo_02_simple_pd_plus"
 
     franka_controllers_params = PathJoinSubstitution(
         [
@@ -89,10 +89,10 @@ def launch_setup(
         ]
     )
     pd_plus_controller = Node(
-        package='linear_feedback_controller',
-        executable='pd_plus_controller',
-        output='screen',
-        parameters=[pd_plus_controller_yaml]
+        package="linear_feedback_controller",
+        executable="pd_plus_controller",
+        output="screen",
+        parameters=[pd_plus_controller_yaml],
     )
 
     return [
@@ -101,13 +101,13 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_linear_feedback_controller.entities[-1],
-                on_exit=[load_joint_state_estimator]
+                on_exit=[load_joint_state_estimator],
             )
         ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_estimator.entities[-1],
-                on_exit=[pd_plus_controller]
+                on_exit=[pd_plus_controller],
             )
         ),
     ]
