@@ -1,0 +1,11 @@
+repositories:
+
+  vcs_repos/linear_feedback_controller:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller
+    version: humble-devel
+
+  vcs_repos/linear_feedback_controller_msgs:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller-msgs
+    version: humble-devel
