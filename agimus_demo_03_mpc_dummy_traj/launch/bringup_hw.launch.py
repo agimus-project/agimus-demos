@@ -82,8 +82,7 @@ def launch_setup(
         }.items(),
     )
 
-    # MPC
-    mpc_controller_yaml = PathJoinSubstitution(
+    agimus_controller_yaml = PathJoinSubstitution(
         [
             FindPackageShare(package_name),
             "config",
@@ -91,12 +90,12 @@ def launch_setup(
         ]
     )
 
-    mpc_controller = Node(
+    agimus_controller = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         name="agimus_controller_node",
         output="screen",
-        parameters=[mpc_controller_yaml],
+        parameters=[agimus_controller_yaml],
     )
 
     return [
@@ -111,13 +110,13 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_estimator.entities[-1],
-                on_exit=[mpc_controller],
+                on_exit=[agimus_controller],
             )
         ),
         Node(
             package="agimus_controller_ros",
-            executable="mpc_input_dummy_publisher",
-            name="mpc_input_dummy_publisher",
+            executable="simple_trajectory_publisher",
+            name="simple_trajectory_publisher",
             output="screen",
         ),
     ]

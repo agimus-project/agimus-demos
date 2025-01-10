@@ -184,17 +184,19 @@ def prepare_launch_description():
     )
 
     # MPC
-    mpc_controller_yaml = str(
-        Path(get_package_share_directory(package_name))
-        / "config"
-        / "mpc_controller_params.yaml"
+    agimus_controller_params = PathJoinSubstitution(
+        [
+            FindPackageShare(package_name),
+            "config",
+            "agimus_controller_params.yaml",
+        ]
     )
-    mpc_controller = Node(
+    agimus_controller = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         name="agimus_controller_node",
         output="screen",
-        parameters=[mpc_controller_yaml],
+        parameters=[agimus_controller_params],
     )
 
     return LaunchDescription(
@@ -227,7 +229,7 @@ def prepare_launch_description():
             RegisterEventHandler(
                 event_handler=OnProcessExit(
                     target_action=load_joint_state_estimator.entities[-1],
-                    on_exit=[mpc_controller],
+                    on_exit=[agimus_controller],
                 )
             ),
             Node(
@@ -238,8 +240,8 @@ def prepare_launch_description():
             ),
             Node(
                 package="agimus_controller_ros",
-                executable="mpc_input_dummy_publisher",
-                name="mpc_input_dummy_publisher",
+                executable="simple_trajectory_publisher",
+                name="simple_trajectory_publisher",
                 output="screen",
             ),
         ]
