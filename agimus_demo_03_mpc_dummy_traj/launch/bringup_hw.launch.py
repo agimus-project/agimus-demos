@@ -87,7 +87,7 @@ def launch_setup(
         [
             FindPackageShare(package_name),
             "config",
-            "mpc_params.yaml",
+            "mpc_controller_params.yaml",
         ]
     )
 
