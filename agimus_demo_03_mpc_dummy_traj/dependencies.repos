@@ -1,0 +1,55 @@
+repositories:
+  vcs_repos/linear_feedback_controller_msgs:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller-msgs
+    version: humble-devel
+
+  vcs_repos/coal:
+    type: git
+    url: https://github.com/coal-library/coal
+    version: v3.0.0
+
+  vcs_repos/pinocchio:
+    type: git
+    url: https://github.com/stack-of-tasks/pinocchio
+    version: v3.3.0
+
+  vcs_repos/colmpc:
+    type: git
+    url: https://github.com/agimus-project/colmpc
+    version: v0.2.0
+
+  vcs_repos/mim_solvers:
+    type: git
+    url: https://github.com/machines-in-motion/mim_solvers
+    version: v0.0.3
+
+  vcs_repos/franka_ros:
+    type: git
+    url: https://github.com/agimus-project/franka_ros2
+    version: v0.1.15
+
+  vcs_repos/agimus_controller:
+    type: git
+    url: https://github.com/agimus-project/agimus_controller
+    version: humble-devel
+
+  vcs_repos/agimus_msgs:
+    type: git
+    url: https://github.com/agimus-project/agimus_msgs
+    version: humble-devel
+
+  vcs_repos/crocoddyl:
+    type: git
+    url: https://github.com/loco-3d/crocoddyl
+    version: v2.1.0
+
+  vcs_repos/example-robot-data:
+    type: git
+    url: https://github.com/Gepetto/example-robot-data.git
+    version: v4.2.0
+
+  vcs_repos/linear-feedback-controller:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller
+    version: humble-devel

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>agimus_demo_03_mpc_dummy_traj</name>
+  <version>0.0.0</version>
+  <description> agimus_demo_03_mpc_dummy_traj contains the entry points for a simple Panda demo with
+    LFC and a MPC sending commands while following a dummy trajectory. </description>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
+
+  <license>BSD-2</license>
+  <url type="website">https://www.agimus-project.eu/</url>
+  <url type="repository">https://github.com/agimus-project/agimus-demos</url>
+  <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
+
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <!-- Run-time dependencies -->
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>ros2controlcli</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>linear_feedback_controller</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>linear_feedback_controller_msgs</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>coal</exec_depend>
+  <exec_depend>colmpc</exec_depend>
+  <exec_depend>mim_solvers</exec_depend>
+  <exec_depend>franka_bringup</exec_depend>
+  <exec_depend>franka_gazebo_bringup</exec_depend>
+  <exec_depend>agimus_controller_ros</exec_depend>
+
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

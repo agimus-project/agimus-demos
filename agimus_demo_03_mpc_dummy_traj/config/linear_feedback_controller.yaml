@@ -1,0 +1,40 @@
+linear_feedback_controller:
+  ros__parameters:
+    type: linear_feedback_controller/LinearFeedbackController
+    moving_joint_names: [
+      'fer_joint1',
+      'fer_joint2',
+      'fer_joint3',
+      'fer_joint4',
+      'fer_joint5',
+      'fer_joint6',
+      'fer_joint7'
+    ]
+    fer_joint1:
+      p: 60.0
+      d: 5.0
+    fer_joint2:
+      p: 60.0
+      d: 5.0
+    fer_joint3:
+      p: 60.0
+      d: 5.0
+    fer_joint4:
+      p: 60.0
+      d: 2.0
+    fer_joint5:
+      p: 20.0
+      d: 2.0
+    fer_joint6:
+      p: 10.0
+      d: 2.0
+    fer_joint7:
+      p: 5.0
+      d: 1.0
+    chainable_controller:
+      command_prefix: ''
+      reference_prefix: ''
+    joint_velocity_filter_coefficient: 0.9
+    pd_to_lf_transition_duration: 0.1
+    remove_gravity_compensation_effort: true
+    robot_has_free_flyer: false
