@@ -1,17 +1,17 @@
 ocp:
     dt: 0.01
-    horizon_size: 30 # hs : 100 , u_w: 0.07, inc_w : max :1.0, per : 0.9, time: 4, vel = inc_w /20
+    horizon_size: 20 # hs : 100 , u_w: 0.07, inc_w : max :1.0, per : 0.9, time: 4, vel = inc_w /20
     armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     gripper_weight: 500
-    state_weight: 0.2
-    control_weight: 0.03
+    state_weight: 0.3
+    control_weight: 0.006
     max_qp_iter: 100
-    max_iter: 7
+    max_iter: 300
     use_constraints: True
     activate_callback: False
     effector_frame_name: "panda_hand_tcp"
     increasing_weights:
-        max: 4.0
+        max: 8.0
         percent: 0.9
         time_reach_percent: 10
 save_predictions_and_refs: True
@@ -19,4 +19,3 @@ rate: 100
 use_vision: False
 use_vision_simulated: True
 start_visual_servoing_dist: 0.08
-

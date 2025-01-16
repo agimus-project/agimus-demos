@@ -2,22 +2,22 @@ obstacle1:
     type: "capsule"
     radius: 0.1
     halfLength: 0.2
-    translation: [0.79, 0, 0.45]
-    rotation: [0.5, 0.5, 0.5, -0.5]
+    translation: [0.7, -0.18, 0.45]
+    rotation: [0.0, 7.07106781e-1, 0.0, 7.07106781e-1]
 
 obstacle2:
     type: "capsule"
     radius: 0.1
     halfLength: 0.2
-    translation: [0.32, 0, 0.15]
+    translation: [0.36, -0.1, 0.15]
     rotation: [0.5, 0.5, 0.5, -0.5]
 
 obstacle3:
     type: "capsule"
     radius: 0.1
     halfLength: 0.2
-    translation: [0.86, 0, 0.15]
-    rotation: [0.5, 0.5, 0.5, -0.5]
+    translation: [0.6, -0.27, 0.15]
+    rotation: [0.0, 7.07106781e-1, 0.0, 7.07106781e-1]
 
 support_link_0:
     in_hpp: True
@@ -29,8 +29,12 @@ support_link_0:
     rotation: [0, 0, 0, 1] #qx,qy,qz,qw
 
 collision_pairs:
+    - ["panda_link5_sc_capsule_0", "obstacle1"]
+    - ["panda_link7_sc_0", "obstacle1"]
     - ["panda_leftfinger_capsule_0", "obstacle1"]
+    - ["panda_link3_sc_capsule_0", "obstacle2"]
     - ["panda_link5_sc_capsule_0", "obstacle2"]
     - ["panda_leftfinger_capsule_0", "obstacle2"]
-    - ["panda_link5_sc_capsule_0", "obstacle1"]
+    - ["panda_link3_sc_capsule_0", "obstacle3"]
+    - ["panda_link5_sc_capsule_0", "obstacle3"]
     - ["panda_leftfinger_capsule_0", "obstacle3"]

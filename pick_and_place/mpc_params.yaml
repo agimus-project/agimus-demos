@@ -1,12 +1,13 @@
 ocp:
     dt: 0.01
-    horizon_size: 20
+    horizon_size: 25
     armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    gripper_weight: 500
-    state_weight: 2
-    control_weight: 0.005
+    # settings 1 g_w 500 s_w 1.0 c_w 0.007
+    gripper_weight: 0.5
+    state_weight: 12.0
+    control_weight: 0.001
     max_qp_iter: 100
-    max_iter: 10
+    max_iter: 5
     use_constraints: True
     activate_callback: False
     effector_frame_name: "panda_hand_tcp"
@@ -19,4 +20,3 @@ rate: 100
 use_vision: False
 use_vision_simulated: True
 start_visual_servoing_dist: 0.08
-
