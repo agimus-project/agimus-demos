@@ -5,6 +5,6 @@ find_package(catkin REQUIRED)
 
 catkin_package()
 
-install(DIRECTORY pick_and_place
+install(DIRECTORY pick_and_place reaching_goal
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

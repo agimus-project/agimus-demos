@@ -8,8 +8,8 @@ obstacle1:
 obstacle2:
     type: "capsule"
     radius: 0.1
-    halfLength: 0.3
-    translation: [0.32, -0.2, 0.15]
+    halfLength: 0.2
+    translation: [0.32, 0, 0.15]
     rotation: [0.5, 0.5, 0.5, -0.5]
 
 obstacle3:
