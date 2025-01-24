@@ -16,7 +16,7 @@ source install/setup.bash
 
 ## Start the demo in simulation using the Panda robot.
 ```bash
-cd workspace
+cd ros2_ws
 reset && source install/setup.bash && ros2 launch agimus_demo_01_lfc_alone bringup.launch.py
 ```
 
