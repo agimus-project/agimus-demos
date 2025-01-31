@@ -1,4 +1,10 @@
 repositories:
+
+  vcs_repos/pal_statistics:
+    type: git
+    url: https://github.com/pal-robotics/pal_statistics.git
+    version: humble-devel
+
   vcs_repos/franka_description:
     type: git
     url: https://github.com/agimus-project/franka_description
