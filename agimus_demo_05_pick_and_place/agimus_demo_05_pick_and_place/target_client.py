@@ -8,17 +8,14 @@ from geometry_msgs.msg import Pose
 
 class TargetClient(Node):
     def __init__(self):
-        super().__init__('target_client')
+        super().__init__("target_client")
 
         # Joint states subscriber
         self.subscription = self.create_subscription(
             Pose,
-            '/target_object',
+            "/target_object",
             self.callback,
-            QoSProfile(
-                depth=10,
-                reliability=ReliabilityPolicy.BEST_EFFORT
-            )
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
         self.current_object_pose = None
         self.future = Future()

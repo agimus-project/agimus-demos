@@ -6,8 +6,7 @@ from control_msgs.action import GripperCommand
 class FrankaGripperClient(Node):
     def __init__(self):
         super().__init__("franka_gripper_client")
-        self.client = ActionClient(
-            self, GripperCommand, "/fer_gripper/gripper_action")
+        self.client = ActionClient(self, GripperCommand, "/fer_gripper/gripper_action")
 
     def send_goal(self, position: float, max_effort: float):
         """Sends a goal to the GripperCommand action server."""

@@ -8,17 +8,14 @@ from sensor_msgs.msg import JointState
 
 class StateClient(Node):
     def __init__(self):
-        super().__init__('state_client')
+        super().__init__("state_client")
 
         # Joint states subscriber
         self.subscription = self.create_subscription(
             JointState,
-            '/joint_states',
+            "/joint_states",
             self.joint_state_callback,
-            QoSProfile(
-                depth=10,
-                reliability=ReliabilityPolicy.BEST_EFFORT
-            )
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
 
         self.current_state = None

@@ -41,9 +41,15 @@ def launch_setup(
     )
 
     pick_and_place_node = ExecuteProcess(
-            cmd=['gnome-terminal', '--', 'bash', '-c', 'source /opt/ros/humble/setup.bash && python3 -i $(ros2 pkg prefix your_package --share)/scripts/pick_and_place_node.py'],
-            output='screen'
-        )
+        cmd=[
+            "gnome-terminal",
+            "--",
+            "bash",
+            "-c",
+            "source /opt/ros/humble/setup.bash && python3 -i $(ros2 pkg prefix your_package --share)/scripts/pick_and_place_node.py",
+        ],
+        output="screen",
+    )
 
     return [
         franka_robot_launch,
