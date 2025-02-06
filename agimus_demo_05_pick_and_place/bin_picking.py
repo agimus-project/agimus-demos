@@ -232,7 +232,8 @@ class BinPicking(object):
         self.graph.initialize()
         self.transitionPlanner = self.wd(self.ps.client.manipulation.problem.\
                                       createTransitionPlanner())
-        self.transitionPlanner.timeOut(3.)
+        self.transitionPlanner.timeOut(3.)  # need to set both for hpp to not segfault
+        self.transitionPlanner.maxIterations(3000)  # need to set both for hpp to not segfault
         self.transitionPlanner.setPathProjector('Progressive', 0.2)
         self.transitionPlanner.addPathOptimizer("EnforceTransitionSemantic")
         self.transitionPlanner.addPathOptimizer("SimpleTimeParameterization")

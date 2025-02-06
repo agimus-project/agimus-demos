@@ -97,8 +97,6 @@ ps.addPathOptimizer("SimpleTimeParameterization")
 ps.setParameter("SimpleTimeParameterization/order", 2)
 ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
 ps.setParameter("SimpleTimeParameterization/safety", 0.95)
-# ps.setParameter("timeOut", 1.)]
-ps.setTimeOutPathPlanning(1.0)
 
 
 # Add path projector to avoid discontinuities
@@ -109,7 +107,7 @@ vf.loadObjectModel(TLess, "part")
 vf.loadObjectModel(Box, "box")
 
 robot.setJointBounds("part/root_joint", [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2])
-robot.setJointBounds("box/root_joint", [-1.0, 1.0, -1.0, 1.0, 0.0, 1.8])
+robot.setJointBounds("box/root_joint", [-1.0, 1.0, -1.0, 1.0, 0.0, 5.8])
 
 print("Part and box loaded")
 robot.client.manipulation.robot.insertRobotSRDFModel(
@@ -278,61 +276,6 @@ def path_move_object(path):
 
 def GrabAndDrop(robot, ps, binPicking, q_init):
 
-    # ____________GETTING_THE_POSE____________
-
-    # quaternion is X, Y, Z, W
-
-    # if acq_type == "input_config":
-    #     print("[INFO] Input the config.")
-    #     data_input = input("Enter the XYZQUAT : ")
-    #     data_input = ast.literal_eval(data_input)
-    #     quat = Quaternion(data_input[3], data_input[4], data_input[5], data_input[6])
-    #     quat = quat.normalised
-    #     q_input = [
-    #         data_input[0],
-    #         data_input[1],
-    #         data_input[2],
-    #         quat[0],
-    #         quat[1],
-    #         quat[2],
-    #         quat[3],
-    #     ]
-    #     q_init[9:16], wMo = q_input, None
-
-    # if acq_type == "ros_bridge_config":
-    #     print("[INFO] Make sure the /happypose/detections ros topic exist !")
-    #     input("Press [ENTER] to proceed ...")
-    #     print("Gathering poses")
-    #     pose = vision_listener.in_world_pose_object
-    #     quat = Quaternion(
-    #         [
-    #             pose.orientation.x,
-    #             pose.orientation.y,
-    #             pose.orientation.z,
-    #             pose.orientation.w,
-    #         ]
-    #     )
-    #     quat = quat.normalised
-    #     q_bridge = [
-    #         pose.position.x,
-    #         pose.position.y,
-    #         pose.position.z,
-    #         quat[0],
-    #         quat[1],
-    #         quat[2],
-    #         quat[3],
-    #     ]
-    #     q_init[9:16], wMo = q_bridge, None
-
-    # if (
-    #     acq_type != "test_config"
-    #     and acq_type != "input_config"
-    #     and acq_type != "ros_bridge_config"
-    #     and acq_type != "given_config"
-    # ):
-    #     raise ValueError("acquistion type for q_init is unknown.")
-    # ___________________________________________
-    
     poses = np.array(q_init[9:16])
 
     print(q_init)
@@ -410,7 +353,8 @@ if __name__ == "__main__":
     input_config = "input_config"
     ros_bridge_config = "ros_bridge_config"
     given_config = "given_config :"
-    q_init, path_id = GrabAndDrop(robot, ps, binPicking, q_init)
-    path_len = ps.pathLength(path_id)
-    configs = [ps.configAtParam(path_id, t) for t in np.linspace(0, path_len, 100) ]
+    
+    q_init, path_vector = GrabAndDrop(robot, ps, binPicking, q_init)
+    path_len = path_vector.length()
+    configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
     pickle.dump(configs, open("q_init.pkl", "wb"))
