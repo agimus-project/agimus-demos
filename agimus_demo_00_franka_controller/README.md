@@ -3,6 +3,11 @@ AGIMUS demo 00 Franka Controller
 
 This demo checks whether of ROS 2 dependencies for Franka robots was done correctly.
 
+### Dependencies
+
+This demo requires source built of dependencies found in:
+- [fraka.repos](../franka.repos)
+
 ### Simulation
 
 > [!NOTE]
