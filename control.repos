@@ -1,9 +1,8 @@
 ---
 repositories:
 
-  # TODO Until Pinocchio has a proper way to be installed with Colcon
-  # where it expects Coal and not hpp-fcl 2.1.2 there is no point in
-  # trying to build any of that from source with Colcon...
+  # TODO Until Pinocchio uses Coal as package.xml dependency
+  # instead of hpp-fcl this can not be installed from source...
 
   # vcs_control/eigenpy:
   #   type: git
