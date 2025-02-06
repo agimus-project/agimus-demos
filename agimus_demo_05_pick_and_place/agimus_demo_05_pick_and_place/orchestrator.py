@@ -60,11 +60,11 @@ class Orchestrator(object):
 
     def go_to_parking_pose(self):
         self.go_to(self.param.parking_configuration)
+    
+    def go_to_destination_pose(self):
+        self.go_to(self.param.destination_configuration)
 
     def go_to_pre_grasp(self):
         new_target_pose = self.target_client.wait_for_new_target_pose()
         trajectory = self.go_to_ee(new_target_pose)
         self.trajectory_publisher(trajectory)
-    
-    def go_to_destination(self):
-
