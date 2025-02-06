@@ -9,9 +9,9 @@
     <!-- Is the robot being simulated in gazebo?" -->
     <xacro:arg name="gazebo" default="false" />
 
-    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_04_hpp_mpc/urdf/utils.xacro" />
-    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_04_hpp_mpc/urdf/franka_arm.xacro" />
-    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_04_hpp_mpc/urdf/franka_hand.xacro"/>
+    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/urdf/utils.xacro" />
+    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/urdf/franka_arm.xacro" />
+    <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/urdf/franka_hand.xacro"/>
 
     <xacro:franka_arm arm_id="${arm_id}" safety_distance="0.03" gazebo="$(arg gazebo)" joint_limits="${joint_limits}"/>
 
@@ -27,7 +27,7 @@
 
     <!-- D435 camera -->
     <xacro:property name="camera_pose_file"
-                    value="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_04_hpp_mpc/calibrated-params.yaml" />
+                    value="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/calibrated-params.yaml" />
     <xacro:property name="camera_pose" value="${load_yaml(camera_pose_file)}"/>
 
     <link name="${arm_id}_ref_camera_link"/>

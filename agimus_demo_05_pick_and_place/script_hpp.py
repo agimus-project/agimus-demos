@@ -370,7 +370,7 @@ def GrabAndDrop(robot, ps, binPicking, q_init):
 if __name__ == "__main__":
     """ 
     To run from command line:
-    cd src/agimus-demos/agimus_demo_04_hpp_mpc
+    cd src/agimus-demos/agimus_demo_05_pick_and_place
     ROS_PACKAGE_PATH=`pwd` hppcorbaserver
     """
     print("Script HPP ready !")

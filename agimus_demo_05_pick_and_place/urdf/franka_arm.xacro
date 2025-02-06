@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
 
-  <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_04_hpp_mpc/urdf/utils.xacro" />
+  <xacro:include filename="/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/urdf/utils.xacro" />
 
   <!-- safety_distance: Minimum safety distance in [m] by which the collision volumes are expanded and which is enforced during robot motions -->
   <!-- arm_id: Namespace of the robot arm. Serves to differentiate between arms in case of multiple instances. -->
