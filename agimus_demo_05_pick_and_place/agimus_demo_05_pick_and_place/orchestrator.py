@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import numpy as np
+import numpy.typing as npt
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import (
     FrankaGripperClient
@@ -24,7 +25,8 @@ from agimus_demo_05_pick_and_place.trajectory_publisher import (
 class OrchestratorParams:
     """Orchestrator parameters."""
     max_holding_force: float = 30.0
-    parking_configuration: np.array = np.zeros(0)
+    parking_configuration: npt.NDArray = np.zeros(0)
+    destination_configuration: npt.NDArray = np.zeros(0)
 
 
 class Orchestrator(object):
@@ -63,3 +65,6 @@ class Orchestrator(object):
         new_target_pose = self.target_client.wait_for_new_target_pose()
         trajectory = self.go_to_ee(new_target_pose)
         self.trajectory_publisher(trajectory)
+    
+    def go_to_destination(self):
+
