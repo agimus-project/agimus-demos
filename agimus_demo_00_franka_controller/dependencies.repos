@@ -1,6 +1,0 @@
----
-repositories:
-  vcs_repos/franka_description:
-    type: git
-    url: https://github.com/agimus-project/franka_description
-    version: humble_devel
