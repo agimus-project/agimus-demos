@@ -27,7 +27,7 @@ Expected result: after starting the demo, a Ignition Gazebo and a RViz 2 windows
 First turn on the robot and unlock joint in the web-ui. Move the robot a safe position allowing for a full range of joint motion while avoiding collisions with environment and not posing any threat to safety of people around.
 
 > [!CAUTION]
-> Before starting the launch file make sure robot is in a safe position and has sufficient movement space for it's joints and is not likely to collide with anything. Ensure all spectators are in a safe distance from the machine, a operator can quickly reach **Emergency Button** in case error occurs!
+> Before starting the launch file make sure robot is in a safe position and has sufficient movement space for it's joints and is not likely to collide with anything. Ensure all spectators are in a safe distance from the machine, and **the operator can quickly reach the Emergency Button in case error occurs**!
 
 > [!NOTE]
 > Robot will start oscillating around starting point. When restarting the demo make sure robot was stopped with sufficient joint motion left, as during a re-run it might trigger joint limit safety!
