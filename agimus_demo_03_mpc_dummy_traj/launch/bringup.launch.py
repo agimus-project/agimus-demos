@@ -9,7 +9,7 @@ from launch_ros.substitutions import FindPackageShare
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_franka_launch,
-    get_use_sime_time,
+    get_use_sim_time,
 )
 
 
@@ -29,21 +29,21 @@ def launch_setup(
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
-        parameters=[get_use_sime_time()],
+        parameters=[get_use_sim_time()],
         output="screen",
     )
 
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sime_time(), agimus_controller_yaml],
+        parameters=[get_use_sim_time(), agimus_controller_yaml],
         output="screen",
     )
 
     simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
         executable="simple_trajectory_publisher",
-        parameters=[get_use_sime_time()],
+        parameters=[get_use_sim_time()],
         output="screen",
     )
 

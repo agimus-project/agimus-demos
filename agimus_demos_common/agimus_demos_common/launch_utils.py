@@ -97,7 +97,7 @@ def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescri
     )
 
 
-def get_use_sime_time() -> dict[str, LaunchConfiguration]:
+def get_use_sim_time() -> dict[str, LaunchConfiguration]:
     """Helper function creating action setting param `use_sim_time`.
 
     Returns:

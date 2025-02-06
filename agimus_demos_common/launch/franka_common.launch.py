@@ -19,7 +19,7 @@ from launch_ros.substitutions import FindPackageShare
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    get_use_sime_time,
+    get_use_sim_time,
 )
 
 
@@ -125,7 +125,7 @@ def launch_setup(
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        parameters=[get_use_sime_time(), {"robot_description": robot_description}],
+        parameters=[get_use_sim_time(), {"robot_description": robot_description}],
         output="screen",
     )
 
@@ -133,7 +133,7 @@ def launch_setup(
         package="joint_state_publisher",
         executable="joint_state_publisher",
         parameters=[
-            get_use_sime_time(),
+            get_use_sim_time(),
             {
                 "source_list": [
                     "franka/joint_states",
@@ -147,7 +147,7 @@ def launch_setup(
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
-        parameters=[get_use_sime_time()],
+        parameters=[get_use_sim_time()],
         arguments=["--display-config", rviz_config_path],
         condition=IfCondition(use_rviz),
     )
