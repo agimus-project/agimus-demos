@@ -30,6 +30,9 @@ This docker has all the dependencies preinstalled and is split into three images
 > [!IMPORTANT]
 > Not all demos require all dependencies. Check README.md files of each demo to learn which dependencies are required.
 
+> [!TIP]
+> Eigenpy and Pinocchio have high memory footprint then built from source. Adjust `-j` flag in `MAKEFLAGS` make sure you will not run out of RAM on your machine. Current setting should work for machines with 16 GB or RAM.
+
 ```bash
 cd ~/ros2_ws
 git clone https://github.com/agimus-project/agimus-demos.git src/agimus-demos
@@ -40,14 +43,23 @@ vcs import --recursive src < src/agimus-demos/control.repos
 
 sudo apt update
 rosdep update --rosdistro $ROS_DISTRO
+# Install all dependencies that are available as binaries
 rosdep install -y -i \
     --from-paths src \
     --rosdistro $ROS_DISTRO \
-    --skip-keys libfranka
+    --skip-keys libfranka \
+    --skip-keys hpp-fcl
 
+# Source ROS base to make sure all installed packages are discovered
+source /opt/ros/$ROS_DISTRO/setup.bash
+# Set maximum number of CPU cores used by `make` while building packages
+export MAKEFLAGS="-j 6"
+# Build the workspace. Merge install is required to make Python bindings work
 colcon build \
     --symlink-install \
+    --merge-install \
     --cmake-args \
+        -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_TESTING=OFF \
         -DBUILD_BENCHMARK=OFF \
         -DBUILD_BENCHMARKS=OFF \
@@ -60,17 +72,5 @@ colcon build \
         -DBUILD_WITH_COLLISION_SUPPORT=ON \
         -DBUILD_WITH_MULTITHREADS=ON
 
-
 source install/setup.bash
 ```
-
-> [!TIP]
-> If you want full source build you can additionally run
-> ```bash
-> vcs import src < src/agimus-demos/control.source.repos
-> ```
-> Before running
-> ```bash
-> vcs import src < src/agimus-demos/control.repos
-> ```
-> This way you will install Pinocchio and it's dependencies from source in case you need to set custom build flags.

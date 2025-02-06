@@ -7,5 +7,5 @@ repositories:
 
   vcs_franka/franka_description:
     type: git
-    url: https://github.com/agimus-project/franka_ros2
+    url: https://github.com/agimus-project/franka_description
     version: humble-devel
