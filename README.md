@@ -36,7 +36,7 @@ Then following the instruction from [README.md](https://gitlab.laas.fr/agimus-pr
 ```bash
 git clone https://github.com/agimus-project/agimus-demos.git ~/ros2_ws/src/agimus-demos
 cd ~/ros2_ws
-# Ensure all dependencies are cloned
+# Ensure all dependencies are installed and up to date
 ./setup.sh
 # Build your workspace
 ./build.sh
