@@ -35,13 +35,13 @@ from create_graph import makeGraph
 
 def generateTargetConfig(robot, graph, edge, qLeaf, qRand):
     # print(f"gonna segfault? {edge}")
-    node_from, node_to = graph.getNodesConnectedByEdge(edge)
+    # node_from, node_to = graph.getNodesConnectedByEdge(edge)
     # print(graph.getConfigErrorForNode(node_from, qLeaf))
     # print(graph.getConfigErrorForNode(node_from, qRand))
-    res, q1, err = graph.generateTargetConfig(edge, qLeaf, qRand)
+    res, q1, _ = graph.generateTargetConfig(edge, qLeaf, qRand)
     # print("NOPE")
     if not res: return None
-    res, msg = robot.isConfigValid(q1)
+    res, _ = robot.isConfigValid(q1)
     # print("q1: ", q1)
     # print(msg)
     if res:
@@ -151,17 +151,21 @@ class BinPicking(object):
         Build rules for the constraint graph factory
         """
         rules = list()
-        for ig, gripper in enumerate(self.goalGrippers):
-            for ih, handle in enumerate(self.goalHandles):
-                if ig != ih:
-                    rules  += [
-                        Rule(grippers=[gripper], handles = [handle], link=False)
-                        ]
+        # the goal gripper can grasp any goal handle
+        # for ig, gripper in enumerate(self.goalGrippers):
+        #     for ih, handle in enumerate(self.goalHandles):
+                # rules  += [
+                #         Rule(grippers=[gripper], handles = [handle], link=False)
+                #         ]
+                # if ig != ih:
+                #     rules  += [
+                #         Rule(grippers=[gripper], handles = [handle], link=False)
+                #         ]
         # object cannot be placed in two goal positions at the same time
         rules += [
-            Rule(grippers=self.robotGrippers + self.goalGrippers,
-                 handles = [".*", "part/center1", "part/center2"],
-                 link=False),
+            # Rule(grippers=self.robotGrippers + self.goalGrippers,
+            #      handles = [".*", "part/center1", "part/center2"],
+            #      link=False),
             Rule(grippers=[".*"], handles=[".*"], link=True)
         ]
         return rules
@@ -169,14 +173,14 @@ class BinPicking(object):
     def _possibleGrasps(self):
         res = dict()
         # Each goal gripper can only grasp one goal handle
-        if len(self.goalGrippers) != len(self.goalHandles):
-            raise RuntimeError(
-                f"number of goal grippers ({len(self.goalGrippers)})"
-                + " should be the same as " +
-                f"number of goal handles ({len(self.goalHandles)})"
-            )
-        for g,h in zip(self.goalGrippers, self.goalHandles):
-            res[g] = [h]
+        # if len(self.goalGrippers) != len(self.goalHandles):
+        #     raise RuntimeError(
+        #         f"number of goal grippers ({len(self.goalGrippers)})"
+        #         + " should be the same as " +
+        #         f"number of goal handles ({len(self.goalHandles)})"
+        #     )
+        for g in self.goalGrippers:
+            res[g] = self.goalHandles
         for g in self.robotGrippers:
             res[g] = self.handles
         return res
@@ -273,20 +277,20 @@ class BinPicking(object):
             for ih in regularHandles:
                 handle = self.factory.handles[ih]
                 found = False
-                for igg, (goalGripper, goalHandle) in enumerate(
-                        zip(self.goalGrippers, self.goalHandles)):
-                    ggIndex = self.factory.grippers.index(goalGripper)
-                    ghIndex = self.factory.handles.index(goalHandle)
-                    edges = [f"{goalGripper} > {goalHandle} | {irg}-{ih}_01",
-                             f"{goalGripper} > {goalHandle} | {irg}-{ih}_12",
-                             f"{robotGripper} < {handle} | {irg}-{ih}:" + \
-                             f"{ggIndex}-{ghIndex}_21"]
-                    p = self.generateConsecutivePaths(edges, q)
-                    if p:
-                        self.placePaths[robotGripper][handle] = p
-                        found = True
-                        break
-                    if found: break
+                for goalGripper in self.goalGrippers:
+                    for goalHandle in self.goalHandles:
+                        ggIndex = self.factory.grippers.index(goalGripper)
+                        ghIndex = self.factory.handles.index(goalHandle)
+                        edges = [f"{goalGripper} > {goalHandle} | {irg}-{ih}_01",
+                                f"{goalGripper} > {goalHandle} | {irg}-{ih}_12",
+                                f"{robotGripper} < {handle} | {irg}-{ih}:" + \
+                                f"{ggIndex}-{ghIndex}_21"]
+                        p = self.generateConsecutivePaths(edges, q)
+                        if p:
+                            self.placePaths[robotGripper][handle] = p
+                            found = True
+                            break
+                        if found: break
 
     def generateConsecutivePaths(self, edges, q, Nsamples = 50):
         """
@@ -421,10 +425,10 @@ class BinPicking(object):
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         self.setParam('approach')
         try:
-            p_direct, res, msg = self.transitionPlanner.directPath(q_start, q_goal, True)
+            p_direct, res, _ = self.transitionPlanner.directPath(q_start, q_goal, True)
             print("Achieve to create a direct path : ",res)
             if not res:
-                gripper, handle, pickPath, placePath = self.selectGrasp(q)
+                _, _, pickPath, _ = self.selectGrasp(q)  # gripper, handle, pickPath, placePath 
                 q1 = pickPath.initial()
                 print("attempting planPath")
                 p_direct = self.wd(self.transitionPlanner.planPath(q, [q1,], True))

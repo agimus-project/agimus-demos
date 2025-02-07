@@ -119,12 +119,12 @@ class HPPInterface:
             [1.05, 0.0, 1.02, 0, sqrt(2) / 2, 0, sqrt(2) / 2],
             0.0,
         )
-        self.ps.client.manipulation.robot.addGripper(
-            "panda/support_link",
-            "goal/gripper2",
-            [1.05, 0.0, 1.02, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
-            0.0,
-        )
+        # self.ps.client.manipulation.robot.addGripper(
+        #     "panda/support_link",
+        #     "goal/gripper2",
+        #     [1.05, 0.0, 1.02, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
+        #     0.0,
+        # )
         # self.ps.client.manipulation.robot.addHandle(
         #     "part/base_link",
         #     "part/center1",
@@ -160,7 +160,7 @@ class HPPInterface:
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
         self.binPicking.goalGrippers = [
             "goal/gripper1",
-            "goal/gripper2",
+            # "goal/gripper2",
         ]
         self.binPicking.goalHandles = [
             "part/center1",
