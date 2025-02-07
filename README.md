@@ -40,14 +40,14 @@ git clone https://github.com/agimus-project/agimus-demos.git src/agimus-demos
 vcs import --recursive src < src/agimus-demos/franka.repos
 # Clone dependencies for MPC and collision avoidance
 vcs import --recursive src < src/agimus-demos/control.repos
+# Pinocchio has a hardcoded hpp-fcl as dependency while we expect Coal
+# Until it is fixed we need to change it manually
+sed -i 's/hpp-fcl/coal/g' src/vcs_control/pinocchio/package.xml
 
 sudo apt update
 rosdep update --rosdistro $ROS_DISTRO
 # Install all dependencies that are available as binaries
-rosdep install -y -i \
-    --from-paths src \
-    --rosdistro $ROS_DISTRO \
-    --skip-keys hpp-fcl
+rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
 
 # Source ROS base to make sure all installed packages are discovered
 source /opt/ros/$ROS_DISTRO/setup.bash
