@@ -25,6 +25,27 @@ Docker image is provided in a form of Development Container and can be found at 
 
 This docker has all the dependencies preinstalled and is split into three images: control, vision and vision-cuda. Control image contains dependencies found in [franka.repos](franka.repos) and [control.repos](control.repos). Vision image is not yet supported by this repository.
 
+To run demos in the docker image, first download the repository
+```bash
+git clone -b humble-devel https://gitlab.laas.fr/agimus-project/agimus_dev_container.git
+# Open folder in VS Code
+code agimus_dev_container
+```
+Then following the instruction from [README.md](https://gitlab.laas.fr/agimus-project/agimus_dev_container/-/blob/humble-devel/README.md?ref_type=heads) reopen the folder in Development Container. Once you are inside of the Development Container clone Adimus Demos.
+
+```bash
+git clone https://github.com/agimus-project/agimus-demos.git ~/ros2_ws/src/agimus-demos
+cd ~/ros2_ws
+# Ensure all dependencies are cloned
+./setup.sh
+# Build your workspace
+./build.sh
+# Source the workspace
+source install/setup.bash
+```
+
+Now you are ready to run all of your demos!
+
 ## Building dependencies from source
 
 > [!IMPORTANT]
@@ -71,5 +92,6 @@ colcon build \
         -DBUILD_WITH_COLLISION_SUPPORT=ON \
         -DBUILD_WITH_MULTITHREADS=ON
 
+# Source the workspace
 source install/setup.bash
 ```
