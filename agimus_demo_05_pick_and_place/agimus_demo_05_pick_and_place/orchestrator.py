@@ -4,11 +4,24 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
-from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
-from agimus_demo_05_pick_and_place.state_client import StateClient
-from agimus_demo_05_pick_and_place.target_client import TargetClient
-from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
+
+from geometry_msgs.msg import Pose
+from sensor_msgs.msg import JointState
+
+from agimus_demo_05_pick_and_place.franka_gripper_client import (
+    FrankaGripperClient
+)
+from agimus_demo_05_pick_and_place.hpp_client import (
+    HPPInterface
+)
+from agimus_demo_05_pick_and_place.async_subscriber import (
+    AsyncSubscriber
+)
+from agimus_demo_05_pick_and_place.trajectory_publisher import (
+    TrajectoryPublisher
+)
 
 
 @dataclass
@@ -20,16 +33,28 @@ class OrchestratorParams:
     destination_configuration: npt.NDArray = np.zeros(0)
 
 
-class Orchestrator(object):
+class Orchestrator(Node):
     """Orchestrator of demo agimus_demo_05_pick_and_place"""
 
     def __init__(self):
+        super().__init__('orchestrator')
         self.param = OrchestratorParams()
-        self.franka_gripper_cient = FrankaGripperClient()
+
+        self.franka_gripper_cient = FrankaGripperClient(self)
         self.hpp_client = HPPInterface()
-        self.state_client = StateClient()
-        self.trajectory_publisher = TrajectoryPublisher()
-        self.target_client = TargetClient()
+        self.trajectory_publisher = TrajectoryPublisher(self)
+
+        self.state_client = AsyncSubscriber(
+            JointState,
+            "/joint_states",
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        )
+        self.target_client = AsyncSubscriber(
+            self,
+            Pose,
+            "/target_object",
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        )
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(

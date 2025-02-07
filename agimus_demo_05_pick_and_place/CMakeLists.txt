@@ -15,8 +15,10 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS ${PROJECT_NAME}/nodes/__init__.py
-        DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS
+  scripts/pick_and_place_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 #
 # Unit tests
