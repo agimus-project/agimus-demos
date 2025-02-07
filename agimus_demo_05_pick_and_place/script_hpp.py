@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from math import pi, sqrt
+from corba import CorbaServer
 from hpp.corbaserver import loadServerPlugin, shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
@@ -54,31 +55,36 @@ class HPPInterface:
                  obstacle_object: BaseObject,
                  robot_urdf_string: str, 
                  robot_srdf_string: str = "",
+                 desired_location: list[float] = [0., 0., 0.],
                  q_init: list[float] = [],
                  ):
         self.manip_object = manip_object
         self.obstacle_object = obstacle_object
-        self.robot_urdf_string = robot_urdf_string
-        self.robot_srdf_string = robot_srdf_string
+        self.desired_location = desired_location
         self.q_init = q_init
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
+
+        Robot.urdfString = robot_urdf_string
+        Robot.srdfString = robot_srdf_string
+
         self.setup_problem()
     
     def setup_problem(self):
+        # Init corbaserver
+        self.corba = CorbaServer()
 
         defaultContext = "corbaserver"
         loadServerPlugin(defaultContext, "manipulation-corba.so")
         loadServerPlugin(defaultContext, "bin_picking.so")
         newProblem()
 
-        Robot.urdfString = self.robot_urdf_string
-        Robot.srdfString = self.robot_srdf_string
 
         self.robot = Robot("robot", "panda", rootJointType="anchor")
-        self.robot.opticalFrame = "camera_color_optical_frame"
+        # self.robot.opticalFrame = "camera_color_optical_frame"
         shrinkJointRange(self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95)
+        
+        # Setup problem solver and parameters
         self.ps = ProblemSolver(self.robot)
-
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
         self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
@@ -107,38 +113,18 @@ class HPPInterface:
         # Remove collisions between object and self collision geometries
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
-            srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="part/base_link" reason="handled otherwise"/>'
-        srdfString += '<disable_collisions link1="panda_hand_sc" link2="part/base_link" reason="handled otherwise"/>'
+            srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
+        srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += "</robot>"
         self.robot.client.manipulation.robot.insertRobotSRDFModelFromString("panda", srdfString)
 
-        # Discretize handles
+        # Create robot gripper handle, x-axis is facing down (for pregrasp)
         self.ps.client.manipulation.robot.addGripper(
             "panda/support_link",
-            "goal/gripper1",
-            [1.05, 0.0, 1.02, 0, sqrt(2) / 2, 0, sqrt(2) / 2],
+            "goal/gripper",
+            self.desired_location + [0, sqrt(2) / 2, 0, sqrt(2) / 2],
             0.0,
         )
-        # self.ps.client.manipulation.robot.addGripper(
-        #     "panda/support_link",
-        #     "goal/gripper2",
-        #     [1.05, 0.0, 1.02, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
-        #     0.0,
-        # )
-        # self.ps.client.manipulation.robot.addHandle(
-        #     "part/base_link",
-        #     "part/center1",
-        #     [0, 0, 0, 0, sqrt(2) / 2, 0, sqrt(2) / 2],
-        #     0.03,
-        #     3 * [True] + [False, True, True],
-        # )
-        # self.ps.client.manipulation.robot.addHandle(
-        #     "part/base_link",
-        #     "part/center2",
-        #     [0, 0, 0, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
-        #     0.03,
-        #     3 * [True] + [False, True, True],
-        # )
 
         # Lock gripper in open position.
         self.ps.createLockedJoint("locked_finger_1", "panda/panda_finger_joint1", [0.035])
@@ -159,7 +145,7 @@ class HPPInterface:
         self.binPicking.objects = ["part", "box"]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
         self.binPicking.goalGrippers = [
-            "goal/gripper1",
+            "goal/gripper",
             # "goal/gripper2",
         ]
         self.binPicking.goalHandles = [
@@ -255,6 +241,7 @@ if __name__ == "__main__":
         0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035,
         0, 0, 1.,
         0, 0, 0, 1,  # zero rotation
+        # 0, sqrt(2) / 2, 0, sqrt(2) / 2, # lying on the side
         0, 0, 0.761,
         0, 0, 0, 1,
     ]
@@ -282,7 +269,8 @@ if __name__ == "__main__":
         obstacle_object = moving_obstacle,
         robot_urdf_string = urdfString,
         robot_srdf_string = "",
-        q_init = q_init
+        q_init = q_init,
+        desired_location = [1.05, 0.0, 1.02]
     )
     
 
