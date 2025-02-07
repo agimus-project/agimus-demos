@@ -45,17 +45,21 @@ print(
     "To avoid crash during constrain graph building, RESTART the hppcorbaserver process once in a while."
 )
 class HPPInterface:
+    """This interface assumes that there is one object to manipulate and one moving obstacle.
+    Both the object and the obstacle are encoded in the space
+    Graph creation is specific to this setup
+    """
     def __init__(self, 
-                 object_list: list[BaseObject],
+                 manip_object: BaseObject,
+                 obstacle_object: BaseObject,
                  robot_urdf_string: str, 
                  robot_srdf_string: str = "",
-                 moving_obstacle_list: list[BaseObject] = [],
                  q_init: list[float] = [],
                  ):
-        self.object_list = object_list
+        self.manip_object = manip_object
+        self.obstacle_object = obstacle_object
         self.robot_urdf_string = robot_urdf_string
         self.robot_srdf_string = robot_srdf_string
-        self.moving_obstacle_list = moving_obstacle_list
         self.q_init = q_init
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
         self.setup_problem()
@@ -86,15 +90,13 @@ class HPPInterface:
         self.ps.selectPathProjector("Progressive", 0.05)
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
         vf = ViewerFactory(self.ps)
-        # load objects
-        for obj in self.object_list:
-            vf.loadObjectModel(obj, obj.name)
-            self.robot.setJointBounds(f"{obj.name}/root_joint", self.default_object_bounds)
+        # load the object
+        vf.loadObjectModel(self.manip_object, self.manip_object.name)
+        self.robot.setJointBounds(f"{self.manip_object.name}/root_joint", self.default_object_bounds)
 
-        # load moving obstacles
-        for obj in self.moving_obstacle_list:
-            vf.loadObjectModel(obj, obj.name)
-            self.robot.setJointBounds(f"{obj.name}/root_joint", self.default_object_bounds)
+        # load moving obstacle
+        vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
+        self.robot.setJointBounds(f"{self.obstacle_object.name}/root_joint", self.default_object_bounds)
 
 
         print("Part and box loaded")
@@ -123,20 +125,20 @@ class HPPInterface:
             [1.05, 0.0, 1.02, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
             0.0,
         )
-        self.ps.client.manipulation.robot.addHandle(
-            "part/base_link",
-            "part/center1",
-            [0, 0, 0, 0, sqrt(2) / 2, 0, sqrt(2) / 2],
-            0.03,
-            3 * [True] + [False, True, True],
-        )
-        self.ps.client.manipulation.robot.addHandle(
-            "part/base_link",
-            "part/center2",
-            [0, 0, 0, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
-            0.03,
-            3 * [True] + [False, True, True],
-        )
+        # self.ps.client.manipulation.robot.addHandle(
+        #     "part/base_link",
+        #     "part/center1",
+        #     [0, 0, 0, 0, sqrt(2) / 2, 0, sqrt(2) / 2],
+        #     0.03,
+        #     3 * [True] + [False, True, True],
+        # )
+        # self.ps.client.manipulation.robot.addHandle(
+        #     "part/base_link",
+        #     "part/center2",
+        #     [0, 0, 0, 0, -sqrt(2) / 2, 0, sqrt(2) / 2],
+        #     0.03,
+        #     3 * [True] + [False, True, True],
+        # )
 
         # Lock gripper in open position.
         self.ps.createLockedJoint("locked_finger_1", "panda/panda_finger_joint1", [0.035])
@@ -251,8 +253,8 @@ if __name__ == "__main__":
     
     q_init = [
         0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035,
-        0, 0, 1.2,
-        0, 0, 0, 1,
+        0, 0, 1.,
+        0, 0, 0, 1,  # zero rotation
         0, 0, 0.761,
         0, 0, 0, 1,
     ]
@@ -261,29 +263,25 @@ if __name__ == "__main__":
 
     urdfString = process_xacro(package_location + "/urdf/demo.urdf.xacro")
 
-    object_list = [
-        BaseObject(
-            urdf_path=package_location + "/urdf/obj_01.urdf", 
-            srdf_path=package_location + "/srdf/obj_01.srdf", 
-            name="part"
-        )
-    ]
-
-    moving_obstacle_list = [
-        BaseObject(
-            urdf_path=package_location + "/urdf/big_box.urdf", 
-            srdf_path=package_location + "/srdf/big_box.srdf", 
-            name="box"
-        )
-    ]
-
+    object_to_manipulate = BaseObject(
+        urdf_path=package_location + "/urdf/obj_01.urdf", 
+        srdf_path=package_location + "/srdf/obj_01.srdf", 
+        name="part"
+    )
     
 
+    moving_obstacle = BaseObject(
+        urdf_path=package_location + "/urdf/big_box.urdf", 
+        srdf_path=package_location + "/srdf/big_box.srdf", 
+        name="box"
+    )
+ 
+
     hpp_interface = HPPInterface(
-        object_list = object_list,
+        manip_object = object_to_manipulate,
+        obstacle_object = moving_obstacle,
         robot_urdf_string = urdfString,
         robot_srdf_string = "",
-        moving_obstacle_list = moving_obstacle_list,
         q_init = q_init
     )
     

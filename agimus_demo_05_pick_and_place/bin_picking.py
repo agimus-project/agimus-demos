@@ -181,32 +181,6 @@ class BinPicking(object):
             res[g] = self.handles
         return res
 
-    def writeRules(self, f):
-        """
-        Write the rules in a stream
-        """
-        f.write("rules:\n")
-        for r in self._rules():
-            f.write(f"  - grippers: {r.grippers}\n" +
-                    f"    handles: {r.handles}\n" +
-                    f"    link: {r.link}\n")
-
-    def writeTranstions(self, f):
-        """
-        Write the edges in a yaml file
-        """
-        f.write("transitions:\n")
-        for e in self.graph.edges.keys():
-            f.write(f'  - "{e}"\n')
-
-    def writeStates(self, f):
-        """
-        Write the nodes of the constraint graph in a yaml file
-        """
-        f.write("states:\n")
-        for s in self.graph.nodes.keys():
-            f.write(f'  - "{s}"\n')
-
     def buildGraph(self):
         """
         Build the constraint graph
@@ -399,10 +373,10 @@ class BinPicking(object):
                     gripper, handle, q)
                 if not col:
                     # Store pairs (handle, score)
-                    freeGrasps.append((handle, -gripperAxis[2]))
+                    freeGrasps.append((handle, gripperAxis[2]))
                     res = True
             # Sort handles by increasing z coordinate of gripper axis
-            l = sorted(freeGrasps, key = lambda x:x[1], reverse = True)
+            l = sorted(freeGrasps, key = lambda x:x[1])
             if len(l) > 0:
                 self._freeGrasps[gripper] = list(zip(*l))[0]
         return res
