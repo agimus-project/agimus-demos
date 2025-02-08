@@ -1,5 +1,5 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler
+from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
@@ -20,9 +20,9 @@ def launch_setup(
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
-            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+            FindPackageShare("agimus_demo_05_pick_and_place"),
             "config",
-            "mpc_controller_params.yaml",
+            "agimus_controller_params.yaml",
         ]
     )
 
@@ -40,10 +40,14 @@ def launch_setup(
         output="screen",
     )
 
-    simple_trajectory_publisher_node = Node(
-        package="agimus_controller_ros",
-        executable="simple_trajectory_publisher",
-        parameters=[get_use_sim_time()],
+    pick_and_place_node = ExecuteProcess(
+        cmd=[
+            "gnome-terminal",
+            "--",
+            "bash",
+            "-c",
+            "source /opt/ros/humble/setup.bash && python3 -i $(ros2 pkg prefix your_package --share)/scripts/pick_and_place_node.py",
+        ],
         output="screen",
     )
 
@@ -55,7 +59,7 @@ def launch_setup(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[
                     agimus_controller_node,
-                    simple_trajectory_publisher_node,
+                    pick_and_place_node,
                 ],
             )
         ),

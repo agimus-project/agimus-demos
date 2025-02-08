@@ -1,3 +1,4 @@
+---
 repositories:
   vcs_repos/linear_feedback_controller_msgs:
     type: git

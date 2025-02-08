@@ -2,7 +2,7 @@ AGIMUS demo 02 simple pd plus
 --------------------------------
 
 The purpose of this demo is to run the [linear_feedback_controller](https://github.com/loco-3d/linear-feedback-controller) (LFC) in simulation and on the real robot.
-The LFC input is comming from a python test node called `pd_plus_controller`. It fills the control object to design a PD+ controller tracking a small sinus signal at the joint level.
+The LFC input is coming from a python test node called `pd_plus_controller`. It fills the control object to design a PD+ controller tracking a small sinus signal at the joint level.
 Expected behavior: robot's joints are oscillating gently.
 The parameters for the motion is located in [agimus_demo_02_simple_pd_plus/config/pd_plus_controller.yaml](config/pd_plus_controller.yaml).
 
