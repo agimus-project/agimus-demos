@@ -58,7 +58,7 @@ class Factory(ConstraintGraphFactory):
         ConstraintGraphFactory.generate(self)
         ig = 0; gripper = self.grippers[ig]
         for ih, h in enumerate(self.handles):
-            if h.startswith("part/center"): continue
+            if 'goal_handle' in h: continue
             edge = f"{gripper} > {h} | f_23"
             self.graph.addConstraints(edge = edge,
                 constraints = Constraints(numConstraints =

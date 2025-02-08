@@ -36,7 +36,7 @@ import numpy as np
 import time
 import pickle
 
-from utils import split_path, BaseObject
+from utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
 from hpp.rostools import process_xacro, retrieve_resource
 
 # logger = getLogger(__name__)
@@ -51,38 +51,46 @@ class HPPInterface:
     Graph creation is specific to this setup
     """
     def __init__(self, 
-                 manip_object: BaseObject,
-                 obstacle_object: BaseObject,
-                 robot_urdf_string: str, 
+                 robot_configuration: list[float],
+                 object_name: str = "obj_01",
+                 robot_urdf_string: str = "", 
                  robot_srdf_string: str = "",
-                 desired_location: list[float] = [0., 0., 0.],
+                 desired_location: list[float] = [1.05, 0.0, 1.02],
                  q_init: list[float] = [],
                  ):
-        self.manip_object = manip_object
-        self.obstacle_object = obstacle_object
         self.desired_location = desired_location
-        self.q_init = q_init
+        self.q_init = robot_configuration + [
+            # 0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035,
+            0, 0.1, 0.9,
+            0, 0, 0, 1,  # zero rotation
+            # 0, sqrt(2) / 2, 0, sqrt(2) / 2, # lying on the side
+            -0.99, -0.99, 0.761,  # moved obstacle away for now
+            0, 0, 0, 1,
+        ]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-
-        Robot.urdfString = robot_urdf_string
+        urdf_string = process_xacro(os.getcwd() + "/urdf/demo.urdf.xacro") if robot_urdf_string == "" else robot_urdf_string
+        Robot.urdfString = urdf_string
         Robot.srdfString = robot_srdf_string
+        package_location = os.getcwd()
+        self.manip_object = BaseObject(
+            urdf_path=package_location + f"/urdf/{object_name}.urdf", 
+            srdf_path=package_location + f"/srdf/{object_name}.srdf", 
+            name="part"
+        )
+        self.obstacle_object = BaseObject(
+            urdf_path=package_location + "/urdf/big_box.urdf", 
+            srdf_path=package_location + "/srdf/big_box.srdf", 
+            name="box"
+        )
 
         self.setup_problem()
     
-    def setup_problem(self):
-        # Init corbaserver
-        self.corba = CorbaServer()
-
-        defaultContext = "corbaserver"
-        loadServerPlugin(defaultContext, "manipulation-corba.so")
-        loadServerPlugin(defaultContext, "bin_picking.so")
-        newProblem()
-
-
+    def set_robot(self):
         self.robot = Robot("robot", "panda", rootJointType="anchor")
         # self.robot.opticalFrame = "camera_color_optical_frame"
         shrinkJointRange(self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95)
-        
+
+    def set_problem(self):
         # Setup problem solver and parameters
         self.ps = ProblemSolver(self.robot)
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
@@ -91,10 +99,10 @@ class HPPInterface:
         self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
 
-
         # Add path projector to avoid discontinuities
         self.ps.selectPathProjector("Progressive", 0.05)
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
+
         vf = ViewerFactory(self.ps)
         # load the object
         vf.loadObjectModel(self.manip_object, self.manip_object.name)
@@ -103,13 +111,11 @@ class HPPInterface:
         # load moving obstacle
         vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
         self.robot.setJointBounds(f"{self.obstacle_object.name}/root_joint", self.default_object_bounds)
-
-
         print("Part and box loaded")
+        # TODO: think about this, maybe as a parameter
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
-            "panda", package_location + "/srdf/demo.srdf"
+            "panda", os.getcwd() + "/srdf/demo.srdf"
         )
-
         # Remove collisions between object and self collision geometries
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
@@ -131,31 +137,34 @@ class HPPInterface:
         self.ps.createLockedJoint("locked_finger_2", "panda/panda_finger_joint2", [0.035])
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
+        # Add handle of the objects 
+        self.handles, self.goal_handles = get_obj_goal_handles(
+            prefix=self.manip_object.name + '/',
+            srdf_path=self.manip_object.srdfFilename
+            )
 
-        # Add handle of the objects (obj_tless-000001 : 16/16/16/16  obj_tless-000023 : 3/3/4/4)
-        handles = list()
 
-        handles += ["part/lateral_top_%03i" % i for i in range(16)]
-        handles += ["part/lateral_bottom_%03i" % i for i in range(16)]
-        handles += ["part/top_%03i" % i for i in range(16)]
-        handles += ["part/bottom_%03i" % i for i in range(16)]
+    def setup_problem(self):
+        # Init corbaserver
+        self.corba = CorbaServer()
+        newProblem()
 
+        self.set_robot()
+        self.set_problem()
+
+
+    def plan(self, q_init: list[float]):
+        self.q_init[:len(q_init)] = q_init
 
         self.binPicking = BinPicking(self.ps)
-        self.binPicking.objects = ["part", "box"]
+        self.binPicking.objects = [self.manip_object.name, self.obstacle_object.name]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
-        self.binPicking.goalGrippers = [
-            "goal/gripper",
-            # "goal/gripper2",
-        ]
-        self.binPicking.goalHandles = [
-            "part/center1",
-            "part/center2",
-        ]
-        self.binPicking.handles = handles
+        self.binPicking.goalGrippers = ["goal/gripper"]
+        self.binPicking.goalHandles = self.goal_handles
+        self.binPicking.handles = self.handles
         self.binPicking.graphConstraints = ["locked_finger_1", "locked_finger_2"]
 
-
+        # TODO: restructure this
         def disable_collision():
             srdf_disable_collisions = """<robot>\n"""
             srdf_disable_collisions_fmt = (
@@ -169,7 +178,6 @@ class HPPInterface:
                 "", srdf_disable_collisions
             )
 
-
         disable_collision()
 
         build_time_start = time.time()
@@ -178,9 +186,7 @@ class HPPInterface:
         build_time_stop = time.time()
         building_time = build_time_stop - build_time_start
         print("The graph took ", building_time, "s to build.")
-
-        
-
+       
         # Create effector
         print("Building effector.")
         self.binPicking.buildEffectors([f"box/base_link_{i}" for i in range(5)], self.q_init)
@@ -188,13 +194,7 @@ class HPPInterface:
         print("Generating goal configurations.")
         self.binPicking.generateGoalConfigs(self.q_init)
 
-
-
-    # ___________________________END_OF_GRAPH_GENERATION__________________________
-
-
-    def GrabAndDrop(self, q_init: list[float]):
-        res, q_init, err = self.binPicking.graph.applyNodeConstraints("free", q_init)
+        res, q_init, err = self.binPicking.graph.applyNodeConstraints("free", self.q_init)
         assert res
         poses = np.array(q_init[9:16])
 
@@ -218,7 +218,7 @@ class HPPInterface:
                 print("Path generated.")
             else:
                 raise Warning(f"Robot q_init isn't a valid configuration {msg}")
-            return q_init, p
+            return q_init, grasp_path, placing_path, freefly_path
 
         else:
             print("[INFO] Object found but not collision free")
@@ -236,45 +236,18 @@ if __name__ == "__main__":
     cd src/agimus-demos/agimus_demo_05_pick_and_place
     ROS_PACKAGE_PATH=`pwd` hppcorbaserver
     """
-    
-    q_init = [
-        0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035,
-        0, 0, 1.,
-        0, 0, 0, 1,  # zero rotation
-        # 0, sqrt(2) / 2, 0, sqrt(2) / 2, # lying on the side
-        0, 0, 0.761,
-        0, 0, 0, 1,
-    ]
-
-    package_location = os.getcwd()
-
-    urdfString = process_xacro(package_location + "/urdf/demo.urdf.xacro")
-
-    object_to_manipulate = BaseObject(
-        urdf_path=package_location + "/urdf/obj_01.urdf", 
-        srdf_path=package_location + "/srdf/obj_01.srdf", 
-        name="part"
-    )
-    
-
-    moving_obstacle = BaseObject(
-        urdf_path=package_location + "/urdf/big_box.urdf", 
-        srdf_path=package_location + "/srdf/big_box.srdf", 
-        name="box"
-    )
- 
+    object_name = "obj_23"
+    robot_init = [0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035]
 
     hpp_interface = HPPInterface(
-        manip_object = object_to_manipulate,
-        obstacle_object = moving_obstacle,
-        robot_urdf_string = urdfString,
-        robot_srdf_string = "",
-        q_init = q_init,
-        desired_location = [1.05, 0.0, 1.02]
+        robot_configuration = robot_init,
+        object_name=object_name,
+        desired_location = [0.0, -0.1, 1.0]
     )
     
 
-    q_init, path_vector = hpp_interface.GrabAndDrop(q_init)
+    q_init, grasp_path, placing_path, freefly_path = hpp_interface.plan(hpp_interface.q_init)
+    path_vector = concatenatePaths([grasp_path, placing_path, freefly_path])
     path_len = path_vector.length()
     configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
     pickle.dump(configs, open("q_init.pkl", "wb"))

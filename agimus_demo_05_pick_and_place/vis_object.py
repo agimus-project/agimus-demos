@@ -9,7 +9,7 @@ import pinocchio as pin
 # scene.add_object(Object.create_mesh(path_to_mesh=Path(__file__).parent / 'urdf/obj_23.ply', scale=1e-3, name='obj'))
 
 "Vis hpp traj from q_init.pkl"
-obj_name = 'obj_01'
+obj_name = 'obj_23'
 robot = erd.load("panda")
 robot_pose = np.eye(4)
 robot_pose[:3, 3] = [0.563, -0.1655, 0.78]
