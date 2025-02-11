@@ -25,18 +25,18 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from math import pi, sqrt
-from corba import CorbaServer
+from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import loadServerPlugin, shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
-from bin_picking import BinPicking
+from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import os
 import numpy as np
 
 import time
 import pickle
 
-from utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
+from agimus_demo_05_pick_and_place.utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
@@ -70,10 +70,11 @@ class HPPInterface:
             0, 0, 0, 1,
         ]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-        urdf_string = process_xacro(os.getcwd() + "/urdf/demo.urdf.xacro") if robot_urdf_string == "" else robot_urdf_string
+        package_location = '/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place'
+        urdf_string = process_xacro(package_location + "/urdf/demo.urdf.xacro") if robot_urdf_string == "" else robot_urdf_string
         Robot.urdfString = urdf_string
         Robot.srdfString = robot_srdf_string
-        package_location = os.getcwd()
+        # package_location = os.getcwd()
         self.manip_object = BaseObject(
             urdf_path=package_location + f"/urdf/{object_name}.urdf", 
             srdf_path=package_location + f"/srdf/{object_name}.srdf", 
@@ -116,7 +117,7 @@ class HPPInterface:
         print("Part and box loaded")
         # TODO: think about this, maybe as a parameter
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
-            "panda", os.getcwd() + "/srdf/demo.srdf"
+            "panda", "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place/srdf/demo.srdf"
         )
         # Remove collisions between object and self collision geometries
         srdfString = '<robot name="demo">'
