@@ -39,10 +39,14 @@ def launch_setup(
     )
 
     pick_and_place_node = ExecuteProcess(
-        cmd=['xterm', '-hold', '-e',
-        'bash -c "source /opt/ros/humble/setup.bash && '
-        'ros2 run agimus_demo_05_pick_and_place pick_and_place_node"'],
-        output='screen'
+        cmd=[
+            "xterm",
+            "-hold",
+            "-e",
+            'bash -c "source /opt/ros/humble/setup.bash && '
+            'ros2 run agimus_demo_05_pick_and_place pick_and_place_node"',
+        ],
+        output="screen",
     )
 
     return [

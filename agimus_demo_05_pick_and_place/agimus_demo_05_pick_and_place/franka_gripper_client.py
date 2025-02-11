@@ -5,10 +5,10 @@ from control_msgs.action import GripperCommand
 
 class FrankaGripperClient(object):
     def __init__(self, node: Node):
-        
         self._node = node
         self._client = ActionClient(
-            self._node, GripperCommand, "/fer_gripper/gripper_action")
+            self._node, GripperCommand, "/fer_gripper/gripper_action"
+        )
 
     def send_goal(self, position: float, max_effort: float):
         """Sends a goal to the GripperCommand action server."""
@@ -41,8 +41,12 @@ class FrankaGripperClient(object):
     def get_result_callback(self, future):
         """Handles the final result of the action."""
         result = future.result().result
-        self._node.get_logger().info(f"Action completed. Reached position: {result.position}")
+        self._node.get_logger().info(
+            f"Action completed. Reached position: {result.position}"
+        )
 
     def feedback_callback(self, feedback_msg):
         """Handles feedback from the action server."""
-        self._node.get_logger().info(f"Feedback: Position = {feedback_msg.feedback.position}")
+        self._node.get_logger().info(
+            f"Feedback: Position = {feedback_msg.feedback.position}"
+        )

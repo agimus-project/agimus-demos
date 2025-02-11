@@ -13,7 +13,7 @@ class AsyncSubscriber:
         node: Node,
         message_type: type,
         topic_name: str,
-        qos_profile:QoSProfile=qos_profile_system_default,
+        qos_profile: QoSProfile = qos_profile_system_default,
     ) -> None:
         self._node = node
 

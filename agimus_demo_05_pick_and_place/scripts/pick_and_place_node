@@ -7,18 +7,21 @@ from agimus_demo_05_pick_and_place.orchestrator import Orchestrator
 def main():
     rclpy.init()
     orchestrator = Orchestrator()  # Instantiate your ROS 2 node
-    
+
     print("\n🚀 ROS 2 Node initialized. Starting IPython shell...\n")
 
     try:
         import IPython
+
         IPython.embed()  # Start an interactive IPython shell
     except ImportError:
         import code
+
         code.interact(local=locals())  # Fallback to standard Python shell
 
     node.destroy_node()
     rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

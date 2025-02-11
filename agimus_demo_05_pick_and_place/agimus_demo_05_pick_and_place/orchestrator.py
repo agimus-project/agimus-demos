@@ -10,18 +10,10 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 
-from agimus_demo_05_pick_and_place.franka_gripper_client import (
-    FrankaGripperClient
-)
-from agimus_demo_05_pick_and_place.hpp_client import (
-    HPPInterface
-)
-from agimus_demo_05_pick_and_place.async_subscriber import (
-    AsyncSubscriber
-)
-from agimus_demo_05_pick_and_place.trajectory_publisher import (
-    TrajectoryPublisher
-)
+from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
+from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
+from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
+from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
 
 @dataclass
@@ -37,7 +29,7 @@ class Orchestrator(object):
     """Orchestrator of demo agimus_demo_05_pick_and_place"""
 
     def __init__(self):
-        self._node = Node('pick_and_place')
+        self._node = Node("pick_and_place")
         self.param = OrchestratorParams()
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
