@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
-from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
+from agimus_demo_05_pick_and_place.script_hpp import HPPInterface
 from agimus_demo_05_pick_and_place.state_client import StateClient
 from agimus_demo_05_pick_and_place.target_client import TargetClient
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
@@ -46,10 +46,10 @@ class Orchestrator(object):
         )
         self.trajectory_publisher.publish(trajectory)
 
-    def go_to_ee(self, target_ee):
-        current_robot_state = self.state_client.wait_for_new_state()
-        trajectory = self.hpp_client.plan_ee(current_robot_state.position, target_ee)
-        self.trajectory_publisher.publish(trajectory)
+    # def go_to_ee(self, target_ee):
+    #     current_robot_state = self.state_client.wait_for_new_state()
+    #     trajectory = self.hpp_client.plan_ee(current_robot_state.position, target_ee)
+    #     self.trajectory_publisher.publish(trajectory)
 
     def go_to_parking_pose(self):
         self.go_to(self.param.parking_configuration)
@@ -57,7 +57,7 @@ class Orchestrator(object):
     def go_to_destination_pose(self):
         self.go_to(self.param.destination_configuration)
 
-    def go_to_pre_grasp(self):
-        new_target_pose = self.target_client.wait_for_new_target_pose()
-        trajectory = self.go_to_ee(new_target_pose)
-        self.trajectory_publisher(trajectory)
+    # def go_to_pre_grasp(self):
+    #     new_target_pose = self.target_client.wait_for_new_target_pose()
+    #     trajectory = self.go_to_ee(new_target_pose)
+    #     self.trajectory_publisher(trajectory)

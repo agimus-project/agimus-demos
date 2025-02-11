@@ -38,6 +38,8 @@ import pickle
 
 from utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
 from hpp.rostools import process_xacro, retrieve_resource
+from agimus_controller.agimus_controller.agimus_controller.trajectory import TrajectoryPoint
+from agimus_demo_05_pick_and_place.agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
 # logger = getLogger(__name__)
 
@@ -228,6 +230,22 @@ class HPPInterface:
 
 
 # ____________________________________________________________________________
+def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
+    total_time = hpp_path.length()
+    T = int(total_time / dt)
+    traj_point_list = []
+    for iter in range(T):
+        iter_time = total_time * iter / (T - 1)  # iter * dt
+        
+        traj_point_list.append(
+            TrajectoryPoint(
+                robot_configuration=np.array(hpp_path.call(iter_time)[0][:robot_ndof]),
+                robot_velocity=np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]),
+                robot_acceleration=np.array(hpp_path.derivative(iter_time, 2)[:robot_ndof]),
+                end_effector_poses={'link0': np.eye(4)}              
+                
+                )
+        )
 
 
 if __name__ == "__main__":
@@ -251,3 +269,8 @@ if __name__ == "__main__":
     path_len = path_vector.length()
     configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
     pickle.dump(configs, open("q_init.pkl", "wb"))
+    traj_publisher = TrajectoryPublisher()
+    
+    traj_publisher.publish(grasp_path)
+    traj_publisher.publish(placing_path)
+    traj_publisher.publish(freefly_path)
