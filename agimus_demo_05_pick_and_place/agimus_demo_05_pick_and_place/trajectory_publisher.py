@@ -1,4 +1,3 @@
-
 from rclpy.node import Node
 from agimus_msgs.msg import MpcInput
 import numpy as np
@@ -7,6 +6,7 @@ import pinocchio as pin
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Pose
 import time
+
 
 class TrajectoryPublisher(object):
     def __init__(self, node: Node):
