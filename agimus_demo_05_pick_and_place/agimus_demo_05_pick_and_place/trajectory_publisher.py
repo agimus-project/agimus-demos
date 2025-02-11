@@ -1,3 +1,4 @@
+
 from rclpy.node import Node
 from agimus_msgs.msg import MpcInput
 import numpy as np
@@ -6,17 +7,18 @@ import pinocchio as pin
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Pose
 
-class TrajectoryPublisher(Node):
-    def __init__(self):
-        super().__init__("trajectory_publisher")
+class TrajectoryPublisher(object):
+    def __init__(self, node: Node):
+        self._node = node
+
         self.ee_frame_name = "fer_joint7"
-        self.publisher_ = self.create_publisher(MpcInput, "/mpc_input", 10)
+        self.publisher_ = self._node.create_publisher(MpcInput, "/mpc_input", 10)
         qos_profile = QoSProfile(
             depth=1,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             reliability=ReliabilityPolicy.RELIABLE,
         )
-        self.subscriber_robot_description_ = self.create_subscription(
+        self.subscriber_robot_description_ = self._node.create_subscription(
             String,
             "/robot_description",
             self.robot_description_callback,
@@ -66,7 +68,5 @@ class TrajectoryPublisher(Node):
             msg.pose = pose
             msg.w_pose = [1.0] * 6  # Example weight for pose
 
-            self.publisher_.publish(msg)
-            self.get_logger().info(
-                f"Published MpcInput: q={point.q}, qdot={point.qdot}, qddot={point.qddot}, effort={point.effort}"
-            )
+            self._publisher.publish(msg)
+            self._node.get_logger().info(f'Published MpcInput: q={point.q}, qdot={point.qdot}, qddot={point.qddot}, effort={point.effort}')
