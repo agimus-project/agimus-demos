@@ -22,7 +22,7 @@ source install/setup.bash
 ## Start the demo in simulation using the Panda robot.
 ```bash
 cd workspace
-reset && source install/setup.bash && ros2 launch agimus_demo_05_pick_and_place bringup.launch.py
+reset && source install/setup.bash && ros2 launch agimus_demo_05_pick_and_place bringup.launch.py use_gazebo:=true
 ```
 
 ## Start the demo on hardware using the Panda robot.

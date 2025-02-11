@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+import rclpy
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.qos import qos_profile_system_default, QoSProfile
@@ -38,5 +39,5 @@ class AsyncSubscriber:
     def wait_for_future(self):
         """Blocks until a new joint state is received."""
         self._future = Future()  # Reset future for next call
-        self._node.executor.spin_until_future_complete(self._future)
+        rclpy.spin_until_future_complete(self._node, self._future)
         return deepcopy(self._future.result())

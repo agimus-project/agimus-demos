@@ -33,24 +33,25 @@ class OrchestratorParams:
     destination_configuration: npt.NDArray = np.zeros(0)
 
 
-class Orchestrator(Node):
+class Orchestrator(object):
     """Orchestrator of demo agimus_demo_05_pick_and_place"""
 
     def __init__(self):
-        super().__init__('orchestrator')
+        self._node = Node('pick_and_place')
         self.param = OrchestratorParams()
 
-        self.franka_gripper_cient = FrankaGripperClient(self)
+        self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.hpp_client = HPPInterface()
-        self.trajectory_publisher = TrajectoryPublisher(self)
+        self.trajectory_publisher = TrajectoryPublisher(self._node)
 
         self.state_client = AsyncSubscriber(
+            self._node,
             JointState,
             "/joint_states",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
         self.target_client = AsyncSubscriber(
-            self,
+            self._node,
             Pose,
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),

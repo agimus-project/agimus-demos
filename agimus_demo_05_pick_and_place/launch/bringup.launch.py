@@ -25,14 +25,12 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
         parameters=[get_use_sim_time()],
         output="screen",
     )
-
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
@@ -41,14 +39,10 @@ def launch_setup(
     )
 
     pick_and_place_node = ExecuteProcess(
-        cmd=[
-            "gnome-terminal",
-            "--",
-            "bash",
-            "-c",
-            "source /opt/ros/humble/setup.bash && python3 -i $(ros2 pkg prefix your_package --share)/scripts/pick_and_place_node.py",
-        ],
-        output="screen",
+        cmd=['xterm', '-hold', '-e',
+        'bash -c "source /opt/ros/humble/setup.bash && '
+        'ros2 run agimus_demo_05_pick_and_place pick_and_place_node"'],
+        output='screen'
     )
 
     return [
