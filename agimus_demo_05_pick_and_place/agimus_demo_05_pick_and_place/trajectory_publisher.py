@@ -6,13 +6,17 @@ from std_msgs.msg import String
 import pinocchio as pin
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Pose
+import time
 
 class TrajectoryPublisher(object):
     def __init__(self, node: Node):
         self._node = node
-
+        self.pin_model = None
+        self.pin_data = None
+        self.ee_frame_id = None
         self.ee_frame_name = "fer_joint7"
-        self.publisher_ = self._node.create_publisher(MpcInput, "/mpc_input", 10)
+        
+        self._publisher = self._node.create_publisher(MpcInput, "/mpc_input", 10)
         qos_profile = QoSProfile(
             depth=1,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -27,36 +31,37 @@ class TrajectoryPublisher(object):
 
     def robot_description_callback(self, msg: String) -> None:
         """Create the models of the robot from the urdf string."""
-        self.robot_description_msg = msg
-
-    def load_models(self):
-        """Callback to get robot description and store to object"""
-        self.pin_model = pin.buildModelFromXML(self.robot_description_msg.data)
+        print("Robot description callback is called.")
+        self.pin_model = pin.buildModelFromXML(msg.data)
         self.pin_data = self.pin_model.createData()
         self.ee_frame_id = self.pin_model.getFrameId(self.ee_frame_name)
-        self.q = self.q0.copy()
-        self.dq = np.zeros_like(self.q)
-        self.ddq = np.zeros_like(self.q)
-        self.get_logger().warn(f"Model loaded, pin_model.nq = {self.pin_model.nq}")
+        self._node.get_logger().warn(f"Model loaded, pin_model.nq = {self.pin_model.nq}")
 
 
     def publish(self, trajectory: list):
         """Publishes an MpcInput message with provided data."""
+        print("entered in publish")
+        while self.pin_model is None:
+            print("Robot model is not loaded...")
+            time.sleep(0.5)
+
+        print(f"Publishing traj of len {len(trajectory)}")
         for point in trajectory:
             ee_pose = self.pin_data.oMf[self.ee_frame_id]
             xyz_quatxyzw = pin.SE3ToXYZQUAT(ee_pose)
-
-            u = pin.computeGeneralizedGravity(self.pin_model, self.pin_data, self.q0)
+            q = np.concatenate([point.robot_configuration, np.zeros(2)])
+            # print(q)
+            u = pin.computeGeneralizedGravity(self.pin_model, self.pin_data, q)
 
             msg = MpcInput()
-            msg.q = point.robot_configuration
+            msg.q = list(point.robot_configuration)
             msg.w_q = [1.0] * len(msg.q)
-            msg.qdot = point.robot_velocity
+            msg.qdot = list(point.robot_velocity)
             msg.w_qdot = [1e-2] * len(msg.qdot)
-            msg.qddot = point.robot_acceleration
+            msg.qddot = list(point.robot_acceleration)
             msg.w_qddot = [1e-6] * len(msg.qddot)
-            msg.robot_effort = u[:len(msg.qddot)]
-            msg.w_robot_effort = np.ones(len(point.effort)).tolist()
+            msg.robot_effort = list(u[:len(msg.qddot)])
+            msg.w_robot_effort = [1e-4] * len(msg.robot_effort)
             pose = Pose()
             pose.position.x = xyz_quatxyzw[0]
             pose.position.y = xyz_quatxyzw[1]
@@ -69,4 +74,5 @@ class TrajectoryPublisher(object):
             msg.w_pose = [1.0] * 6  # Example weight for pose
 
             self._publisher.publish(msg)
-            self._node.get_logger().info(f'Published MpcInput: q={point.q}, qdot={point.qdot}, qddot={point.qddot}, effort={point.effort}')
+            time.sleep(0.01)  # TODO how to do?
+            # self._node.get_logger().info(f'Published MpcInput: q={msg.q}, qdot={msg.qdot}, qddot={msg.qddot}, effort={msg.robot_effort}')

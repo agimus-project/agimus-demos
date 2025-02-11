@@ -38,8 +38,8 @@ import pickle
 
 from utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
 from hpp.rostools import process_xacro, retrieve_resource
-from agimus_controller.agimus_controller.agimus_controller.trajectory import TrajectoryPoint
-from agimus_demo_05_pick_and_place.agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+from agimus_controller.trajectory import TrajectoryPoint
+from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
 # logger = getLogger(__name__)
 
@@ -232,6 +232,7 @@ class HPPInterface:
 # ____________________________________________________________________________
 def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
     total_time = hpp_path.length()
+    print(total_time)
     T = int(total_time / dt)
     traj_point_list = []
     for iter in range(T):
@@ -246,7 +247,7 @@ def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
                 
                 )
         )
-
+    return traj_point_list
 
 if __name__ == "__main__":
     """ tless
@@ -269,8 +270,26 @@ if __name__ == "__main__":
     path_len = path_vector.length()
     configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
     pickle.dump(configs, open("q_init.pkl", "wb"))
-    traj_publisher = TrajectoryPublisher()
+    # traj_publisher = TrajectoryPublisher(node=)
+    traj1 = get_traj_points_from_path(grasp_path)
+    traj2 = get_traj_points_from_path(placing_path)
+    traj3 = get_traj_points_from_path(freefly_path)
+    from orchestrator import Orchestrator
+    import rclpy
+    rclpy.init()
+    orchestrator = Orchestrator()
+    try:
+        for _ in range(5):
+            rclpy.spin_once(orchestrator._node)
+        orchestrator.trajectory_publisher.publish(traj1)
+        orchestrator.close_gripper()
+        orchestrator.trajectory_publisher.publish(traj2)
+        orchestrator.open_gripper()
+        orchestrator.trajectory_publisher.publish(traj3)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        orchestrator._node.destroy_node()
+        rclpy.shutdown()
     
-    traj_publisher.publish(grasp_path)
-    traj_publisher.publish(placing_path)
-    traj_publisher.publish(freefly_path)
+    
