@@ -25,6 +25,8 @@ class TrajectoryPublisher(object):
             msg.w_pose = [1.0] * 6  # Example weight for pose
 
             self._publisher.publish(msg)
-            self._node.get_logger().info(f'Published MpcInput: q={point.q}, qdot={point.qdot}, qddot={point.qddot}, effort={point.effort}')
-                f"Published MpcInput: q={point.q}, qdot={point.qdot}, qddot={point.qddot}, effort={point.effort}"
+            self._node.get_logger().info(
+                f'Published MpcInput: q={point.q}, '
+                f'qdot={point.qdot}, qddot={point.qddot}, '
+                f'effort={point.effort}'
             )

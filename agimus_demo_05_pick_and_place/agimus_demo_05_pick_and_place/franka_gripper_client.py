@@ -17,12 +17,12 @@ class FrankaGripperClient(object):
         goal_msg.command.max_effort = max_effort
 
         self._node.get_logger().info("Waiting for action server...")
-        self.client.wait_for_server()
+        self._client.wait_for_server()
 
         self._node.get_logger().info(
             f"Sending goal: position={position}, max_effort={max_effort}"
         )
-        future = self.client.send_goal_async(
+        future = self._client.send_goal_async(
             goal_msg, feedback_callback=self.feedback_callback
         )
         future.add_done_callback(self.goal_response_callback)

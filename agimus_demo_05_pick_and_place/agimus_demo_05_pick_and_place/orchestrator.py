@@ -51,11 +51,11 @@ class Orchestrator(object):
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(
-            position=0.0, max_effort=self.param.max_holding_force
+            position=0.04, max_effort=self.param.max_holding_force
         )
 
     def close_gripper(self):
-        self.franka_gripper_cient.send_goal(position=0.04, max_effort=10.0)
+        self.franka_gripper_cient.send_goal(position=0.0, max_effort=10.0)
 
     def go_to(self, desired_configuration):
         current_robot_state = self.state_client.wait_for_new_state()
