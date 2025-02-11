@@ -1,13 +1,12 @@
-
 from rclpy.node import Node
 from agimus_msgs.msg import MpcInput
 import numpy as np
 
+
 class TrajectoryPublisher(object):
     def __init__(self, node: Node):
         self._node = node
-        self._publisher = self._node.create_publisher(
-            MpcInput, 'mpc_input_topic', 10)
+        self._publisher = self._node.create_publisher(MpcInput, "mpc_input_topic", 10)
 
     def publish(self, trajectory):
         """Publishes an MpcInput message with provided data."""
@@ -26,7 +25,7 @@ class TrajectoryPublisher(object):
 
             self._publisher.publish(msg)
             self._node.get_logger().info(
-                f'Published MpcInput: q={point.q}, '
-                f'qdot={point.qdot}, qddot={point.qddot}, '
-                f'effort={point.effort}'
+                f"Published MpcInput: q={point.q}, "
+                f"qdot={point.qdot}, qddot={point.qddot}, "
+                f"effort={point.effort}"
             )
