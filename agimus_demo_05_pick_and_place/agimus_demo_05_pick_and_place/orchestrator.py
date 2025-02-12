@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
+import time
 
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
@@ -59,11 +60,15 @@ class Orchestrator(object):
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(
-            position=0.04, max_effort=self.param.max_holding_force
+            position=0.039, max_effort=self.param.max_holding_force
         )
+        # TODO: change it to something normal
+        time.sleep(0.05)
 
     def close_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.0, max_effort=10.0)
+         # TODO: change it to something normal
+        time.sleep(0.05)
 
     def go_to(self, desired_configuration):
         current_robot_state = self.state_client.wait_for_new_state()
@@ -83,6 +88,7 @@ class Orchestrator(object):
         traj1 = get_traj_points_from_path(grasp_path)
         traj2 = get_traj_points_from_path(placing_path)
         traj3 = get_traj_points_from_path(freefly_path)
+        self.open_gripper()
         self.trajectory_publisher.publish(traj1)
         self.close_gripper()
         self.trajectory_publisher.publish(traj2)
