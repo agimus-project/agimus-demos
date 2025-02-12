@@ -49,22 +49,16 @@ class WaitForNonZeroJoints(Node):
             qos_profile=qos_profile_system_default,
             qos_overriding_options=QoSOverridingOptions.with_default_policies(),
         )
-
-        self._exit_code = 1
         self._init_time = self.get_clock().now()
-
+        self._return_code = 0
         self.get_logger().info(
             "Node initialized, waiting for '/joint_states' to be published..."
         )
 
     @property
-    def exit_code(self) -> int:
-        """Return value of exit code set by the node.
-
-        Returns:
-            int: Last value of exit code.
-        """
-        return self._exit_code
+    def return_code(self):
+        """Return the error code of the node."""
+        return self._return_code
 
     def _joint_states_cb(self, msg: JointState) -> None:
         """Callback called at every time `/joint_states` message is received.
@@ -82,30 +76,31 @@ class WaitForNonZeroJoints(Node):
         self.get_logger().info("Joint state message received.", once=True)
 
         if sum([abs(p) for p in msg.position]) > self._joints_sum_threshold:
-            self._exit_code = 0
-            raise SystemExit()
+            self.get_logger().info("Received non-zero joint position.")
+            self._return_code = 0
+            raise SystemExit
 
         if (self.get_clock().now() - self._init_time) > self._timeout:
-            self.get_logger().info(
+            self.get_logger().error(
                 "Failed to receive non-zero joint "
                 + "position before timeout was reached."
             )
-            self._exit_code = 1
-            raise SystemExit()
+            self._return_code = 1
+            raise SystemExit
 
 
-def main(args=None):
+def main(args=None) -> int:
     rclpy.init(args=args)
-    ret = 1
     wait_for_non_zero_joints_node = WaitForNonZeroJoints()
     try:
         rclpy.spin(wait_for_non_zero_joints_node)
     except SystemExit:
-        wait_for_non_zero_joints_node.destroy_node()
-        ret = wait_for_non_zero_joints_node.exit_code
-        rclpy.try_shutdown()
-    sys.exit(ret)
+        wait_for_non_zero_joints_node.get_logger().warn("Done waiting.")
+    ret = wait_for_non_zero_joints_node.return_code
+    wait_for_non_zero_joints_node.destroy_node()
+    rclpy.shutdown()
+    return ret
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
