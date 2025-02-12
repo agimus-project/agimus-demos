@@ -17,6 +17,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
+
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     get_use_sim_time,
@@ -99,9 +100,9 @@ def launch_setup(
         "gazebo": use_gazebo,
         "ee_id": "franka_hand",
         "gazebo_effort": "true",
+        "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
     }
-
     robot_description = ParameterValue(
         Command(
             [
@@ -122,11 +123,57 @@ def launch_setup(
         value_type=str,
     )
 
+    xacro_collision_args = {
+        "robot_ip": robot_ip,
+        "arm_id": arm_id,
+        "ros2_control": "true",
+        "hand": "true",
+        "use_fake_hardware": "false",
+        "fake_sensor_commands": "false",
+        "gazebo": "false",
+        "ee_id": "franka_hand",
+        "gazebo_effort": "true",
+        "with_sc": "true",
+        "franka_controllers_params": franka_controllers_params,
+    }
+    robot_collision_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("franka_description"),
+                        "robots",
+                        arm_id_str,
+                        f"{arm_id_str}.urdf.xacro",
+                    ]
+                ),
+                # Convert dict to list of parameters
+                *[
+                    arg
+                    for key, val in xacro_collision_args.items()
+                    for arg in (f" {key}:=", val)
+                ],
+            ]
+        ),
+        value_type=str,
+    )
+
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         parameters=[get_use_sim_time(), {"robot_description": robot_description}],
         output="screen",
+    )
+
+    robot_collision_publisher_node = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_collision_publisher",
+        output="screen",
+        remappings=[("robot_description", "robot_description_with_collision")],
+        parameters=[{"robot_description": robot_collision_description}],
     )
 
     joint_state_publisher_node = Node(
@@ -156,6 +203,7 @@ def launch_setup(
         franka_hardware_launch,
         franka_simulation_launch,
         robot_state_publisher_node,
+        robot_collision_publisher_node,
         joint_state_publisher_node,
         rviz_node,
     ]
