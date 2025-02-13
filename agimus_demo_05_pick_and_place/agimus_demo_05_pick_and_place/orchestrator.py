@@ -13,11 +13,7 @@ from sensor_msgs.msg import JointState
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
-# from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
-from agimus_demo_05_pick_and_place.script_hpp import (
-    HPPInterface,
-    get_traj_points_from_path,
-)
+from agimus_demo_05_pick_and_place.hpp_client import HPPInterface, get_traj_points_from_path
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
