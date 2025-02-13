@@ -31,6 +31,7 @@ from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import numpy as np
+from pathlib import Path
 
 import time
 
@@ -41,13 +42,6 @@ from agimus_demo_05_pick_and_place.utils import (
 )
 from hpp.rostools import process_xacro
 from agimus_controller.trajectory import TrajectoryPoint
-
-# logger = getLogger(__name__)
-
-print("[START]")
-print(
-    "To avoid crash during constrain graph building, RESTART the hppcorbaserver process once in a while."
-)
 
 
 class HPPInterface:
@@ -69,23 +63,24 @@ class HPPInterface:
 
         self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-        package_location = "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place"
+        # TODO: maybe this should be a parameter
+        package_location = Path(__file__).parent
         urdf_string = (
-            process_xacro(package_location + "/urdf/demo.urdf.xacro")
+            process_xacro(str(package_location / "urdf/demo.urdf.xacro"))
             if robot_urdf_string == ""
             else robot_urdf_string
         )
         Robot.urdfString = urdf_string
         Robot.srdfString = robot_srdf_string
-        # package_location = os.getcwd()
+
         self.manip_object = BaseObject(
-            urdf_path=package_location + f"/urdf/{object_name}.urdf",
-            srdf_path=package_location + f"/srdf/{object_name}.srdf",
+            urdf_path=str(package_location / f"urdf/{object_name}.urdf"),
+            srdf_path=str(package_location / f"srdf/{object_name}.srdf"),
             name="part",
         )
         self.obstacle_object = BaseObject(
-            urdf_path=package_location + "/urdf/big_box.urdf",
-            srdf_path=package_location + "/srdf/big_box.srdf",
+            urdf_path=str(package_location / "urdf/big_box.urdf"),
+            srdf_path=str(package_location / "srdf/big_box.srdf"),
             name="box",
         )
         # Init corbaserver
