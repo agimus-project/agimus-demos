@@ -124,7 +124,7 @@ class HPPInterface:
         # TODO: think about this, maybe as a parameter
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
             "panda",
-            "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place/srdf/demo.srdf",
+            str(Path(__file__).parent / "srdf/demo.srdf"),
         )
         # Remove collisions between object and self collision geometries
         # TODO: get link names automatically
