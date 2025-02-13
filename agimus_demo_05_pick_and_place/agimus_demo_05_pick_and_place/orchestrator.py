@@ -36,12 +36,10 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         object_name = "obj_23"
-        robot_init = [0, -np.pi / 4, 0, -3 * np.pi / 4, 0, np.pi / 2, np.pi / 4, 0.035, 0.035]
 
         self.hpp_client = HPPInterface(
-            robot_configuration = robot_init,
             object_name=object_name,
-            desired_location = [0.0, -0.1, 1.0]
+            # desired_location = [0.0, -0.3, 1.0]
         )
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -67,44 +65,45 @@ class Orchestrator(object):
 
     def close_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.0, max_effort=10.0)
-         # TODO: change it to something normal
+         # TODO: change it to something normal 
         time.sleep(0.05)
 
-    def go_to(self, desired_configuration):
-        current_robot_state = self.state_client.wait_for_new_state()
-        trajectory = self.hpp_client.plan(
-            current_robot_state.position, desired_configuration
-        )
-        self.trajectory_publisher.publish(trajectory)
+    def publish(self, path_vector):
+        traj = get_traj_points_from_path(path_vector)
+        self.trajectory_publisher.publish(traj)
+    
+    # TODO: so far this does not work, code is specific to pick and place
+    # def go_to(self, desired_configuration):
+    #     current_robot_state = self.state_client.wait_for_future()
+    #     traj = self.hpp_client.plan(
+    #         list(current_robot_state.position), desired_configuration
+    #     )
+    #     self.publish(traj)
+    #     self.hpp_client.restart()
 
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
-        q_init, grasp_path, placing_path, freefly_path = self.hpp_client.plan(current_robot_state.position)
-        path_vector = concatenatePaths([grasp_path, placing_path, freefly_path])
-        path_len = path_vector.length()
-        configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
-        # pickle.dump(configs, open("q_init.pkl", "wb"))
-        # traj_publisher = TrajectoryPublisher(node=)
-        traj1 = get_traj_points_from_path(grasp_path)
-        traj2 = get_traj_points_from_path(placing_path)
-        traj3 = get_traj_points_from_path(freefly_path)
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan(list(current_robot_state.position))
+        
         self.open_gripper()
-        self.trajectory_publisher.publish(traj1)
+        self.publish(grasp_path)
         self.close_gripper()
-        self.trajectory_publisher.publish(traj2)
+        self.publish(placing_path)
         self.open_gripper()
-        self.trajectory_publisher.publish(traj3)
+        self.publish(freefly_path)
+       
+        self.hpp_client.restart()
 
     # def go_to_ee(self, target_ee):
     #     current_robot_state = self.state_client.wait_for_new_state()
     #     trajectory = self.hpp_client.plan_ee(current_robot_state.position, target_ee)
     #     self.trajectory_publisher.publish(trajectory)
 
-    def go_to_parking_pose(self):
-        self.go_to(self.param.parking_configuration)
+    # def go_to_parking_pose(self):
+    #     self.go_to(self.param.parking_configuration)
 
-    def go_to_destination_pose(self):
-        self.go_to(self.param.destination_configuration)
+    # def go_to_destination_pose(self):
+    #     self.go_to(self.param.destination_configuration)
 
     # def go_to_pre_grasp(self):
     #     new_target_pose = self.target_client.wait_for_new_target_pose()

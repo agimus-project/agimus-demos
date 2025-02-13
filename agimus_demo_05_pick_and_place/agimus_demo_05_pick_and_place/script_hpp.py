@@ -53,22 +53,16 @@ class HPPInterface:
     Graph creation is specific to this setup
     """
     def __init__(self, 
-                 robot_configuration: list[float],
                  object_name: str = "obj_01",
                  robot_urdf_string: str = "", 
                  robot_srdf_string: str = "",
-                 desired_location: list[float] = [1.05, 0.0, 1.02],
-                 q_init: list[float] = [],
+                 start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0., 0., 0., 1.],
+                 goal_obj_pose: list[float] = [0.0, -0.3, 1.0, 0., 0., 0., 1.],
                  ):
-        self.desired_location = desired_location
-        self.q_init = robot_configuration + [
-            # 0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035,
-            0, 0.1, 0.9,
-            0, 0, 0, 1,  # zero rotation
-            # 0, sqrt(2) / 2, 0, sqrt(2) / 2, # lying on the side
-            -0.99, -0.99, 0.761,  # moved obstacle away for now
-            0, 0, 0, 1,
-        ]
+        self.start_obj_pose = start_obj_pose
+        self.goal_obj_pose = goal_obj_pose
+
+        self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0., 0., 0., 1.]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
         package_location = '/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place'
         urdf_string = process_xacro(package_location + "/urdf/demo.urdf.xacro") if robot_urdf_string == "" else robot_urdf_string
@@ -85,12 +79,14 @@ class HPPInterface:
             srdf_path=package_location + "/srdf/big_box.srdf", 
             name="box"
         )
-
+        # Init corbaserver
+        self.corba = CorbaServer()
         self.setup_problem()
     
     def set_robot(self):
         self.robot = Robot("robot", "panda", rootJointType="anchor")
         # self.robot.opticalFrame = "camera_color_optical_frame"
+        # TODO: get joint names automatically
         shrinkJointRange(self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95)
 
     def set_problem(self):
@@ -120,6 +116,7 @@ class HPPInterface:
             "panda", "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place/srdf/demo.srdf"
         )
         # Remove collisions between object and self collision geometries
+        # TODO: get link names automatically
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
             srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
@@ -131,11 +128,12 @@ class HPPInterface:
         self.ps.client.manipulation.robot.addGripper(
             "panda/support_link",
             "goal/gripper",
-            self.desired_location + [0, sqrt(2) / 2, 0, sqrt(2) / 2],
+            self.goal_obj_pose[:3] + [0, sqrt(2) / 2, 0, sqrt(2) / 2],
             0.0,
         )
 
         # Lock gripper in open position.
+        # TODO: pass this as a parameter?
         self.ps.createLockedJoint("locked_finger_1", "panda/panda_finger_joint1", [0.035])
         self.ps.createLockedJoint("locked_finger_2", "panda/panda_finger_joint2", [0.035])
         self.ps.setConstantRightHandSide("locked_finger_1", True)
@@ -148,16 +146,19 @@ class HPPInterface:
 
 
     def setup_problem(self):
-        # Init corbaserver
-        self.corba = CorbaServer()
         newProblem()
-
         self.set_robot()
         self.set_problem()
 
+    def restart(self):
+        self.corba.reset_problem()
+        self.setup_problem()
 
-    def plan(self, q_init: list[float]):
-        self.q_init[:len(q_init)] = q_init
+    def plan(self, q_init: list[float], q_goal: list[float] = None):
+        self.q_init = q_init + self.start_obj_pose + self.default_obstacle_pose
+        if q_goal is None:
+            q_goal = q_init.copy()
+        self.q_goal = q_goal + self.goal_obj_pose + self.default_obstacle_pose
 
         self.binPicking = BinPicking(self.ps)
         self.binPicking.objects = [self.manip_object.name, self.obstacle_object.name]
@@ -195,10 +196,10 @@ class HPPInterface:
         self.binPicking.buildEffectors([f"box/base_link_{i}" for i in range(5)], self.q_init)
 
         print("Generating goal configurations.")
-        self.binPicking.generateGoalConfigs(self.q_init)
+        self.binPicking.generateGoalConfigs(self.q_goal)
 
         res, q_init, err = self.binPicking.graph.applyNodeConstraints("free", self.q_init)
-        assert res
+        assert res, f"Robot q_init isn't a valid configuration {err}"
         poses = np.array(q_init[9:16])
 
         print(q_init)
@@ -213,21 +214,21 @@ class HPPInterface:
             res = False
             res, p = self.binPicking.solve(q_init)
             print("p", p)
-            grasp_path, placing_path, freefly_path = split_path(p)
             if res:
+                grasp_path, placing_path, freefly_path = split_path(p)
                 self.ps.client.basic.problem.addPath(grasp_path)
                 self.ps.client.basic.problem.addPath(placing_path)
                 self.ps.client.basic.problem.addPath(freefly_path)
                 print("Path generated.")
+                return grasp_path, placing_path, freefly_path
             else:
-                raise Warning(f"Robot q_init isn't a valid configuration {msg}")
-            return q_init, grasp_path, placing_path, freefly_path
+                print("No solution")
+                return None
 
         else:
             print("[INFO] Object found but not collision free")
             print("Trying solving without playing path for simulation ...")
-
-        return q_init, None
+            return
 
 
 # ____________________________________________________________________________
@@ -262,7 +263,7 @@ if __name__ == "__main__":
     hpp_interface = HPPInterface(
         robot_configuration = robot_init,
         object_name=object_name,
-        desired_location = [0.0, -0.1, 1.0]
+        desired_location = [0.0, -0.3, 1.0]
     )
     
 

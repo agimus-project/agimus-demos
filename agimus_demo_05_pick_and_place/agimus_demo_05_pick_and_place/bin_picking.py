@@ -439,7 +439,7 @@ class BinPicking(object):
             raise RuntimeError(f"Failed to connect {q_start} and {q_goal}: {exc}")
         return True, p_direct
 
-    def solve(self, q, type_of_path='default'):
+    def solve(self, q):
             """
             Compute a trajectory to grasp and release the object
             - q initial configuration of the robot and objects
@@ -456,43 +456,43 @@ class BinPicking(object):
                 return False, msg
             
             # Default Path Plan
-            if type_of_path == 'default':
-                print("Default Path Plan")
-                # Plan paths between waypoint configurations
-                edge = "Loop | f"
-                self.transitionPlanner.setEdge(self.graph.edges[edge])
-                self.setParam('freefly')
-                try:
-                    q1 = pickPath.initial()
-                    p1 = self.wd(self.transitionPlanner.planPath(q, [q1,], True))
-                except Exception as exc:
-                    raise RuntimeError(f"Failed to connect {q} and {q1}: {exc}")
-                
-                ig = self.factory.grippers.index(gripper)
-                ih = self.factory.handles.index(handle)
-                edge = f"Loop | {ig}-{ih}"
-                self.transitionPlanner.setEdge(self.graph.edges[edge])
-                self.setParam('grasping')
-                try:
-                    q3 = pickPath.end()
-                    q4 = placePath.initial()
-                    p4 = self.wd(self.transitionPlanner.planPath(q3, [q4,], True))
-                except Exception as exc:
-                    raise RuntimeError(f"Failed to connect {q3} and {q4}: {exc}")
-                
-                # Return to initial configuration
-                edge = "Loop | f"
-                self.transitionPlanner.setEdge(self.graph.edges[edge])
-                self.setParam('freefly')
-                q6 = placePath.end()
-                q7 = q[:]
-                r = self.robot.rankInConfiguration[f"{self.objects[0]}/root_joint"]
-                q7[r:r+7] = q6[r:r+7]
-                try:
-                    p7 = self.wd(self.transitionPlanner.planPath(q6, [q7,], True))
-                except Exception as exc:
-                    raise RuntimeError(f"Failed to connect {q6} and {q7}: {exc}")
-                return True, concatenatePaths([p1,pickPath,p4,placePath,p7])
+
+            print("Default Path Plan")
+            # Plan paths between waypoint configurations
+            edge = "Loop | f"
+            self.transitionPlanner.setEdge(self.graph.edges[edge])
+            self.setParam('freefly')
+            try:
+                q1 = pickPath.initial()
+                p1 = self.wd(self.transitionPlanner.planPath(q, [q1,], True))
+            except Exception as exc:
+                raise RuntimeError(f"Failed to connect {q} and {q1}: {exc}")
+            
+            ig = self.factory.grippers.index(gripper)
+            ih = self.factory.handles.index(handle)
+            edge = f"Loop | {ig}-{ih}"
+            self.transitionPlanner.setEdge(self.graph.edges[edge])
+            self.setParam('grasping')
+            try:
+                q3 = pickPath.end()
+                q4 = placePath.initial()
+                p4 = self.wd(self.transitionPlanner.planPath(q3, [q4,], True))
+            except Exception as exc:
+                raise RuntimeError(f"Failed to connect {q3} and {q4}: {exc}")
+            
+            # Return to initial configuration
+            edge = "Loop | f"
+            self.transitionPlanner.setEdge(self.graph.edges[edge])
+            self.setParam('freefly')
+            q6 = placePath.end()
+            q7 = q[:]
+            r = self.robot.rankInConfiguration[f"{self.objects[0]}/root_joint"]
+            q7[r:r+7] = q6[r:r+7]
+            try:
+                p7 = self.wd(self.transitionPlanner.planPath(q6, [q7,], True))
+            except Exception as exc:
+                raise RuntimeError(f"Failed to connect {q6} and {q7}: {exc}")
+            return True, concatenatePaths([p1,pickPath,p4,placePath,p7])
 
 if __name__ == "__main__":
     from hpp.rostools import process_xacro, retrieve_resource
