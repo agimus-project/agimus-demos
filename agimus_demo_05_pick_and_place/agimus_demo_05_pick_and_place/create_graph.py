@@ -28,8 +28,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from hpp.corbaserver.manipulation import ConstraintGraph, \
-    ConstraintGraphFactory, Rule, Constraints, CorbaClient, SecurityMargins
+from hpp.corbaserver.manipulation import (
+    ConstraintGraph,
+    ConstraintGraphFactory,
+    Constraints,
+)
+
 
 class Factory(ConstraintGraphFactory):
     def __init__(self, ps, graph):
@@ -40,43 +44,61 @@ class Factory(ConstraintGraphFactory):
         part = self.objects[0]
         box = self.objects[1]
         # create preplacement and placement constraints for the object
-        self.ps.createTransformationConstraint(f"place_{part}", "",
-            f"{part}/root_joint", [0,0,0,0,0,0,1], 6*[False])
-        self.ps.createLockedJoint(f"place_{part}/complement",
-            f"{part}/root_joint", [0,0,0,0,0,0,1])
+        self.ps.createTransformationConstraint(
+            f"place_{part}",
+            "",
+            f"{part}/root_joint",
+            [0, 0, 0, 0, 0, 0, 1],
+            6 * [False],
+        )
+        self.ps.createLockedJoint(
+            f"place_{part}/complement", f"{part}/root_joint", [0, 0, 0, 0, 0, 0, 1]
+        )
         self.ps.setConstantRightHandSide(f"place_{part}/complement", False)
-        self.ps.createTransformationConstraint(f"preplace_{part}",
-            f"{box}/root_joint", f"{part}/root_joint", [0, 0, .30, 0, 0, 0, 1],
-            [False, False, True, False, False, False])
-        self.ps.createLockedJoint(f"place_{box}/complement",
-            f"{box}/root_joint", [0,0,0,0,0,0,1])
+        self.ps.createTransformationConstraint(
+            f"preplace_{part}",
+            f"{box}/root_joint",
+            f"{part}/root_joint",
+            [0, 0, 0.30, 0, 0, 0, 1],
+            [False, False, True, False, False, False],
+        )
+        self.ps.createLockedJoint(
+            f"place_{box}/complement", f"{box}/root_joint", [0, 0, 0, 0, 0, 0, 1]
+        )
         self.ps.setConstantRightHandSide(f"place_{box}/complement", False)
-        self.ps.createTransformationConstraint(f"vertical_{part}", "",
-            f"{part}/root_joint", [0,0,0,0,0,0,1],
-            [True, True, False, True, True, True])
+        self.ps.createTransformationConstraint(
+            f"vertical_{part}",
+            "",
+            f"{part}/root_joint",
+            [0, 0, 0, 0, 0, 0, 1],
+            [True, True, False, True, True, True],
+        )
         self.ps.setConstantRightHandSide(f"vertical_{part}", False)
         ConstraintGraphFactory.generate(self)
-        ig = 0; gripper = self.grippers[ig]
+        ig = 0
+        gripper = self.grippers[ig]
         for ih, h in enumerate(self.handles):
-            if 'goal_handle' in h: continue
+            if "goal_handle" in h:
+                continue
             edge = f"{gripper} > {h} | f_23"
-            self.graph.addConstraints(edge = edge,
-                constraints = Constraints(numConstraints =
-                [f"vertical_{part}"])
+            self.graph.addConstraints(
+                edge=edge, constraints=Constraints(numConstraints=[f"vertical_{part}"])
             )
             edge = f"{gripper} < {h} | {ig}-{ih}_32"
-            self.graph.addConstraints(edge = edge,
-                constraints = Constraints(numConstraints =
-                [f"vertical_{part}"])
+            self.graph.addConstraints(
+                edge=edge, constraints=Constraints(numConstraints=[f"vertical_{part}"])
             )
 
+
 factory = None
+
+
 # Create a handle and a gripper for the goal position of the object
 # Create specific graph with vertical preplace motions
 # The last handle is the center of the part.
 def makeGraph(ps, robot, grippers, objects, handles, rules, possibleGrasps):
     global factory
-    graph = ConstraintGraph(robot, 'graph')
+    graph = ConstraintGraph(robot, "graph")
 
     factory = Factory(ps, graph)
     factory.constraints.removeEmptyConstraints = False

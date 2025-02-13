@@ -12,8 +12,12 @@ from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
+
 # from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
-from agimus_demo_05_pick_and_place.script_hpp import HPPInterface, concatenatePaths, get_traj_points_from_path
+from agimus_demo_05_pick_and_place.script_hpp import (
+    HPPInterface,
+    get_traj_points_from_path,
+)
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
@@ -65,13 +69,13 @@ class Orchestrator(object):
 
     def close_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.0, max_effort=10.0)
-         # TODO: change it to something normal 
+        # TODO: change it to something normal
         time.sleep(0.05)
 
     def publish(self, path_vector):
         traj = get_traj_points_from_path(path_vector)
         self.trajectory_publisher.publish(traj)
-    
+
     # TODO: so far this does not work, code is specific to pick and place
     # def go_to(self, desired_configuration):
     #     current_robot_state = self.state_client.wait_for_future()
@@ -83,15 +87,17 @@ class Orchestrator(object):
 
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
-        grasp_path, placing_path, freefly_path = self.hpp_client.plan(list(current_robot_state.position))
-        
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan(
+            list(current_robot_state.position)
+        )
+
         self.open_gripper()
         self.publish(grasp_path)
         self.close_gripper()
         self.publish(placing_path)
         self.open_gripper()
         self.publish(freefly_path)
-       
+
         self.hpp_client.restart()
 
     # def go_to_ee(self, target_ee):

@@ -1,13 +1,16 @@
 import numpy as np
 import xml.etree.ElementTree as ET
 
+
 def concatenatePaths(paths):
-    if len(paths) == 0: return None
+    if len(paths) == 0:
+        return None
     p = paths[0].asVector()
     for q in paths[1:]:
-        assert(p.end() == q.initial())
+        assert p.end() == q.initial()
         p.appendPath(q)
     return p
+
 
 def split_path(path):
     path = path.flatten()
@@ -38,6 +41,7 @@ def path_move_object(path):
     else:
         return True
 
+
 class BaseObject(object):
     rootJointType = "freeflyer"
 
@@ -45,13 +49,13 @@ class BaseObject(object):
         self.urdfFilename = urdf_path
         self.srdfFilename = srdf_path
         self.name = name
-    
-def get_obj_goal_handles(prefix:str, srdf_path: str) -> (list[str], list[str]):
-    """Returns the object and goal handles from the srdf file.
-    """
+
+
+def get_obj_goal_handles(prefix: str, srdf_path: str) -> (list[str], list[str]):
+    """Returns the object and goal handles from the srdf file."""
     tree = ET.parse(srdf_path)
     root = tree.getroot()
-    all_handles = [handle.attrib['name'] for handle in root.findall('handle')]
-    goal_handles = [prefix + handle for handle in all_handles if 'goal' in handle]
-    object_handles = [prefix + handle for handle in all_handles if 'goal' not in handle]
+    all_handles = [handle.attrib["name"] for handle in root.findall("handle")]
+    goal_handles = [prefix + handle for handle in all_handles if "goal" in handle]
+    object_handles = [prefix + handle for handle in all_handles if "goal" not in handle]
     return object_handles, goal_handles

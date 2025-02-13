@@ -117,7 +117,7 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="panda_link5" link2="panda_rightfinger"
                       reason="self-collision handled separately"/>
-  
+
   <disable_collisions link1="panda_link6" link2="panda_link7"
                       reason="self-collision handled separately"/>
   <disable_collisions link1="panda_link6" link2="panda_hand"
@@ -141,7 +141,7 @@
 
   <disable_collisions link1="panda_leftfinger" link2="panda_rightfinger"
                       reason="self-collision handled separately"/>
-  
+
   <!-- remove collision between environment and self-collision geometries -->
 
   <disable_collisions link1="support_link" link2="panda_link1_sc"
@@ -162,7 +162,7 @@
                       reason="handled otherwise"/>
 
   <!-- remove self-collision pairs between adjacent links -->
-  
+
   <disable_collisions link1="panda_link0_sc" link2="panda_link1_sc"
                       reason="adjacent"/>
   <disable_collisions link1="panda_link0_sc" link2="panda_link2_sc"

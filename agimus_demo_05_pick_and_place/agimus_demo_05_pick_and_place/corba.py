@@ -15,9 +15,8 @@ class CorbaServer:
             self.start()
 
     def start(self):
-        
         ld_path = ""
-        ros_pkg_path =  f"ROS_PACKAGE_PATH={Path(__file__).parent}/"
+        ros_pkg_path = f"ROS_PACKAGE_PATH={Path(__file__).parent}/"
         corba_command = f"{ld_path} {ros_pkg_path} hppcorbaserver"
 
         self.process = subprocess.Popen(corba_command, shell=True)
@@ -75,6 +74,6 @@ class CorbaServer:
         time.sleep(1)
         self.start()
 
+
 if __name__ == "__main__":
     corba = CorbaServer()
-    

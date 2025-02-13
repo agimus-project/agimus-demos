@@ -15,7 +15,7 @@ class TrajectoryPublisher(object):
         self.pin_data = None
         self.ee_frame_id = None
         self.ee_frame_name = "fer_joint7"
-        
+
         self._publisher = self._node.create_publisher(MpcInput, "/mpc_input", 10)
         qos_profile = QoSProfile(
             depth=1,
@@ -35,7 +35,9 @@ class TrajectoryPublisher(object):
         self.pin_model = pin.buildModelFromXML(msg.data)
         self.pin_data = self.pin_model.createData()
         self.ee_frame_id = self.pin_model.getFrameId(self.ee_frame_name)
-        self._node.get_logger().warn(f"Model loaded, pin_model.nq = {self.pin_model.nq}")
+        self._node.get_logger().warn(
+            f"Model loaded, pin_model.nq = {self.pin_model.nq}"
+        )
 
     def publish(self, trajectory: list):
         """Publishes an MpcInput message with provided data."""
@@ -52,7 +54,7 @@ class TrajectoryPublisher(object):
 
             ee_pose = self.pin_data.oMf[self.ee_frame_id]
             xyz_quatxyzw = pin.SE3ToXYZQUAT(ee_pose)
-            
+
             # print(q)
             u = pin.computeGeneralizedGravity(self.pin_model, self.pin_data, q)
 
@@ -61,14 +63,14 @@ class TrajectoryPublisher(object):
             msg.w_qdot = [1e-2] * 7
             msg.w_qddot = [1e-6] * 7
             msg.w_robot_effort = [1e-4] * 7
-            msg.w_pose = [1.0] * 6 
-            
+            msg.w_pose = [1.0] * 6
+
             msg.q = list(point.robot_configuration)
             msg.qdot = list(point.robot_velocity)
             msg.qddot = list(point.robot_acceleration)
-            
-            msg.robot_effort = list(u[:len(msg.qddot)])
-            
+
+            msg.robot_effort = list(u[: len(msg.qddot)])
+
             pose = Pose()
             pose.position.x = xyz_quatxyzw[0]
             pose.position.y = xyz_quatxyzw[1]

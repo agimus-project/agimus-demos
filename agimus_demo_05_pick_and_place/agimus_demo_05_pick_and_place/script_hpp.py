@@ -26,20 +26,23 @@
 
 from math import pi, sqrt
 from agimus_demo_05_pick_and_place.corba import CorbaServer
-from hpp.corbaserver import loadServerPlugin, shrinkJointRange
+from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-import os
 import numpy as np
 
 import time
 import pickle
 
-from agimus_demo_05_pick_and_place.utils import split_path, BaseObject, get_obj_goal_handles, concatenatePaths
-from hpp.rostools import process_xacro, retrieve_resource
+from agimus_demo_05_pick_and_place.utils import (
+    split_path,
+    BaseObject,
+    get_obj_goal_handles,
+    concatenatePaths,
+)
+from hpp.rostools import process_xacro
 from agimus_controller.trajectory import TrajectoryPoint
-from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 
 # logger = getLogger(__name__)
 
@@ -47,47 +50,57 @@ print("[START]")
 print(
     "To avoid crash during constrain graph building, RESTART the hppcorbaserver process once in a while."
 )
+
+
 class HPPInterface:
     """This interface assumes that there is one object to manipulate and one moving obstacle.
     Both the object and the obstacle are encoded in the space
     Graph creation is specific to this setup
     """
-    def __init__(self, 
-                 object_name: str = "obj_01",
-                 robot_urdf_string: str = "", 
-                 robot_srdf_string: str = "",
-                 start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0., 0., 0., 1.],
-                 goal_obj_pose: list[float] = [0.0, -0.3, 1.0, 0., 0., 0., 1.],
-                 ):
+
+    def __init__(
+        self,
+        object_name: str = "obj_01",
+        robot_urdf_string: str = "",
+        robot_srdf_string: str = "",
+        start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
+        goal_obj_pose: list[float] = [0.0, -0.3, 1.0, 0.0, 0.0, 0.0, 1.0],
+    ):
         self.start_obj_pose = start_obj_pose
         self.goal_obj_pose = goal_obj_pose
 
-        self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0., 0., 0., 1.]
+        self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-        package_location = '/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place'
-        urdf_string = process_xacro(package_location + "/urdf/demo.urdf.xacro") if robot_urdf_string == "" else robot_urdf_string
+        package_location = "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place"
+        urdf_string = (
+            process_xacro(package_location + "/urdf/demo.urdf.xacro")
+            if robot_urdf_string == ""
+            else robot_urdf_string
+        )
         Robot.urdfString = urdf_string
         Robot.srdfString = robot_srdf_string
         # package_location = os.getcwd()
         self.manip_object = BaseObject(
-            urdf_path=package_location + f"/urdf/{object_name}.urdf", 
-            srdf_path=package_location + f"/srdf/{object_name}.srdf", 
-            name="part"
+            urdf_path=package_location + f"/urdf/{object_name}.urdf",
+            srdf_path=package_location + f"/srdf/{object_name}.srdf",
+            name="part",
         )
         self.obstacle_object = BaseObject(
-            urdf_path=package_location + "/urdf/big_box.urdf", 
-            srdf_path=package_location + "/srdf/big_box.srdf", 
-            name="box"
+            urdf_path=package_location + "/urdf/big_box.urdf",
+            srdf_path=package_location + "/srdf/big_box.srdf",
+            name="box",
         )
         # Init corbaserver
         self.corba = CorbaServer()
         self.setup_problem()
-    
+
     def set_robot(self):
         self.robot = Robot("robot", "panda", rootJointType="anchor")
         # self.robot.opticalFrame = "camera_color_optical_frame"
         # TODO: get joint names automatically
-        shrinkJointRange(self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95)
+        shrinkJointRange(
+            self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95
+        )
 
     def set_problem(self):
         # Setup problem solver and parameters
@@ -105,15 +118,20 @@ class HPPInterface:
         vf = ViewerFactory(self.ps)
         # load the object
         vf.loadObjectModel(self.manip_object, self.manip_object.name)
-        self.robot.setJointBounds(f"{self.manip_object.name}/root_joint", self.default_object_bounds)
+        self.robot.setJointBounds(
+            f"{self.manip_object.name}/root_joint", self.default_object_bounds
+        )
 
         # load moving obstacle
         vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
-        self.robot.setJointBounds(f"{self.obstacle_object.name}/root_joint", self.default_object_bounds)
+        self.robot.setJointBounds(
+            f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
+        )
         print("Part and box loaded")
         # TODO: think about this, maybe as a parameter
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
-            "panda", "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place/srdf/demo.srdf"
+            "panda",
+            "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_05_pick_and_place/agimus_demo_05_pick_and_place/srdf/demo.srdf",
         )
         # Remove collisions between object and self collision geometries
         # TODO: get link names automatically
@@ -122,7 +140,9 @@ class HPPInterface:
             srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += "</robot>"
-        self.robot.client.manipulation.robot.insertRobotSRDFModelFromString("panda", srdfString)
+        self.robot.client.manipulation.robot.insertRobotSRDFModelFromString(
+            "panda", srdfString
+        )
 
         # Create robot gripper handle, x-axis is facing down (for pregrasp)
         self.ps.client.manipulation.robot.addGripper(
@@ -134,16 +154,19 @@ class HPPInterface:
 
         # Lock gripper in open position.
         # TODO: pass this as a parameter?
-        self.ps.createLockedJoint("locked_finger_1", "panda/panda_finger_joint1", [0.035])
-        self.ps.createLockedJoint("locked_finger_2", "panda/panda_finger_joint2", [0.035])
+        self.ps.createLockedJoint(
+            "locked_finger_1", "panda/panda_finger_joint1", [0.035]
+        )
+        self.ps.createLockedJoint(
+            "locked_finger_2", "panda/panda_finger_joint2", [0.035]
+        )
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
-        # Add handle of the objects 
+        # Add handle of the objects
         self.handles, self.goal_handles = get_obj_goal_handles(
-            prefix=self.manip_object.name + '/',
-            srdf_path=self.manip_object.srdfFilename
-            )
-
+            prefix=self.manip_object.name + "/",
+            srdf_path=self.manip_object.srdfFilename,
+        )
 
     def setup_problem(self):
         newProblem()
@@ -190,15 +213,19 @@ class HPPInterface:
         build_time_stop = time.time()
         building_time = build_time_stop - build_time_start
         print("The graph took ", building_time, "s to build.")
-       
+
         # Create effector
         print("Building effector.")
-        self.binPicking.buildEffectors([f"box/base_link_{i}" for i in range(5)], self.q_init)
+        self.binPicking.buildEffectors(
+            [f"box/base_link_{i}" for i in range(5)], self.q_init
+        )
 
         print("Generating goal configurations.")
         self.binPicking.generateGoalConfigs(self.q_goal)
 
-        res, q_init, err = self.binPicking.graph.applyNodeConstraints("free", self.q_init)
+        res, q_init, err = self.binPicking.graph.applyNodeConstraints(
+            "free", self.q_init
+        )
         assert res, f"Robot q_init isn't a valid configuration {err}"
         poses = np.array(q_init[9:16])
 
@@ -239,17 +266,19 @@ def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
     traj_point_list = []
     for iter in range(T):
         iter_time = total_time * iter / (T - 1)  # iter * dt
-        
+
         traj_point_list.append(
             TrajectoryPoint(
                 robot_configuration=np.array(hpp_path.call(iter_time)[0][:robot_ndof]),
                 robot_velocity=np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]),
-                robot_acceleration=np.array(hpp_path.derivative(iter_time, 2)[:robot_ndof]),
-                end_effector_poses={'link0': np.eye(4)}              
-                
-                )
+                robot_acceleration=np.array(
+                    hpp_path.derivative(iter_time, 2)[:robot_ndof]
+                ),
+                end_effector_poses={"link0": np.eye(4)},
+            )
         )
     return traj_point_list
+
 
 if __name__ == "__main__":
     """ tless
@@ -261,16 +290,17 @@ if __name__ == "__main__":
     robot_init = [0, -pi / 4, 0, -3 * pi / 4, 0, pi / 2, pi / 4, 0.035, 0.035]
 
     hpp_interface = HPPInterface(
-        robot_configuration = robot_init,
+        robot_configuration=robot_init,
         object_name=object_name,
-        desired_location = [0.0, -0.3, 1.0]
+        desired_location=[0.0, -0.3, 1.0],
     )
-    
 
-    q_init, grasp_path, placing_path, freefly_path = hpp_interface.plan(hpp_interface.q_init)
+    q_init, grasp_path, placing_path, freefly_path = hpp_interface.plan(
+        hpp_interface.q_init
+    )
     path_vector = concatenatePaths([grasp_path, placing_path, freefly_path])
     path_len = path_vector.length()
-    configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100) ]
+    configs = [path_vector.call(t)[0] for t in np.linspace(0, path_len, 100)]
     pickle.dump(configs, open("q_init.pkl", "wb"))
     # traj_publisher = TrajectoryPublisher(node=)
     traj1 = get_traj_points_from_path(grasp_path)
@@ -278,6 +308,7 @@ if __name__ == "__main__":
     traj3 = get_traj_points_from_path(freefly_path)
     from orchestrator import Orchestrator
     import rclpy
+
     rclpy.init()
     orchestrator = Orchestrator()
     try:
@@ -293,5 +324,3 @@ if __name__ == "__main__":
     finally:
         orchestrator._node.destroy_node()
         rclpy.shutdown()
-    
-    
