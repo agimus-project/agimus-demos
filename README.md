@@ -2,7 +2,9 @@
 
 Agimus Demos is a set of ROS 2 packages used to launch different demos developed for [Agimus Project](https://www.agimus-project.eu/).
 
-Repository is organized as set of demos with increasing complexity. Each folder contains a ROS 2 package launching the demo. README.md of each demo contains description with expected results and instruction how to launch the demo.
+The repository is organized as set of demos with increasing complexity.
+Each folder contains a ROS 2 package launching the demo.
+The `README.md` file of each demo contains a detailed description of the expected results and instruction on how to launch the demo.
 
 All of the demos are launched in a similar manner. For Gazebo simulation use
 ```bash
