@@ -4,7 +4,7 @@ agimus_controller_node:
     rate: 100.0
     ocp:
       dt: 0.01
-      horizon_size: 20
+      horizon_size: 19
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       gripper_weight: 500.0
       state_weight: 5.0
