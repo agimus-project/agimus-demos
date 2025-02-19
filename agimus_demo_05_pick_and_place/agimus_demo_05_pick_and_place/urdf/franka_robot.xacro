@@ -41,11 +41,11 @@
                    ${camera_pose['camera']['pitch']}
                    ${camera_pose['camera']['yaw']}"/>
     </joint>
-    <!-- <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" /> -->
-<!--
+    <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" />
+
     <xacro:sensor_d435 parent="${arm_id}_ref_camera_link" name="camera" use_nominal_extrinsics="true">
       <origin xyz="0 0 0" rpy="0 0 0"/>
-    </xacro:sensor_d435> -->
+    </xacro:sensor_d435>
 
     <!-- camera support -->
     <link name="${arm_id}_camera_support_link">
