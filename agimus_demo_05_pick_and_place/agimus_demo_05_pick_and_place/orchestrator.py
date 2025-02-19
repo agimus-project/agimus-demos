@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
+import pinocchio as pin
 import time
 
 from rclpy.node import Node
@@ -25,6 +26,12 @@ from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublish
 def map_object_id(obj_id, dataset="tless"):
     num_part = obj_id.split("_")[1]
     return f"{dataset}-obj_{int(num_part):06d}"
+
+
+def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
+    p1 = pin.XYZQUATToSE3(pose1)
+    p2 = pin.XYZQUATToSE3(pose2)
+    return pin.SE3ToXYZQUAT(p1 * p2)
 
 
 @dataclass
@@ -71,6 +78,7 @@ class Orchestrator(object):
     def get_most_confisent_object_pose(
         self, detections: Detection2DArray
     ) -> list[float]:
+        # TODO: change the map if we want to use YCBV
         filtered_detections = [
             (d, d.results[0].hypothesis.score)
             for d in detections
@@ -116,8 +124,20 @@ class Orchestrator(object):
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
         object_detections = self.vision_client.wait_for_future()
-        start_pose = self.get_most_confisent_object_pose(object_detections)
-        self.hpp_client.start_obj_pose = start_pose
+        obj_in_cam_pose = self.get_most_confisent_object_pose(object_detections)
+        hpp_q_init = (
+            current_robot_state
+            + self.hpp_client.start_obj_pose
+            + self.hpp_client.default_obstacle_pose
+        )
+        self.hpp_client.robot.setCurrentConfig(hpp_q_init)
+        # TODO: change from hardcoded robot name
+        cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
+            linkName="panda/camera_color_optical_frame"
+        )
+        obj_in_world_pose = multiply_poses(cam_in_world_pose, obj_in_cam_pose)
+        print(obj_in_world_pose)
+        self.hpp_client.start_obj_pose = obj_in_world_pose
         grasp_path, placing_path, freefly_path = self.hpp_client.plan(
             list(current_robot_state.position)
         )
