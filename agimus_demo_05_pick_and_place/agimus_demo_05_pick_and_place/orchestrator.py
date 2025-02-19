@@ -10,6 +10,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
+from vision_msgs.msg import Detection2DArray
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
@@ -19,6 +20,11 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+
+
+def map_object_id(obj_id, dataset="tless"):
+    num_part = obj_id.split("_")[1]
+    return f"{dataset}-obj_{int(num_part):06d}"
 
 
 @dataclass
@@ -38,12 +44,9 @@ class Orchestrator(object):
         self.param = OrchestratorParams()
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
-        object_name = "obj_23"
+        self.object_name = "obj_23"
 
-        self.hpp_client = HPPInterface(
-            object_name=object_name,
-            # desired_location = [0.0, -0.3, 1.0]
-        )
+        self.hpp_client = HPPInterface(object_name=self.object_name)
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
         self.state_client = AsyncSubscriber(
@@ -58,6 +61,32 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
+        self.vision_client = AsyncSubscriber(
+            self._node,
+            Detection2DArray,
+            "/happypose/detections",
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        )
+
+    def get_most_confisent_object_pose(
+        self, detections: Detection2DArray
+    ) -> list[float]:
+        filtered_detections = [
+            (d, d.results[0].hypothesis.score)
+            for d in detections
+            if d.results[0].hypothesis.class_id == map_object_id(self.object_name)
+        ]
+        detection = max(filtered_detections, key=lambda pair: pair[1])[0]
+        pose: Pose = detection.results[0].pose.pose
+        return [
+            pose.position.x,
+            pose.position.y,
+            pose.position.z,
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w,
+        ]
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(
@@ -86,6 +115,9 @@ class Orchestrator(object):
 
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
+        object_detections = self.vision_client.wait_for_future()
+        start_pose = self.get_most_confisent_object_pose(object_detections)
+        self.hpp_client.start_obj_pose = start_pose
         grasp_path, placing_path, freefly_path = self.hpp_client.plan(
             list(current_robot_state.position)
         )
