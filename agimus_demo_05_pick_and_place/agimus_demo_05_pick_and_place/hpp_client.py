@@ -40,8 +40,17 @@ from agimus_demo_05_pick_and_place.utils import (
     BaseObject,
     get_obj_goal_handles,
 )
-from hpp.rostools import process_xacro
+from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
+
+
+def hack_for_ros2_support_in_hpp():
+    import os
+
+    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
+        os.environ["ROS_PACKAGE_PATH"] = ":".join(
+            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
+        )
 
 
 class HPPInterface:
@@ -58,15 +67,16 @@ class HPPInterface:
         start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
         goal_obj_pose: list[float] = [0.0, -0.3, 0.95, 0.0, 0.0, 0.0, 1.0],
     ):
+        hack_for_ros2_support_in_hpp()
+
         self.start_obj_pose = start_obj_pose
         self.goal_obj_pose = goal_obj_pose
 
         self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-        # TODO: maybe this should be a parameter
-        package_location = Path(__file__).parent
+        package_location = "package://agimus_demo_05_pick_and_place/"
         urdf_string = (
-            process_xacro(str(package_location / "urdf/demo.urdf.xacro"))
+            process_xacro(package_location + "urdf/demo.urdf.xacro")
             if robot_urdf_string == ""
             else robot_urdf_string
         )
@@ -74,13 +84,13 @@ class HPPInterface:
         Robot.srdfString = robot_srdf_string
 
         self.manip_object = BaseObject(
-            urdf_path=str(package_location / f"urdf/tless/{object_name}.urdf"),
-            srdf_path=str(package_location / f"srdf/tless/{object_name}.srdf"),
+            urdf_path=retrieve_resource(f"{package_location}/urdf/tless/{object_name}.urdf"),
+            srdf_path=retrieve_resource(f"{package_location}/srdf/tless/{object_name}.srdf"),
             name="part",
         )
         self.obstacle_object = BaseObject(
-            urdf_path=str(package_location / "urdf/big_box.urdf"),
-            srdf_path=str(package_location / "srdf/big_box.srdf"),
+            urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
+            srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
             name="box",
         )
         # Init corbaserver

@@ -2,7 +2,6 @@ import os
 import sys
 import time
 import subprocess
-from pathlib import Path
 from hpp.corbaserver.manipulation import Client, loadServerPlugin
 from omniORB.CORBA import SystemException
 
@@ -15,9 +14,7 @@ class CorbaServer:
             self.start()
 
     def start(self):
-        ld_path = ""
-        ros_pkg_path = f"ROS_PACKAGE_PATH={Path(__file__).parent}/"
-        corba_command = f"{ld_path} {ros_pkg_path} hppcorbaserver"
+        corba_command = "hppcorbaserver"
 
         self.process = subprocess.Popen(corba_command, shell=True)
         print(corba_command)
