@@ -41,14 +41,14 @@ def hardcoded_config() -> list[float]:
     """
     str_pose = """
         position:
-          x: 0.07313138246536255
-          y: -0.006231226027011871
-          z: 0.49022915959358215
+          x: 0.07415620982646942
+          y: -0.0037332407664507627
+          z: 0.4192313551902771
         orientation:
-          x: 0.5514228029489565
-          y: 0.7049085183237971
-          z: 0.39984260946067895
-          w: 0.1978956041796945
+          x: 0.5784230576928513
+          y: 0.770402139589831
+          z: 0.2623295141316406
+          w: 0.05559180051464918
     """
     float_values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", str_pose)))
 
@@ -89,12 +89,12 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        self.vision_client = AsyncSubscriber(
-            self._node,
-            Detection2DArray,
-            "/happypose/detections",
-            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
-        )
+        # self.vision_client = AsyncSubscriber(
+        #     self._node,
+        #     Detection2DArray,
+        #     "/happypose/detections",
+        #     QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        # )
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray
@@ -152,13 +152,13 @@ class Orchestrator(object):
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
         # TEMP fix: just hardcode pose from happypose
-        # obj_in_cam_pose = hardcoded_config()
+        obj_in_cam_pose = hardcoded_config()
         # REAL setup, TODO: fix communication error when happy pose is running
-        object_detections = self.vision_client.wait_for_future()
-        obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
-        if obj_in_cam_pose is None:
-            raise ValueError(f"No {self.object_name} object detected")
-        #     # TODO: raise an error?
+        # object_detections = self.vision_client.wait_for_future()
+        # obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
+        # if obj_in_cam_pose is None:
+        #     raise ValueError(f"No {self.object_name} object detected")
+
         hpp_q_init = (
             list(current_robot_state.position)
             + self.hpp_client.start_obj_pose
