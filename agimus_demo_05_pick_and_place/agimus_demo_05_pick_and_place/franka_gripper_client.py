@@ -10,9 +10,7 @@ class FrankaGripperClient(object):
         self._client = ActionClient(
             self._node, GripperCommand, "/fer_gripper/gripper_action"
         )
-        self._action_client = ActionClient(
-            self._node, Grasp, '/fer_gripper/grasp'
-            )
+        self._action_client = ActionClient(self._node, Grasp, "/fer_gripper/grasp")
 
     def send_goal(self, position: float, max_effort: float):
         """Sends a goal to the GripperCommand action server."""
@@ -31,22 +29,22 @@ class FrankaGripperClient(object):
         )
         future.add_done_callback(self.goal_response_callback)
 
-    def grasp(self, width: float = 0., speed: float = 0.04, force: int = 10.):
-        self._node.get_logger().info('Waiting for action server to be available...')
+    def grasp(self, width: float = 0.0, speed: float = 0.04, force: int = 10.0):
+        self._node.get_logger().info("Waiting for action server to be available...")
         self._action_client.wait_for_server()
 
         goal_msg = Grasp.Goal()
-        goal_msg.width = width  
-        goal_msg.speed = speed 
-        goal_msg.force = force  
+        goal_msg.width = width
+        goal_msg.speed = speed
+        goal_msg.force = force
         # goal_msg.epsilon.inner = 0.1
         goal_msg.epsilon.outer = 0.1
 
-        self._node.get_logger().info('Sending goal to close the gripper...')
+        self._node.get_logger().info("Sending goal to close the gripper...")
         send_goal_future = self._action_client.send_goal_async(
-            goal_msg,  feedback_callback=self.fake_feedback_callback
-            )
-    
+            goal_msg, feedback_callback=self.fake_feedback_callback
+        )
+
     def goal_response_callback(self, future):
         """Handles the response when the goal is accepted/rejected."""
         goal_handle = future.result()
@@ -73,6 +71,4 @@ class FrankaGripperClient(object):
 
     def fake_feedback_callback(self, feedback_msg):
         """Handles feedback from the action server."""
-        self._node.get_logger().info(
-            f"Feedback: Position = "
-        )
+        self._node.get_logger().info("Feedback: Position = ")

@@ -34,6 +34,7 @@ def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
     p2 = pin.XYZQUATToSE3(pose2)
     return pin.SE3ToXYZQUAT(p1 * p2)
 
+
 def hardcoded_config() -> list[float]:
     """
     Place the ros2 topic echo /happypose/detections output and get a list
@@ -52,6 +53,7 @@ def hardcoded_config() -> list[float]:
     float_values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", str_pose)))
 
     return float_values
+
 
 @dataclass
 class OrchestratorParams:
@@ -104,7 +106,7 @@ class Orchestrator(object):
             if d.results[0].hypothesis.class_id == map_object_id(self.object_name)
         ]
         if len(filtered_detections) == 0:
-            return 
+            return
         detection = max(filtered_detections, key=lambda pair: pair[1])[0]
         pose: Pose = detection.results[0].pose.pose
         return [
@@ -118,21 +120,21 @@ class Orchestrator(object):
         ]
 
     def open_gripper(self):
-        self.franka_gripper_cient.send_goal(
-            position=0.039, max_effort=10.
-        )
+        self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
         # TODO: change it to something normal
         time.sleep(0.05)
 
     def close_gripper(self):
-        self.franka_gripper_cient.send_goal(position=0.0, max_effort=self.param.max_holding_force)
+        self.franka_gripper_cient.send_goal(
+            position=0.0, max_effort=self.param.max_holding_force
+        )
         # TODO: change it to something normal
         time.sleep(0.05)
 
     def grasp(self):
         self.franka_gripper_cient.grasp()
         # TODO: change it to something normal
-        time.sleep(1.)
+        time.sleep(1.0)
 
     def publish(self, path_vector):
         traj = get_traj_points_from_path(path_vector)
@@ -158,10 +160,10 @@ class Orchestrator(object):
             raise ValueError(f"No {self.object_name} object detected")
         #     # TODO: raise an error?
         hpp_q_init = (
-                list(current_robot_state.position)
-                + self.hpp_client.start_obj_pose
-                + self.hpp_client.default_obstacle_pose
-            )
+            list(current_robot_state.position)
+            + self.hpp_client.start_obj_pose
+            + self.hpp_client.default_obstacle_pose
+        )
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
         # TODO: change from hardcoded robot name
         cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
@@ -169,7 +171,9 @@ class Orchestrator(object):
         )
         obj_in_world_pose = multiply_poses(cam_in_world_pose, obj_in_cam_pose)
         # TODO: make this better
-        obj_in_world_pose[3:] = obj_in_world_pose[3:] / np.linalg.norm(obj_in_world_pose[3:])
+        obj_in_world_pose[3:] = obj_in_world_pose[3:] / np.linalg.norm(
+            obj_in_world_pose[3:]
+        )
         self.hpp_client.start_obj_pose = list(obj_in_world_pose)
         grasp_path, placing_path, freefly_path = self.hpp_client.plan(
             list(current_robot_state.position)
