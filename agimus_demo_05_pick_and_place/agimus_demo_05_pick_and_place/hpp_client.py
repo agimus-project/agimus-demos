@@ -119,6 +119,7 @@ class HPPInterface:
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
 
         vf = ViewerFactory(self.ps)
+        self.vf = vf
         # load the object
         vf.loadObjectModel(self.manip_object, self.manip_object.name)
         self.robot.setJointBounds(
@@ -131,10 +132,9 @@ class HPPInterface:
             f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
         )
         print("Part and box loaded")
-        # TODO: think about this, maybe as a parameter
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
             "panda",
-            str(Path(__file__).parent / "srdf/demo.srdf"),
+            retrieve_resource("package://agimus_demo_05_pick_and_place/srdf/demo.srdf"),
         )
         # Remove collisions between object and self collision geometries
         # TODO: get link names automatically
