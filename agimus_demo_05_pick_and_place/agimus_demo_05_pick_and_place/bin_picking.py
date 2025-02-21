@@ -238,7 +238,7 @@ class BinPicking(object):
 
     def buildEffectors(self, obstacles, q):
         """
-        build and effector to test collision of grasps
+        build end-effector to test collision of grasps
           - name: name of the effector,
           - gripper: name of the gripper,
           - obstacles: list of obstacle name with which the effector with
