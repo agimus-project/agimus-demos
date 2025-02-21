@@ -90,7 +90,7 @@ def writeHandleInSrdf(robot, handle, clearance, mask):
 
 class BinPicking(object):
     """Define a bin-picking problem."""
-    
+
     """List of object names. The part to grasp is the first one."""
     objects = list()
     robotGrippers = list()
