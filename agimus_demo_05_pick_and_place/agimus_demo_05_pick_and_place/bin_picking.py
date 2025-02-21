@@ -88,13 +88,11 @@ def writeHandleInSrdf(robot, handle, clearance, mask):
     return res
 
 
-## This class defines a bin-picking problem.
-#
 class BinPicking(object):
+    """Define a bin-picking problem."""
+    
+    """List of object names. The part to grasp is the first one."""
     objects = list()
-    """
-    List of object names. The part to grasp is the first one.
-    """
     robotGrippers = list()
     """
     List of robot grippers to grasp the object
