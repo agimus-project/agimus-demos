@@ -152,6 +152,7 @@ class BinPicking(object):
         self.bpc = BpClient()
         # Store place paths where the object is released
         self.placePaths = dict()
+        self._freeGrasps = dict()
 
     def _rules(self):
         """
@@ -391,7 +392,7 @@ class BinPicking(object):
         Result is a dictionary of keys the robot grippers and with values
         lists of handles.
         """
-        self._freeGrasps = dict()
+        
         res = False
         for gripper in self.robotGrippers:
             freeGrasps = list()
@@ -469,7 +470,6 @@ class BinPicking(object):
                     q
                 )  # gripper, handle, pickPath, placePath
                 q1 = pickPath.initial()
-                print("attempting planPath")
                 p_direct = self.wd(
                     self.transitionPlanner.planPath(
                         q,
@@ -479,10 +479,8 @@ class BinPicking(object):
                         True,
                     )
                 )
-                exit(52445435)
+
         except Exception as exc:
-            print(exc)
-            exit(52445435)
             raise RuntimeError(f"Failed to connect {q_start} and {q_goal}: {exc}")
         return True, p_direct
 

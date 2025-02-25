@@ -56,7 +56,7 @@ class HPPInterface:
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
-        goal_obj_pose: list[float] = [0.0, -0.3, 1.0, 0.0, 0.0, 0.0, 1.0],
+        goal_obj_pose: list[float] = [0.0, -0.3, 0.95, 0.0, 0.0, 0.0, 1.0],
     ):
         self.start_obj_pose = start_obj_pose
         self.goal_obj_pose = goal_obj_pose
@@ -171,6 +171,7 @@ class HPPInterface:
         self.setup_problem()
 
     def plan(self, q_init: list[float], q_goal: list[float] = None):
+        object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = q_init + self.start_obj_pose + self.default_obstacle_pose
         if q_goal is None:
             q_goal = q_init.copy()
@@ -208,13 +209,14 @@ class HPPInterface:
         print("The graph took ", building_time, "s to build.")
 
         # Create effector
-        print("Building effector.")
-        self.binPicking.buildEffectors(
-            [f"box/base_link_{i}" for i in range(5)], self.q_init
-        )
+        if not object_static:
+            print("Building effector.")  # this hardcodes sequence of steps
+            self.binPicking.buildEffectors(
+                [f"box/base_link_{i}" for i in range(5)], self.q_init
+            )
 
-        print("Generating goal configurations.")
-        self.binPicking.generateGoalConfigs(self.q_goal)
+            print("Generating goal configurations.")
+            self.binPicking.generateGoalConfigs(self.q_goal)
 
         res, q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
@@ -232,18 +234,31 @@ class HPPInterface:
             print("[INFO] Object found with no collision")
             print("Solving ...")
             res = False
-            res, p = self.binPicking.solve(q_init)
-            print("p", p)
-            if res:
-                grasp_path, placing_path, freefly_path = split_path(p)
-                self.ps.client.basic.problem.addPath(grasp_path)
-                self.ps.client.basic.problem.addPath(placing_path)
-                self.ps.client.basic.problem.addPath(freefly_path)
-                print("Path generated.")
-                return grasp_path, placing_path, freefly_path
+            if object_static:
+                self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.05)
+                p, res, _ = self.binPicking.transitionPlanner.directPath(q_init, self.q_goal, True)
+                print("Achieve to create a direct path : ", res)
+                if not res:
+                    p = self.binPicking.transitionPlanner.planPath(
+                        q_init,
+                        [self.q_goal,],
+                        True,
+                    )
+                print("Free path", p)
+                return p
             else:
-                print("No solution")
-                return None
+                res, p = self.binPicking.solve(q_init)
+                print("Grasping path", p)
+                if res:
+                    grasp_path, placing_path, freefly_path = split_path(p)
+                    self.ps.client.basic.problem.addPath(grasp_path)
+                    self.ps.client.basic.problem.addPath(placing_path)
+                    self.ps.client.basic.problem.addPath(freefly_path)
+                    print("Path generated.")
+                    return grasp_path, placing_path, freefly_path
+                else:
+                    print("No solution")
+                    return None
 
         else:
             print("[INFO] Object found but not collision free")

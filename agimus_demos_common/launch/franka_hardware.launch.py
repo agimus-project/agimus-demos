@@ -39,6 +39,7 @@ def launch_setup(
             "stderr": "screen",
         },
         on_exit=Shutdown(),
+        prefix="nice -n -20 ",
     )
 
     spawn_default_controller = generate_load_controller_launch_description(

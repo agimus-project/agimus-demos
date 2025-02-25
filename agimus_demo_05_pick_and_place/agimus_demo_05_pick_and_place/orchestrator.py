@@ -89,12 +89,12 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        # self.vision_client = AsyncSubscriber(
-        #     self._node,
-        #     Detection2DArray,
-        #     "/happypose/detections",
-        #     QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
-        # )
+        self.vision_client = AsyncSubscriber(
+            self._node,
+            Detection2DArray,
+            "/happypose/detections",
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        )
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray
@@ -138,27 +138,28 @@ class Orchestrator(object):
 
     def publish(self, path_vector):
         traj = get_traj_points_from_path(path_vector)
+        # TODO: get this from OCP params somehow
+        traj += [traj[-1]] * 40  # OCP horizon
         self.trajectory_publisher.publish(traj)
 
-    # TODO: so far this does not work, code is specific to pick and place
-    # def go_to(self, desired_configuration):
-    #     current_robot_state = self.state_client.wait_for_future()
-    #     traj = self.hpp_client.plan(
-    #         list(current_robot_state.position), desired_configuration
-    #     )
-    #     self.publish(traj)
-    #     self.hpp_client.restart()
+    def go_to(self, desired_configuration):
+        current_robot_state = self.state_client.wait_for_future()
+        self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose
+        traj = self.hpp_client.plan(
+            list(current_robot_state.position), desired_configuration
+        )
+        self.publish(traj)
+        self.hpp_client.restart()
 
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
         # TEMP fix: just hardcode pose from happypose
-        obj_in_cam_pose = hardcoded_config()
+        # obj_in_cam_pose = hardcoded_config()
         # REAL setup, TODO: fix communication error when happy pose is running
-        # object_detections = self.vision_client.wait_for_future()
-        # obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
-        # if obj_in_cam_pose is None:
-        #     raise ValueError(f"No {self.object_name} object detected")
-
+        object_detections = self.vision_client.wait_for_future()
+        obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
+        if obj_in_cam_pose is None:
+            raise ValueError(f"No {self.object_name} object detected")
         hpp_q_init = (
             list(current_robot_state.position)
             + self.hpp_client.start_obj_pose
@@ -181,11 +182,12 @@ class Orchestrator(object):
 
         self.open_gripper()
         self.publish(grasp_path)
-        # self.close_gripper()
-        self.grasp()
-        self.publish(placing_path)
-        self.open_gripper()
-        self.publish(freefly_path)
+        if placing_path is not None:
+            # self.close_gripper()  # for simulation
+            self.grasp()  # for hardware robot
+            self.publish(placing_path)
+            self.open_gripper()
+            self.publish(freefly_path)
 
         self.hpp_client.restart()
 
