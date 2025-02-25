@@ -392,7 +392,7 @@ class BinPicking(object):
         Result is a dictionary of keys the robot grippers and with values
         lists of handles.
         """
-        
+
         res = False
         for gripper in self.robotGrippers:
             freeGrasps = list()
