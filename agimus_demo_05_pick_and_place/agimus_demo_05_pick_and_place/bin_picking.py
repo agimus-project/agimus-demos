@@ -406,9 +406,9 @@ class BinPicking(object):
                     freeGrasps.append((handle, gripperAxis[2]))
                     res = True
             # Sort handles by increasing z coordinate of gripper axis
-            l = sorted(freeGrasps, key=lambda x: x[1])
-            if len(l) > 0:
-                self._freeGrasps[gripper] = list(zip(*l))[0]
+            sorted_handles = sorted(freeGrasps, key=lambda x: x[1])
+            if len(sorted_handles) > 0:
+                self._freeGrasps[gripper] = list(zip(*sorted_handles))[0]
         return res
 
     def selectGrasp(self, q):
