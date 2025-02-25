@@ -41,7 +41,7 @@ class FrankaGripperClient(object):
         goal_msg.epsilon.outer = 0.1
 
         self._node.get_logger().info("Sending goal to close the gripper...")
-        send_goal_future = self._action_client.send_goal_async(
+        _ = self._action_client.send_goal_async(
             goal_msg, feedback_callback=self.fake_feedback_callback
         )
 
