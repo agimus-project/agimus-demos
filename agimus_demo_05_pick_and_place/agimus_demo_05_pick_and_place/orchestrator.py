@@ -144,12 +144,14 @@ class Orchestrator(object):
 
     def go_to(self, desired_configuration):
         current_robot_state = self.state_client.wait_for_future()
-        self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose
+        backup_goal_pose = self.hpp_client.goal_obj_pose.copy()
+        self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose.copy()
         traj = self.hpp_client.plan(
             list(current_robot_state.position), desired_configuration
         )
         self.publish(traj)
         self.hpp_client.restart()
+        self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
 
     def pick_and_place(self):
         current_robot_state = self.state_client.wait_for_future()
