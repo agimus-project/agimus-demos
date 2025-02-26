@@ -59,13 +59,31 @@ Now you are ready to run all of your demos!
 ```bash
 cd ~/ros2_ws
 git clone https://github.com/agimus-project/agimus-demos.git src/agimus-demos
+
 # Clone dependencies required by Franka robots
 vcs import --recursive src < src/agimus-demos/franka.repos
+
 # Clone dependencies for MPC and collision avoidance
 vcs import --recursive src < src/agimus-demos/control.repos
 # Pinocchio has a hardcoded hpp-fcl as dependency while we expect Coal
 # Until it is fixed we need to change it manually
 sed -i 's/hpp-fcl/coal/g' src/vcs_control/pinocchio/package.xml
+
+# Clone dependencies for path planning
+vcs import --recursive src < src/agimus-demos/planning.repos
+# Additional dependencies required by HPP
+mkdir -p /etc/apt/keyrings
+curl http://robotpkg.openrobots.org/packages/debian/robotpkg.asc \
+    | tee /etc/apt/keyrings/robotpkg.asc
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/robotpkg.asc] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" \
+    | tee /etc/apt/sources.list.d/robotpkg.list
+sudo apt update
+sudo apt install-y \
+    robotpkg-qt5-osgqt \
+    robotpkg-qpoases \
+    robotpkg-py310-omniorbpy \
+    robotpkg-qt5-qgv
+
 
 sudo apt update
 rosdep update --rosdistro $ROS_DISTRO
@@ -75,6 +93,7 @@ rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO
 # Source ROS base to make sure all installed packages are discovered
 source /opt/ros/$ROS_DISTRO/setup.bash
 # Set maximum number of CPU cores used by `make` while building packages
+# When building with planning dependencies number of cores has to be set to 1
 export MAKEFLAGS="-j 6"
 # Build the workspace. Merge install is required to make Python bindings work
 colcon build \
