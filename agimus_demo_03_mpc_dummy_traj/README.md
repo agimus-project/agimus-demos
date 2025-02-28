@@ -3,7 +3,7 @@ AGIMUS demo 03 mpc dummy traj
 
 
 > [!CAUTION]
-> This demo is **CPU intensive** and strongly rely on short computation time. Even as simple motion as sinusid can become unstable if the optimal control problem does not have time to converge! Make sure you **run this demo on a modest computer** or unstable controll applied to the robot can cause **injuries**!
+> This demo is **CPU intensive** and strongly rely on short computation time. Even as simple motion as sinusid can become unstable if the optimal control problem does not have time to converge! Make sure you **run this demo on a modest computer** or unstable control applied to the robot can cause **injuries**!
 
 The purpose of this demo is to use the [agimus_controller](https://github.com/agimus-project/agimus_controller) to send control messages to the [linear_feedback_controller](https://github.com/loco-3d/linear-feedback-controller) (LFC) in simulation and on the real robot.
 The agimus_controller follows a trajectory that is a small sinus signal at the joint level, the trajectory is given by a dummy publisher node.
