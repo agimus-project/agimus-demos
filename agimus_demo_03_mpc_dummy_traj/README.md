@@ -1,4 +1,4 @@
-AGIMUS demo 02 simple pd plus
+AGIMUS demo 03 mpc dummy traj
 --------------------------------
 
 The purpose of this demo is to use the [agimus_controller](https://github.com/agimus-project/agimus_controller) to send control messages to the [linear_feedback_controller](https://github.com/loco-3d/linear-feedback-controller) (LFC) in simulation and on the real robot.
