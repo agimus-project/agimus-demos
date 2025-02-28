@@ -22,7 +22,7 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
             "config",
-            "mpc_controller_params.yaml",
+            "agimus_controller_params.yaml",
         ]
     )
 
