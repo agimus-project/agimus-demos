@@ -1,5 +1,5 @@
 ---
-# Pose of panda_ref_camera_link in panda_hand
+# Pose of panda_ref_camera_link in panda_hand (panda 6th floor Prague)
 camera:
   x: 0.13967612678695326
   y: -0.014446642291159488
