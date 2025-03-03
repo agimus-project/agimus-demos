@@ -40,7 +40,7 @@
     <link name="${prefix}${name}">
       <visual>
         <geometry>
-          <mesh filename="package://${description_pkg}/meshes/visual/${name}.dae" />
+          <mesh filename="package://${description_pkg}/meshes/robot_arms/fer/visual/${name}.dae" />
         </geometry>
       </visual>
       <collision>

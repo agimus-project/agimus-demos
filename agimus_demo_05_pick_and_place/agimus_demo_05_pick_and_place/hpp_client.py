@@ -74,8 +74,8 @@ class HPPInterface:
         Robot.srdfString = robot_srdf_string
 
         self.manip_object = BaseObject(
-            urdf_path=str(package_location / f"urdf/{object_name}.urdf"),
-            srdf_path=str(package_location / f"srdf/{object_name}.srdf"),
+            urdf_path=str(package_location / f"urdf/tless/{object_name}.urdf"),
+            srdf_path=str(package_location / f"srdf/tless/{object_name}.srdf"),
             name="part",
         )
         self.obstacle_object = BaseObject(
@@ -235,7 +235,7 @@ class HPPInterface:
             print("Solving ...")
             res = False
             if object_static:
-                self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.05)
+                # self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.01)
                 p, res, _ = self.binPicking.transitionPlanner.directPath(
                     q_init, self.q_goal, True
                 )
@@ -252,7 +252,8 @@ class HPPInterface:
                 return p
             else:
                 res, p = self.binPicking.solve(q_init)
-                print("Grasping path", p)
+                print("Pick and place path", p)
+                print(p.length())
                 if res:
                     grasp_path, placing_path, freefly_path = split_path(p)
                     self.ps.client.basic.problem.addPath(grasp_path)

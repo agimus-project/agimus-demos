@@ -8,8 +8,7 @@ import time
 import re
 
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy
-
+from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray
@@ -35,24 +34,75 @@ def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
     return pin.SE3ToXYZQUAT(p1 * p2)
 
 
-def hardcoded_config() -> list[float]:
+def hardcoded_config_obj21() -> list[float]:
     """
     Place the ros2 topic echo /happypose/detections output and get a list
     """
     str_pose = """
         position:
-          x: 0.07415620982646942
-          y: -0.0037332407664507627
-          z: 0.4192313551902771
+          x: 0.10178913921117783
+          y: -0.062033891677856445
+          z: 0.4826200306415558
         orientation:
-          x: 0.5784230576928513
-          y: 0.770402139589831
-          z: 0.2623295141316406
-          w: 0.05559180051464918
+          x: 0.7520243449976984
+          y: -0.655999015851784
+          z: 0.04304297107862538
+          w: 0.04766424634238109
     """
     float_values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", str_pose)))
 
     return float_values
+
+
+def hardcoded_config_obj23() -> list[float]:
+    """
+    Place the ros2 topic echo /happypose/detections output and get a list
+    """
+    str_pose = """
+        position:
+          x: -0.06546976417303085
+          y: -0.01000980008393526
+          z: 0.452702134847641
+        orientation:
+          x: 0.7593477541545062
+          y: -0.6384211079720647
+          z: -0.12404735319628357
+          w: -0.020536926067232224
+    """
+    float_values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", str_pose)))
+
+    return float_values
+
+
+def hardcoded_config_obj26() -> list[float]:
+    """
+    Place the ros2 topic echo /happypose/detections output and get a list
+    """
+    str_pose = """
+        position:
+          x: 0.18757937848567963
+          y: -0.01735815778374672
+          z: 0.4177013635635376
+        orientation:
+          x: 0.7211196097895991
+          y: -0.6708606536936367
+          z: -0.1536919294128396
+          w: -0.0794436356995622
+    """
+    float_values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", str_pose)))
+
+    return float_values
+
+
+def hardcoded_config(object_name: str) -> list[float]:
+    if object_name == "obj_21":
+        return hardcoded_config_obj21()
+    elif object_name == "obj_23":
+        return hardcoded_config_obj23()
+    elif object_name == "obj_26":
+        return hardcoded_config_obj26()
+    else:
+        raise ValueError(f"Object {object_name} not found")
 
 
 @dataclass
@@ -73,8 +123,8 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.object_name = "obj_23"
+        self.use_hardcoded_poses = True
 
-        self.hpp_client = HPPInterface(object_name=self.object_name)
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
         self.state_client = AsyncSubscriber(
@@ -89,12 +139,14 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        self.vision_client = AsyncSubscriber(
-            self._node,
-            Detection2DArray,
-            "/happypose/detections",
-            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
-        )
+        if not self.use_hardcoded_poses:
+            self.vision_client = AsyncSubscriber(
+                self._node,
+                Detection2DArray,
+                "/happypose/detections",
+                qos_profile_system_default,
+            )
+        self.open_gripper()
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray
@@ -143,6 +195,7 @@ class Orchestrator(object):
         self.trajectory_publisher.publish(traj)
 
     def go_to(self, desired_configuration):
+        self.hpp_client = HPPInterface(object_name=self.object_name)
         current_robot_state = self.state_client.wait_for_future()
         backup_goal_pose = self.hpp_client.goal_obj_pose.copy()
         self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose.copy()
@@ -152,14 +205,20 @@ class Orchestrator(object):
         self.publish(traj)
         self.hpp_client.restart()
         self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
+        # del self.hpp_client
 
-    def pick_and_place(self):
+    def pick_and_place(self, object_name: str):
+        self.hpp_client = HPPInterface(object_name=object_name)
         current_robot_state = self.state_client.wait_for_future()
-        # TEMP fix: just hardcode pose from happypose
-        # obj_in_cam_pose = hardcoded_config()
-        # REAL setup, TODO: fix communication error when happy pose is running
-        object_detections = self.vision_client.wait_for_future()
-        obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
+        if self.use_hardcoded_poses:
+            # TEMP fix: just hardcode pose from happypose
+            obj_in_cam_pose = hardcoded_config(object_name)
+        else:
+            # REAL setup, TODO: fix communication error when happy pose is running
+            print("waiting for obj pose")
+            object_detections = self.vision_client.wait_for_future()
+            print("got obj pose")
+            obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
         if obj_in_cam_pose is None:
             raise ValueError(f"No {self.object_name} object detected")
         hpp_q_init = (
@@ -183,15 +242,17 @@ class Orchestrator(object):
         )
 
         self.open_gripper()
+        self.open_gripper()
         self.publish(grasp_path)
         if placing_path is not None:
-            # self.close_gripper()  # for simulation
-            self.grasp()  # for hardware robot
+            self.close_gripper()  # for simulation
+            # self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)
 
         self.hpp_client.restart()
+        # del self.hpp_client
 
     # def go_to_ee(self, target_ee):
     #     current_robot_state = self.state_client.wait_for_new_state()
