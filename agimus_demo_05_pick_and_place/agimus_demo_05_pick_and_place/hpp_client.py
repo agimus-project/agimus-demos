@@ -31,7 +31,6 @@ from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import numpy as np
-from pathlib import Path
 
 import time
 
@@ -84,8 +83,12 @@ class HPPInterface:
         Robot.srdfString = robot_srdf_string
 
         self.manip_object = BaseObject(
-            urdf_path=retrieve_resource(f"{package_location}/urdf/tless/{object_name}.urdf"),
-            srdf_path=retrieve_resource(f"{package_location}/srdf/tless/{object_name}.srdf"),
+            urdf_path=retrieve_resource(
+                f"{package_location}/urdf/tless/{object_name}.urdf"
+            ),
+            srdf_path=retrieve_resource(
+                f"{package_location}/srdf/tless/{object_name}.srdf"
+            ),
             name="part",
         )
         self.obstacle_object = BaseObject(
