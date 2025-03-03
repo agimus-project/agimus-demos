@@ -3,7 +3,7 @@
    <link name="base_link">
       <visual>
          <geometry>
-            <mesh filename="package://urdf/tless/obj_26.obj" scale="1.0 1.0 1.0"/>
+            <mesh filename="package://agimus_demo_05_pick_and_place/urdf/tless/obj_26.obj" scale="1.0 1.0 1.0"/>
          </geometry>
          <material name="mat_part0">
             <color rgba="1.0 1.0 1.0 1.0"/>
@@ -11,7 +11,7 @@
       </visual>
       <collision>
          <geometry>
-            <mesh filename="package://urdf/tless/obj_26.obj" scale="1.0 1.0 1.0"/>
+            <mesh filename="package://agimus_demo_05_pick_and_place/urdf/tless/obj_26.obj" scale="1.0 1.0 1.0"/>
          </geometry>
       </collision>
       <inertial>

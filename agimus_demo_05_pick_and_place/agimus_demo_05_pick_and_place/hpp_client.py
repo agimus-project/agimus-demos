@@ -73,9 +73,9 @@ class HPPInterface:
 
         self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
-        package_location = "package://agimus_demo_05_pick_and_place/"
+        package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
-            process_xacro(package_location + "urdf/demo.urdf.xacro")
+            process_xacro(package_location + "/urdf/demo.urdf.xacro")
             if robot_urdf_string == ""
             else robot_urdf_string
         )

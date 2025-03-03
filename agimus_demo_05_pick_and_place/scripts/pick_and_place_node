@@ -6,7 +6,7 @@ from agimus_demo_05_pick_and_place.orchestrator import Orchestrator
 
 def main():
     rclpy.init()
-    orchestrator = Orchestrator()  # Instantiate your ROS 2 node
+    o = Orchestrator()  # Instantiate your ROS 2 node
 
     print("\n🚀 ROS 2 Node initialized. Starting IPython shell...\n")
 
@@ -19,7 +19,7 @@ def main():
 
         code.interact(local=locals())  # Fallback to standard Python shell
 
-    orchestrator.destroy_node()
+    o.destroy_node()
     rclpy.shutdown()
 
 
