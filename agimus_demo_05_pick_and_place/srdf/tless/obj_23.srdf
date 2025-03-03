@@ -9,7 +9,7 @@
 <robot name="tless_23">
 
     <handle name="goal_handle1" clearance="0.03">
-        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
+        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 -0.70710678118"/>
         <link name="base_link"/>
         <mask>1 1 1 0 1 1</mask>
     </handle>

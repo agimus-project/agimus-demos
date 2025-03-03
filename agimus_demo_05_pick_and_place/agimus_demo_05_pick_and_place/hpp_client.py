@@ -150,11 +150,11 @@ class HPPInterface:
             "panda", srdfString
         )
 
-        # Create robot gripper handle, x-axis is facing down (for pregrasp)
+        # Create robot gripper handle, x-axis is facing up (for pregrasp)
         self.ps.client.manipulation.robot.addGripper(
             "panda/support_link",
             "goal/gripper",
-            self.goal_obj_pose[:3] + [0, sqrt(2) / 2, 0, sqrt(2) / 2],
+            self.goal_obj_pose[:3] + [0, sqrt(2) / 2, 0, -sqrt(2) / 2],
             0.0,
         )
 
