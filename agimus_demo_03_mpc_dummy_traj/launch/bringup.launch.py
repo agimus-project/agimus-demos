@@ -41,6 +41,7 @@ def launch_setup(
         executable="agimus_controller_node",
         parameters=[get_use_sim_time(), agimus_controller_yaml],
         output="screen",
+        remappings=[("robot_description", "robot_description_with_collision")],
     )
 
     simple_trajectory_publisher_node = Node(

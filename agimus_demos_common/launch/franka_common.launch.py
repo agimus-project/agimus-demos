@@ -123,7 +123,7 @@ def launch_setup(
         value_type=str,
     )
 
-    xacro_collision_args = xacro_args
+    xacro_collision_args = xacro_args.copy()
     xacro_collision_args["gazebo"] = "false"
     xacro_collision_args["with_sc"] = "true"
     robot_collision_description = ParameterValue(
@@ -170,6 +170,30 @@ def launch_setup(
             }
         ],
     )
+    srdf_file_subtitution = PathJoinSubstitution(
+        [
+            FindPackageShare("franka_description"),
+            "robots",
+            arm_id_str,
+            f"{arm_id_str}.srdf",
+        ]
+    )
+    srdf_file = srdf_file_subtitution.perform(context)
+    with open(srdf_file, "r") as f:
+        robot_srdf_description = f.read()
+
+    robot_srdf_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="robot_srdf_description_publisher",
+        output="screen",
+        parameters=[
+            {
+                "topic_name": "robot_srdf_description",
+                "string_value": robot_srdf_description,
+            }
+        ],
+    )
 
     joint_state_publisher_node = Node(
         package="joint_state_publisher",
@@ -199,6 +223,7 @@ def launch_setup(
         franka_simulation_launch,
         robot_state_publisher_node,
         robot_collision_publisher_node,
+        robot_srdf_publisher_node,
         joint_state_publisher_node,
         rviz_node,
     ]
