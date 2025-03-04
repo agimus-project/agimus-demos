@@ -123,19 +123,9 @@ def launch_setup(
         value_type=str,
     )
 
-    xacro_collision_args = {
-        "robot_ip": robot_ip,
-        "arm_id": arm_id,
-        "ros2_control": "true",
-        "hand": "true",
-        "use_fake_hardware": "false",
-        "fake_sensor_commands": "false",
-        "gazebo": "false",
-        "ee_id": "franka_hand",
-        "gazebo_effort": "true",
-        "with_sc": "true",
-        "franka_controllers_params": franka_controllers_params,
-    }
+    xacro_collision_args = xacro_args
+    xacro_collision_args["gazebo"] = "false"
+    xacro_collision_args["with_sc"] = "true"
     robot_collision_description = ParameterValue(
         Command(
             [
@@ -173,7 +163,12 @@ def launch_setup(
         name="robot_collision_publisher",
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
-        parameters=[{"robot_description": robot_collision_description}],
+        parameters=[
+            {
+                "robot_description": robot_collision_description,
+                "publish_frequency": 0.0001,
+            }
+        ],
     )
 
     joint_state_publisher_node = Node(

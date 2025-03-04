@@ -1,6 +1,3 @@
-from pathlib import Path
-from ament_index_python.packages import get_package_share_directory
-
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
@@ -9,6 +6,8 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import Command, FindExecutable
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.event_handlers import OnProcessExit
 
 from agimus_demos_common.launch_utils import (
@@ -52,16 +51,30 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-
-    xacro_path = (
-        Path(get_package_share_directory(package_name)) / "urdf" / "obstacles.xacro"
+    environment_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [FindPackageShare(package_name), "urdf", "obstacles.xacro"]
+                ),
+                # Convert dict to list of parameters
+            ]
+        ),
+        value_type=str,
     )
     environment_publisher_node = Node(
-        package="agimus_demos_common",
-        executable="environment_publisher",
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
         name="environment_publisher",
         output="screen",
-        parameters=[{"environment_path": str(xacro_path)}],
+        remappings=[
+            ("robot_description", "environment_description"),
+            ("/tf", "/_null/tf"),
+            ("/tf_static", "/_null/tf_static"),
+        ],
+        parameters=[{"robot_description": environment_description}],
     )
 
     return [
