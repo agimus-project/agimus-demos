@@ -109,7 +109,7 @@ class HPPInterface:
         # self.robot.opticalFrame = "camera_color_optical_frame"
         # TODO: get joint names automatically
         shrinkJointRange(
-            self.robot, [f"panda/panda_joint{i}" for i in range(1, 8)], 0.95
+            self.robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95
         )
 
     def set_problem(self):
@@ -170,10 +170,10 @@ class HPPInterface:
 
         # Lock gripper in open position.
         self.ps.createLockedJoint(
-            "locked_finger_1", "panda/panda_finger_joint1", [self.gripper_open_value]
+            "locked_finger_1", "panda/fer_finger_joint1", [self.gripper_open_value]
         )
         self.ps.createLockedJoint(
-            "locked_finger_2", "panda/panda_finger_joint2", [self.gripper_open_value]
+            "locked_finger_2", "panda/fer_finger_joint2", [self.gripper_open_value]
         )
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
