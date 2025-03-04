@@ -1,14 +1,12 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
-from launch.actions import OpaqueFunction, RegisterEventHandler
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.event_handlers import OnProcessExit
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,

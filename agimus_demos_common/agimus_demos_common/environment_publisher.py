@@ -1,5 +1,3 @@
-import xacro
-
 from std_msgs.msg import String
 from rclpy.node import Node
 import rclpy

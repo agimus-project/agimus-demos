@@ -85,7 +85,7 @@ Launch arguments are the same as in **franka_common.launch.py**, and are extende
 
 **rosbag_recorder.launch.py** allows to record a rosbag for agimus_controller node data.
 
-There are currently no launch arguments for this node. 
+There are currently no launch arguments for this node.
 
 ## Utils
 

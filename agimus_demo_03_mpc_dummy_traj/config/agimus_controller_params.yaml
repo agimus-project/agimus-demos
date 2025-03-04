@@ -13,16 +13,16 @@ agimus_controller_node:
       control_weight: 0.001
       max_qp_iter: 100
       max_iter: 10
-      activate_callback: False
+      activate_callback: false
       nb_threads: 6
       collision_safety_margin: 0.02
       activation_distance_threshold: 0.04
-    publish_debug_data: True
+    publish_debug_data: true
     rate: 100.0
-    free_flyer: False
-    collision_as_capsule: True
-    self_collision: False
-    collision_pairs_names: ["cp_1"]
+    free_flyer: false
+    collision_as_capsule: true
+    self_collision: false
+    collision_pairs_names: [cp_1]
     cp_1:
-      first: "fer_link7_sc_capsule_0"
-      second: "obstacle1_capsule_0"
+      first: fer_link7_sc_capsule_0
+      second: obstacle1_capsule_0
