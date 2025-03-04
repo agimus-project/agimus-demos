@@ -65,11 +65,15 @@ class HPPInterface:
         robot_srdf_string: str = "",
         start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
         goal_obj_pose: list[float] = [0.0, -0.3, 0.95, 0.0, 0.0, 0.0, 1.0],
+        use_spline_gradient_based_opt = True,
+        gripper_open_value = 0.04,
     ):
         hack_for_ros2_support_in_hpp()
 
+        self.use_spline_gradient_based_opt = use_spline_gradient_based_opt
         self.start_obj_pose = start_obj_pose
         self.goal_obj_pose = goal_obj_pose
+        self.gripper_open_value = gripper_open_value
 
         self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
@@ -111,8 +115,14 @@ class HPPInterface:
     def set_problem(self):
         # Setup problem solver and parameters
         self.ps = ProblemSolver(self.robot)
+        if self.use_spline_gradient_based_opt:
+            self.ps.loadPlugin("spline-gradient-based.so")
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
-        self.ps.addPathOptimizer("SimpleTimeParameterization")
+        if self.use_spline_gradient_based_opt:
+            self.ps.addPathOptimizer("SplineGradientBased_bezier5")
+        else:
+            # TODO Should we always use SimpleTimeParameterization?
+            self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
         self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
@@ -159,12 +169,11 @@ class HPPInterface:
         )
 
         # Lock gripper in open position.
-        # TODO: pass this as a parameter?
         self.ps.createLockedJoint(
-            "locked_finger_1", "panda/panda_finger_joint1", [0.035]
+            "locked_finger_1", "panda/panda_finger_joint1", [self.gripper_open_value]
         )
         self.ps.createLockedJoint(
-            "locked_finger_2", "panda/panda_finger_joint2", [0.035]
+            "locked_finger_2", "panda/panda_finger_joint2", [self.gripper_open_value]
         )
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
@@ -190,7 +199,7 @@ class HPPInterface:
             q_goal = q_init.copy()
         self.q_goal = q_goal + self.goal_obj_pose + self.default_obstacle_pose
 
-        self.binPicking = BinPicking(self.ps)
+        self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
         self.binPicking.objects = [self.manip_object.name, self.obstacle_object.name]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
         self.binPicking.goalGrippers = ["goal/gripper"]

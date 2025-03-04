@@ -29,6 +29,7 @@ from hpp.corbaserver.bin_picking import Client as BpClient
 from hpp.corbaserver.manipulation import Client as ManipClient, ProblemSolver
 from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
+import numpy as np
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 
 
@@ -55,7 +56,7 @@ def concatenatePaths(paths):
         return None
     p = paths[0].asVector()
     for q in paths[1:]:
-        assert p.end() == q.initial()
+        np.testing.assert_allclose(p.end(), q.initial())
         p.appendPath(q)
     return p
 
@@ -146,9 +147,10 @@ class BinPicking(object):
     def wd(self, o):
         return wrap_delete(o, self.ps.client.basic._tools)
 
-    def __init__(self, ps):
+    def __init__(self, ps, use_spline_gradient_based_opt):
         self.ps = ps
         self.robot = ps.robot
+        self.use_spline_gradient_based_opt = use_spline_gradient_based_opt
         self.bpc = BpClient()
         # Store place paths where the object is released
         self.placePaths = dict()
@@ -232,7 +234,11 @@ class BinPicking(object):
         )  # need to set both for hpp to not segfault
         self.transitionPlanner.setPathProjector("Progressive", 0.2)
         self.transitionPlanner.addPathOptimizer("EnforceTransitionSemantic")
-        self.transitionPlanner.addPathOptimizer("SimpleTimeParameterization")
+        if self.use_spline_gradient_based_opt:
+            self.transitionPlanner.addPathOptimizer("SplineGradientBased_bezier5")
+        else:
+            # TODO Should we always use SimpleTimeParameterization?
+            self.transitionPlanner.addPathOptimizer("SimpleTimeParameterization")
         print("Finished building the graph")
 
     def buildEffectors(self, obstacles, q):
@@ -357,6 +363,7 @@ class BinPicking(object):
                         break
                     else:
                         p = self.wd(p)
+                        # TODO this always uses SimpleTimeParameterization
                         p = self.transitionPlanner.timeParameterization(p.asVector())
                         paths.append(self.wd(p))
             if success:
@@ -462,6 +469,9 @@ class BinPicking(object):
         edge = "Loop | f"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         self.setParam("approach")
+        # TODO when the direct path succeeds, it is not time parameterized.
+        # I (Joseph Mirabel) don't thing we actually need the explicit call
+        # to directPath because I expect `planPath` to try it first.
         try:
             p_direct, res, _ = self.transitionPlanner.directPath(q_start, q_goal, True)
             print("Achieve to create a direct path : ", res)
@@ -501,6 +511,8 @@ class BinPicking(object):
                 + "configurations"
             )
             return False, msg
+        print("Pick path:", pickPath.length())
+        print("Place path:", placePath.length())
 
         # Default Path Plan
 
@@ -522,6 +534,7 @@ class BinPicking(object):
             )
         except Exception as exc:
             raise RuntimeError(f"Failed to connect {q} and {q1}: {exc}")
+        print("Move to grasp:", p1.length())
 
         ig = self.factory.grippers.index(gripper)
         ih = self.factory.handles.index(handle)
@@ -542,6 +555,7 @@ class BinPicking(object):
             )
         except Exception as exc:
             raise RuntimeError(f"Failed to connect {q3} and {q4}: {exc}")
+        print("Move to place:", p4.length())
 
         # Return to initial configuration
         edge = "Loop | f"
@@ -563,6 +577,7 @@ class BinPicking(object):
             )
         except Exception as exc:
             raise RuntimeError(f"Failed to connect {q6} and {q7}: {exc}")
+        print("Move to end:", p7.length())
         return True, concatenatePaths([p1, pickPath, p4, placePath, p7])
 
 

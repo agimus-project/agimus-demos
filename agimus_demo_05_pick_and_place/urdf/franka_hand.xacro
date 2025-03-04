@@ -64,7 +64,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 ${pi}" />
         <geometry>
-          <mesh filename="package://${description_pkg}/meshes/visual/finger.dae" />
+          <mesh filename="package://${description_pkg}/meshes/robot_ee/franka_hand_white/visual/finger.dae" />
         </geometry>
       </visual>
       <!-- screw mount -->
