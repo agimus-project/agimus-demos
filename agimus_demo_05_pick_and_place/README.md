@@ -24,7 +24,7 @@ source install/setup.bash
 cd workspace
 reset && source install/setup.bash && ros2 launch agimus_demo_05_pick_and_place bringup.launch.py use_gazebo:=true
 ```
-After the xterm terminal is opened, type there `orchestrator.pick_and_place()`.
+After the xterm terminal is opened, type there `o.pick_and_place('obj_26')`.
 
 ## Start the demo on hardware using the Panda robot.
 ```bash

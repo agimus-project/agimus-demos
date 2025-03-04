@@ -41,21 +41,21 @@ scene.add_robot(rob)
 rmodel = rob._model
 rdata = rmodel.createData()
 q = pin.randomConfiguration(rmodel)
-q[:7] = [0.0, 0.0, -0.3, -1.9, 0.0, 1.9, 0.4]
+q[:9] = [0.0, 0.0, -0.3, -1.9, 0.0, 1.9, 0.4, 0.039, 0.039]
 pin.forwardKinematics(rmodel, rdata, q)
 pin.updateFramePlacements(rmodel, rdata)
 link_id = rmodel.getFrameId("panda_hand")
 ee_pose = rdata.oMf[link_id]
-
+object_name = "obj_23"
 ycbv = Object.create_mesh(
-    path_to_mesh=Path(__file__).parent / "urdf/tless/obj_000021/obj_000021.obj",
+    path_to_mesh=Path(__file__).parent.parent / f"urdf/tless/{object_name}.obj",
     scale=1e-3,
     name="ycbv",
 )
 scene.add_object(ycbv)
 
 object_handles, goal_handles = get_obj_goal_handles(
-    str(Path(__file__).parent / "srdf/obj_21.srdf")
+    str(Path(__file__).parent.parent / f"srdf/tless/{object_name}.srdf")
 )
 
 with scene.animation(fps=1):  # start the animation with the current scene
