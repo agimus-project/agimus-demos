@@ -6,28 +6,31 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 class EnvrionmentPublisher(Node):
     def __init__(self):
-        super().__init__("environment_publisher")
-        self.publisher_ = self.create_publisher(
+        super().__init__("string_publisher")
+        self.declare_parameter("topic_name", "")
+        self.topic_name = (
+            self.get_parameter("topic_name").get_parameter_value().string_value
+        )
+        self.declare_parameter("string_value", "")
+        self.string_value = (
+            self.get_parameter("string_value").get_parameter_value().string_value
+        )
+        self.string_publisher = self.create_publisher(
             String,
-            "/environment_description",
+            self.topic_name,
             qos_profile=QoSProfile(
                 depth=1,
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
                 reliability=ReliabilityPolicy.RELIABLE,
             ),
         )
-        self.declare_parameter("environment_description", "")
-        self.environment_description = (
-            self.get_parameter("environment_description")
-            .get_parameter_value()
-            .string_value
-        )
+
         self.publish_msg()
 
     def publish_msg(self):
         msg = String()
-        msg.data = self.environment_description
-        self.publisher_.publish(msg)
+        msg.data = self.string_value
+        self.string_publisher.publish(msg)
 
 
 def main(args=None):
