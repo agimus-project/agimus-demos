@@ -83,6 +83,9 @@ Launch arguments are the same as in **franka_common.launch.py**, and are extende
 
     Default: *agimus_demos_common/config/linear_feedback_controller_params.yaml*
 
+**rosbag_recorder.launch.py** allows to record a rosbag for agimus_controller node data.
+
+There are currently no launch arguments for this node. 
 
 ## Utils
 

@@ -18,16 +18,17 @@ class EnvrionmentPublisher(Node):
                 reliability=ReliabilityPolicy.RELIABLE,
             ),
         )
-        self.declare_parameter("environment_path", "")
-        self.environment_path = (
-            self.get_parameter("environment_path").get_parameter_value().string_value
+        self.declare_parameter("environment_description", "")
+        self.environment_description = (
+            self.get_parameter("environment_description")
+            .get_parameter_value()
+            .string_value
         )
         self.publish_msg()
 
     def publish_msg(self):
-        urdf = xacro.process_file(self.environment_path).toxml()
         msg = String()
-        msg.data = urdf
+        msg.data = self.environment_description
         self.publisher_.publish(msg)
 
 

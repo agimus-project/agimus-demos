@@ -5,8 +5,8 @@ agimus_controller_node:
       dt: 0.01
       dt_factor_n_seq:
         factors: [1]
-        dts: [19]
-      horizon_size: 20
+        dts: [20]
+      horizon_size: 19
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       gripper_weight: 500.0
       state_weight: 5.0
