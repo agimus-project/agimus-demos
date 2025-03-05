@@ -65,8 +65,8 @@ class HPPInterface:
         robot_srdf_string: str = "",
         start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
         goal_obj_pose: list[float] = [0.0, -0.3, 0.95, 0.0, 0.0, 0.0, 1.0],
-        use_spline_gradient_based_opt = True,
-        gripper_open_value = 0.04,
+        use_spline_gradient_based_opt=True,
+        gripper_open_value=0.04,
     ):
         hack_for_ros2_support_in_hpp()
 
@@ -108,9 +108,7 @@ class HPPInterface:
         self.robot = Robot("robot", "panda", rootJointType="anchor")
         # self.robot.opticalFrame = "camera_color_optical_frame"
         # TODO: get joint names automatically
-        shrinkJointRange(
-            self.robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95
-        )
+        shrinkJointRange(self.robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
 
     def set_problem(self):
         # Setup problem solver and parameters
@@ -277,7 +275,9 @@ class HPPInterface:
                 print("Pick and place path", p)
                 print(p.length())
                 if res:
-                    grasp_path, placing_path, freefly_path = split_path(p, self.binPicking.c_robot())
+                    grasp_path, placing_path, freefly_path = split_path(
+                        p, self.binPicking.c_robot()
+                    )
                     self.ps.client.basic.problem.addPath(grasp_path)
                     self.ps.client.basic.problem.addPath(placing_path)
                     self.ps.client.basic.problem.addPath(freefly_path)

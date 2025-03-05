@@ -30,9 +30,15 @@ def split_path(path, c_robot=None):
                 grasp_path_idxs.append(idx)
             else:
                 freefly_path_idxs.append(idx)
-    grasp_path = concatenatePaths([path.pathAtRank(idx) for idx in grasp_path_idxs], c_robot)
-    placing_path = concatenatePaths([path.pathAtRank(idx) for idx in placing_path_idxs], c_robot)
-    freefly_path = concatenatePaths([path.pathAtRank(idx) for idx in freefly_path_idxs], c_robot)
+    grasp_path = concatenatePaths(
+        [path.pathAtRank(idx) for idx in grasp_path_idxs], c_robot
+    )
+    placing_path = concatenatePaths(
+        [path.pathAtRank(idx) for idx in placing_path_idxs], c_robot
+    )
+    freefly_path = concatenatePaths(
+        [path.pathAtRank(idx) for idx in freefly_path_idxs], c_robot
+    )
     return grasp_path, placing_path, freefly_path
 
 

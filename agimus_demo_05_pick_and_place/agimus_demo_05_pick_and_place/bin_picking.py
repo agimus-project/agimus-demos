@@ -29,7 +29,6 @@ from hpp.corbaserver.bin_picking import Client as BpClient
 from hpp.corbaserver.manipulation import Client as ManipClient, ProblemSolver
 from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
-import numpy as np
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths
 
