@@ -1,0 +1,45 @@
+---
+joint_state_estimator:
+  ros__parameters:
+    type: linear_feedback_controller/JointStateEstimator
+    interfaces: [arm_left_1_joint/position, arm_left_2_joint/position, arm_left_3_joint/position,
+      arm_left_4_joint/position, arm_left_5_joint/position, arm_left_6_joint/position, arm_left_7_joint/position,
+      arm_left_1_joint/velocity, arm_left_2_joint/velocity, arm_left_3_joint/velocity, arm_left_4_joint/velocity,
+      arm_left_5_joint/velocity, arm_left_6_joint/velocity, arm_left_7_joint/velocity, arm_left_1_joint/effort,
+      arm_left_2_joint/effort, arm_left_3_joint/effort, arm_left_4_joint/effort, arm_left_5_joint/effort,
+      arm_left_6_joint/effort, arm_left_7_joint/effort]
+    command_prefix: linear_feedback_controller
+
+linear_feedback_controller:
+  ros__parameters:
+    type: linear_feedback_controller/LinearFeedbackController
+    moving_joint_names: [arm_left_1_joint, arm_left_2_joint, arm_left_3_joint, arm_left_4_joint,
+      arm_left_5_joint, arm_left_6_joint, arm_left_7_joint]
+    arm_left_1_joint:
+      p: 50.0
+      d: 5.0
+    arm_left_2_joint:
+      p: 50.0
+      d: 5.0
+    arm_left_3_joint:
+      p: 50.0
+      d: 5.0
+    arm_left_4_joint:
+      p: 100.0
+      d: 5.0
+    arm_left_5_joint:
+      p: 5.0
+      d: 1.0
+    arm_left_6_joint:
+      p: 5.0
+      d: 1.0
+    arm_left_7_joint:
+      p: 0.1
+      d: 0.01
+    chainable_controller:
+      command_prefix: ''
+      reference_prefix: ''
+    joint_velocity_filter_coefficient: 0.9
+    pd_to_lf_transition_duration: 0.1
+    remove_gravity_compensation_effort: true
+    robot_has_free_flyer: false
