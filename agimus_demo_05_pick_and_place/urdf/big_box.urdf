@@ -1,6 +1,6 @@
 <robot name="big_box">
-  <material name="grey">
-    <color rgba=".5 .5 .5 1"/>
+  <material name="red">
+    <color rgba=".9 .1 .1 1"/>
   </material>
   <link name="base_link">
     <inertial>
@@ -15,7 +15,7 @@
       <geometry>
         <box size="0.597 0.397 0.001"/>
       </geometry>
-      <color name="grey"/>
+      <material name="red"/>
     </visual>
     <collision>
       <origin xyz="0 0 0.0155" rpy="0 0 0" />
@@ -28,7 +28,7 @@
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
-      <color name="grey"/>
+      <material name="red"/>
     </visual>
     <collision>
       <origin xyz="0 0.1835 0.11"/>
@@ -41,7 +41,7 @@
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
-      <color name="grey"/>
+      <material name="red"/>
     </visual>
     <collision>
       <origin xyz="0 -0.1835 0.11"/>
@@ -54,7 +54,7 @@
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>
-      <color name="grey"/>
+      <material name="red"/>
     </visual>
     <collision>
       <origin xyz="0.2835 0 0.11"/>
@@ -67,7 +67,7 @@
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>
-      <color name="grey"/>
+      <material name="red"/>
     </visual>
     <collision>
       <origin xyz="-0.2835 0 0.11"/>

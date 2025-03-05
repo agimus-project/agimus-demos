@@ -277,7 +277,7 @@ class HPPInterface:
                 print("Pick and place path", p)
                 print(p.length())
                 if res:
-                    grasp_path, placing_path, freefly_path = split_path(p)
+                    grasp_path, placing_path, freefly_path = split_path(p, self.binPicking.c_robot())
                     self.ps.client.basic.problem.addPath(grasp_path)
                     self.ps.client.basic.problem.addPath(placing_path)
                     self.ps.client.basic.problem.addPath(freefly_path)
