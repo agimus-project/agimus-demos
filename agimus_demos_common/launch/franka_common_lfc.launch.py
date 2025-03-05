@@ -81,6 +81,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
+                    "franka",
                     "linear_feedback_controller_params.yaml",
                 ]
             ),
