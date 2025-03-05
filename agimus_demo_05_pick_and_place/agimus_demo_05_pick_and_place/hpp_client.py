@@ -64,7 +64,7 @@ class HPPInterface:
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
-        goal_obj_pose: list[float] = [0.0, -0.3, 0.95, 0.0, 0.0, 0.0, 1.0],
+        goal_obj_pose: list[float] = [0.2, -0.4, 0.95, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt=True,
         gripper_open_value=0.04,
     ):
@@ -129,16 +129,16 @@ class HPPInterface:
         self.ps.selectPathProjector("Progressive", 0.05)
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
 
-        vf = ViewerFactory(self.ps)
-        self.vf = vf
+        self.vf = ViewerFactory(self.ps)
+
         # load the object
-        vf.loadObjectModel(self.manip_object, self.manip_object.name)
+        self.vf.loadObjectModel(self.manip_object, self.manip_object.name)
         self.robot.setJointBounds(
             f"{self.manip_object.name}/root_joint", self.default_object_bounds
         )
 
         # load moving obstacle
-        vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
+        self.vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
         self.robot.setJointBounds(
             f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
         )
@@ -187,7 +187,8 @@ class HPPInterface:
         self.set_problem()
 
     def restart(self):
-        self.corba.reset_problem()
+        """This needs to be improved"""
+        self.corba.restart()
         self.setup_problem()
 
     def plan(self, q_init: list[float], q_goal: list[float] = None):

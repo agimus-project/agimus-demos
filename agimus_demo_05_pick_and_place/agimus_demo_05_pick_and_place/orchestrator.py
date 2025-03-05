@@ -122,8 +122,8 @@ class Orchestrator(object):
         self.param = OrchestratorParams()
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
-        self.object_name = "obj_23"
-        self.use_hardcoded_poses = True
+        self.default_object_name = "obj_23"
+        self.use_hardcoded_poses = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -149,13 +149,13 @@ class Orchestrator(object):
         self.open_gripper()
 
     def get_most_confident_object_pose(
-        self, detection_msg: Detection2DArray
+        self, detection_msg: Detection2DArray, object_name: str
     ) -> list[float]:
         # TODO: change the map if we want to use YCBV
         filtered_detections = [
             (d, d.results[0].hypothesis.score)
             for d in detection_msg.detections
-            if d.results[0].hypothesis.class_id == map_object_id(self.object_name)
+            if d.results[0].hypothesis.class_id == map_object_id(object_name)
         ]
         if len(filtered_detections) == 0:
             return
@@ -195,7 +195,9 @@ class Orchestrator(object):
         self.trajectory_publisher.publish(traj)
 
     def go_to(self, desired_configuration):
-        self.hpp_client = HPPInterface(object_name=self.object_name)
+        self.hpp_client = HPPInterface(
+            object_name=self.default_object_name, use_spline_gradient_based_opt=False
+        )
         current_robot_state = self.state_client.wait_for_future()
         backup_goal_pose = self.hpp_client.goal_obj_pose.copy()
         self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose.copy()
@@ -208,7 +210,9 @@ class Orchestrator(object):
         # del self.hpp_client
 
     def pick_and_place(self, object_name: str):
-        self.hpp_client = HPPInterface(object_name=object_name)
+        self.hpp_client = HPPInterface(
+            object_name=object_name, use_spline_gradient_based_opt=False
+        )
         current_robot_state = self.state_client.wait_for_future()
         if self.use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
@@ -218,9 +222,11 @@ class Orchestrator(object):
             print("waiting for obj pose")
             object_detections = self.vision_client.wait_for_future()
             print("got obj pose")
-            obj_in_cam_pose = self.get_most_confident_object_pose(object_detections)
+            obj_in_cam_pose = self.get_most_confident_object_pose(
+                object_detections, object_name
+            )
         if obj_in_cam_pose is None:
-            raise ValueError(f"No {self.object_name} object detected")
+            raise ValueError(f"No {object_name} object detected")
         hpp_q_init = (
             list(current_robot_state.position)
             + self.hpp_client.start_obj_pose
@@ -245,13 +251,14 @@ class Orchestrator(object):
         self.open_gripper()
         self.publish(grasp_path)
         if placing_path is not None:
+            # TODO: check automatically
             self.close_gripper()  # for simulation
             # self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)
 
-        self.hpp_client.restart()
+        # self.hpp_client.restart()
         # del self.hpp_client
 
     # def go_to_ee(self, target_ee):
