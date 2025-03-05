@@ -31,6 +31,7 @@ from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 import numpy as np
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
+from agimus_demo_05_pick_and_place.utils import concatenatePaths
 
 
 def generateTargetConfig(robot, graph, edge, qLeaf, qRand):
@@ -49,16 +50,6 @@ def generateTargetConfig(robot, graph, edge, qLeaf, qRand):
         return q1
     else:
         return None
-
-
-def concatenatePaths(paths):
-    if len(paths) == 0:
-        return None
-    p = paths[0].asVector()
-    for q in paths[1:]:
-        np.testing.assert_allclose(p.end(), q.initial())
-        p.appendPath(q)
-    return p
 
 
 ## Write a handle in a string in srdf format
@@ -155,6 +146,10 @@ class BinPicking(object):
         # Store place paths where the object is released
         self.placePaths = dict()
         self._freeGrasps = dict()
+
+    def c_robot(self):
+        robot = self.wd(self.wd(self.ps.client.basic.problem.getProblem()).robot())
+        return robot
 
     def _rules(self):
         """
@@ -367,7 +362,7 @@ class BinPicking(object):
                         p = self.transitionPlanner.timeParameterization(p.asVector())
                         paths.append(self.wd(p))
             if success:
-                return concatenatePaths(paths)
+                return concatenatePaths(paths, self.c_robot())
         return None
 
     def checkObjectPoses(self, q):
@@ -578,7 +573,7 @@ class BinPicking(object):
         except Exception as exc:
             raise RuntimeError(f"Failed to connect {q6} and {q7}: {exc}")
         print("Move to end:", p7.length())
-        return True, concatenatePaths([p1, pickPath, p4, placePath, p7])
+        return True, concatenatePaths([p1, pickPath, p4, placePath, p7], self.c_robot())
 
 
 if __name__ == "__main__":

@@ -2,17 +2,21 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 
-def concatenatePaths(paths):
+def concatenatePaths(paths, c_robot=None):
     if len(paths) == 0:
         return None
     p = paths[0].asVector()
     for q in paths[1:]:
-        np.testing.assert_allclose(p.end(), q.initial())
+        if c_robot is None:
+            np.testing.assert_allclose(p.end(), q.initial())
+        else:
+            diff = c_robot.difference(p.end(), q.initial())
+            assert all(np.abs(diff) < 1e-8)
         p.appendPath(q)
     return p
 
 
-def split_path(path):
+def split_path(path, c_robot=None):
     path = path.flatten()
     grasp_path_idxs = [0]
     placing_path_idxs = []
@@ -26,9 +30,9 @@ def split_path(path):
                 grasp_path_idxs.append(idx)
             else:
                 freefly_path_idxs.append(idx)
-    grasp_path = concatenatePaths([path.pathAtRank(idx) for idx in grasp_path_idxs])
-    placing_path = concatenatePaths([path.pathAtRank(idx) for idx in placing_path_idxs])
-    freefly_path = concatenatePaths([path.pathAtRank(idx) for idx in freefly_path_idxs])
+    grasp_path = concatenatePaths([path.pathAtRank(idx) for idx in grasp_path_idxs], c_robot)
+    placing_path = concatenatePaths([path.pathAtRank(idx) for idx in placing_path_idxs], c_robot)
+    freefly_path = concatenatePaths([path.pathAtRank(idx) for idx in freefly_path_idxs], c_robot)
     return grasp_path, placing_path, freefly_path
 
 
