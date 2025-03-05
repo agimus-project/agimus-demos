@@ -28,11 +28,7 @@ def launch_setup(
         executable="ros2_control_node",
         parameters=[
             franka_controllers_params,
-            {
-                "arm_id": arm_id,
-                "load_gripper": "true",
-                "cpu_affinity": 0,
-            },
+            {"arm_id": arm_id, "load_gripper": "true"},
         ],
         remappings=[
             ("joint_states", "franka/joint_states"),
@@ -43,8 +39,6 @@ def launch_setup(
             "stderr": "screen",
         },
         on_exit=Shutdown(),
-        prefix="nice -n -20 taskset -c 0",
-        # prefix="nice -n -20",
     )
 
     spawn_default_controller = generate_load_controller_launch_description(
