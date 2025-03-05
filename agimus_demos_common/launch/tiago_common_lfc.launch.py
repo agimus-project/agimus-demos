@@ -5,6 +5,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
     RegisterEventHandler,
+    LogInfo,
 )
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
@@ -83,10 +84,20 @@ def launch_setup(
         output="screen",
     )
 
-    # Event handler for when any process exits
     def on_tuck_arm_exit_callback(event, context):
-        if "tuck_arm.py" in event.process_name:  # Match the correct node
-            return [wait_for_non_zero_joints_node]  # Activate custom control
+        if "tuck_arm.py" in event.process_name:
+            if event.returncode == 0:
+                return [
+                    LogInfo(msg="Starting the pd+ controller."),
+                    wait_for_non_zero_joints_node,
+                ]
+            else:
+                return [
+                    LogInfo(
+                        msg="Problem during the initialization, "
+                        "PD+ controller not started."
+                    )
+                ]
 
     return [
         tiago_robot_launch,
