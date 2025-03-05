@@ -6,7 +6,7 @@
             <mesh filename="package://agimus_demo_05_pick_and_place/urdf/tless/obj_26.obj" scale="0.001 0.001 0.001"/>
          </geometry>
          <material name="mat_part0">
-            <color rgba="1.0 1.0 1.0 1.0"/>
+            <color rgba="0.0 0.9 0.0 1.0"/>
          </material>
       </visual>
       <collision>
