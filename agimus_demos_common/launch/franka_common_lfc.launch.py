@@ -69,7 +69,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka_controllers.yaml",
+                    "franka",
+                    "controllers.yaml",
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
@@ -80,7 +81,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka_linear_feedback_controller_params.yaml",
+                    "franka",
+                    "linear_feedback_controller_params.yaml",
                 ]
             ),
             description="Path to the yaml file use to define "
@@ -92,7 +94,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "rviz",
-                    "franka_preview.rviz",
+                    "frankapreview.rviz",
                 ]
             ),
             description="Path to RViz configuration file",

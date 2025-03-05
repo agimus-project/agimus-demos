@@ -66,7 +66,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka_controllers.yaml",
+                    "tiago_pro",
+                    "controllers.yaml",
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
@@ -77,7 +78,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "tiago_preview.rviz",
+                    "tiago_pro",
+                    "preview.rviz",
                 ]
             ),
             description="Path to RViz configuration file",

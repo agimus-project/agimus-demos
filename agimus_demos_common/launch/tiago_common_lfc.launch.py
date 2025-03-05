@@ -131,7 +131,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "tiago_linear_feedback_controller_params.yaml",
+                    "tiago_pro",
+                    "linear_feedback_controller_params.yaml",
                 ]
             ),
             description="Path to the yaml file use to define "
@@ -143,7 +144,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "rviz",
-                    "tiago_preview.rviz",
+                    "tiago_pro",
+                    "preview.rviz",
                 ]
             ),
             description="Path to RViz configuration file",
