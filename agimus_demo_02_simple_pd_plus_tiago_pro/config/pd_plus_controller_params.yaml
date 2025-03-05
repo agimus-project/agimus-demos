@@ -5,6 +5,6 @@ pd_plus_controller:
       arm_left_5_joint, arm_left_6_joint, arm_left_7_joint]
     amplitudes: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     periods: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
-    p_gains: [20.0, 20.0, 20.0, 20.0, 5.0, 5.0, 1.0]
-    d_gains: [5.0, 5.0, 5.0, 5.0, 2.0, 2.0, 0.1]
+    p_gains: [1000.0, 3000.0, 500.0, 50.0, 50.0, 50.0, 50.0]
+    d_gains: [0.6, 5.0, 1.0, 5.0, 0.0, 0.3, 0.0]
     controller_period: 0.01

@@ -16,26 +16,26 @@ linear_feedback_controller:
     moving_joint_names: [arm_left_1_joint, arm_left_2_joint, arm_left_3_joint, arm_left_4_joint,
       arm_left_5_joint, arm_left_6_joint, arm_left_7_joint]
     arm_left_1_joint:
-      p: 50.0
-      d: 5.0
+      p: 10000.0
+      d: 0.6
     arm_left_2_joint:
-      p: 50.0
+      p: 30000.0
       d: 5.0
     arm_left_3_joint:
-      p: 50.0
-      d: 5.0
+      p: 5000.0
+      d: 1.0
     arm_left_4_joint:
-      p: 100.0
+      p: 500.0
       d: 5.0
     arm_left_5_joint:
-      p: 5.0
-      d: 1.0
+      p: 500.0
+      d: 0.0
     arm_left_6_joint:
-      p: 5.0
-      d: 1.0
+      p: 500.0
+      d: 0.3
     arm_left_7_joint:
-      p: 0.1
-      d: 0.01
+      p: 500.0
+      d: 0.0
     chainable_controller:
       command_prefix: ''
       reference_prefix: ''
