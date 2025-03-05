@@ -7,7 +7,7 @@ def concatenatePaths(paths):
         return None
     p = paths[0].asVector()
     for q in paths[1:]:
-        assert p.end() == q.initial()
+        np.testing.assert_allclose(p.end(), q.initial())
         p.appendPath(q)
     return p
 
