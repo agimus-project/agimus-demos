@@ -5,8 +5,8 @@ agimus_controller_node:
       dt: 0.01
       horizon_size: 40
       dt_factor_n_seq:
-        n_steps: [ 10, 10, 10, 10 ]
-        factors: [  1,  2,  4,  5 ]
+        n_steps: [10, 10, 10, 10]
+        factors: [1, 2, 4, 5]
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       gripper_weight: 500.0
       state_weight: 5.0
@@ -30,6 +30,6 @@ agimus_controller_node:
     - fer_joint7
     save_predictions_and_refs: true
     rate: 100.0
-    constant_delay: False
+    constant_delay: false
     package_name: agimus_demo_03_mpc_dummy_traj
     path_to_yaml: config/mpc_params.yaml
