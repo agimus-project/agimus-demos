@@ -99,22 +99,23 @@ def launch_setup(
         "gazebo": use_gazebo,
         "ee_id": "franka_hand",
         "gazebo_effort": "true",
+        "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
     }
-
+    robot_description_file_substitution = PathJoinSubstitution(
+        [
+            FindPackageShare("franka_description"),
+            "robots",
+            arm_id_str,
+            f"{arm_id_str}.urdf.xacro",
+        ]
+    )
     robot_description = ParameterValue(
         Command(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("franka_description"),
-                        "robots",
-                        arm_id_str,
-                        f"{arm_id_str}.urdf.xacro",
-                    ]
-                ),
+                robot_description_file_substitution,
                 # Convert dict to list of parameters
                 *[arg for key, val in xacro_args.items() for arg in (f" {key}:=", val)],
             ]
@@ -122,11 +123,69 @@ def launch_setup(
         value_type=str,
     )
 
+    xacro_collision_args = xacro_args.copy()
+    xacro_collision_args["gazebo"] = "false"
+    xacro_collision_args["with_sc"] = "true"
+
+    robot_description_with_collision = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                robot_description_file_substitution,
+                # Convert dict to list of parameters
+                *[
+                    arg
+                    for key, val in xacro_collision_args.items()
+                    for arg in (f" {key}:=", val)
+                ],
+            ]
+        ),
+        value_type=str,
+    )
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         parameters=[get_use_sim_time(), {"robot_description": robot_description}],
         output="screen",
+    )
+    robot_collision_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="robot_description_with_collision_publisher",
+        output="screen",
+        parameters=[
+            get_use_sim_time(),
+            {
+                "topic_name": "robot_description_with_collision",
+                "string_value": robot_description_with_collision,
+            },
+        ],
+    )
+
+    srdf_file_subtitution = PathJoinSubstitution(
+        [
+            FindPackageShare("franka_description"),
+            "robots",
+            arm_id_str,
+            f"{arm_id_str}.srdf",
+        ]
+    )
+    srdf_file = srdf_file_subtitution.perform(context)
+    with open(srdf_file, "r") as f:
+        robot_srdf_description = f.read()
+
+    robot_srdf_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="robot_srdf_description_publisher",
+        output="screen",
+        parameters=[
+            {
+                "topic_name": "robot_srdf_description",
+                "string_value": robot_srdf_description,
+            }
+        ],
     )
 
     joint_state_publisher_node = Node(
@@ -156,6 +215,8 @@ def launch_setup(
         franka_hardware_launch,
         franka_simulation_launch,
         robot_state_publisher_node,
+        robot_collision_publisher_node,
+        robot_srdf_publisher_node,
         joint_state_publisher_node,
         rviz_node,
     ]
