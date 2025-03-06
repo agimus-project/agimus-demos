@@ -4,7 +4,7 @@ import rclpy
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 
-class EnvrionmentPublisher(Node):
+class StringPublisher(Node):
     def __init__(self):
         super().__init__("string_publisher")
         self.declare_parameter("topic_name", "")
@@ -35,7 +35,7 @@ class EnvrionmentPublisher(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = EnvrionmentPublisher()
+    node = StringPublisher()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

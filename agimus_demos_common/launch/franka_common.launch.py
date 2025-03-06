@@ -17,7 +17,6 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
-
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     get_use_sim_time,
@@ -103,19 +102,20 @@ def launch_setup(
         "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
     }
+    robot_description_file_substitution = PathJoinSubstitution(
+        [
+            FindPackageShare("franka_description"),
+            "robots",
+            arm_id_str,
+            f"{arm_id_str}.urdf.xacro",
+        ]
+    )
     robot_description = ParameterValue(
         Command(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("franka_description"),
-                        "robots",
-                        arm_id_str,
-                        f"{arm_id_str}.urdf.xacro",
-                    ]
-                ),
+                robot_description_file_substitution,
                 # Convert dict to list of parameters
                 *[arg for key, val in xacro_args.items() for arg in (f" {key}:=", val)],
             ]
@@ -126,19 +126,13 @@ def launch_setup(
     xacro_collision_args = xacro_args.copy()
     xacro_collision_args["gazebo"] = "false"
     xacro_collision_args["with_sc"] = "true"
-    robot_collision_description = ParameterValue(
+
+    robot_description_with_collision = ParameterValue(
         Command(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("franka_description"),
-                        "robots",
-                        arm_id_str,
-                        f"{arm_id_str}.urdf.xacro",
-                    ]
-                ),
+                robot_description_file_substitution,
                 # Convert dict to list of parameters
                 *[
                     arg
@@ -149,27 +143,26 @@ def launch_setup(
         ),
         value_type=str,
     )
-
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         parameters=[get_use_sim_time(), {"robot_description": robot_description}],
         output="screen",
     )
-
     robot_collision_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="robot_collision_publisher",
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="robot_description_with_collision_publisher",
         output="screen",
-        remappings=[("robot_description", "robot_description_with_collision")],
         parameters=[
+            get_use_sim_time(),
             {
-                "robot_description": robot_collision_description,
-                "publish_frequency": 0.0001,
-            }
+                "topic_name": "robot_description_with_collision",
+                "string_value": robot_description_with_collision,
+            },
         ],
     )
+
     srdf_file_subtitution = PathJoinSubstitution(
         [
             FindPackageShare("franka_description"),

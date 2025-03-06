@@ -19,11 +19,10 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
-    package_name = "agimus_demo_03_mpc_dummy_traj"
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
-            FindPackageShare(package_name),
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
             "config",
             "agimus_controller_params.yaml",
         ]
@@ -56,7 +55,11 @@ def launch_setup(
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
                 PathJoinSubstitution(
-                    [FindPackageShare(package_name), "urdf", "obstacles.xacro"]
+                    [
+                        FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+                        "urdf",
+                        "obstacles.xacro",
+                    ]
                 ),
                 # Convert dict to list of parameters
             ]
@@ -68,11 +71,7 @@ def launch_setup(
         executable="robot_state_publisher",
         name="environment_publisher",
         output="screen",
-        remappings=[
-            ("robot_description", "environment_description"),
-            ("/tf", "/_null/tf"),
-            ("/tf_static", "/_null/tf_static"),
-        ],
+        remappings=[("robot_description", "environment_description")],
         parameters=[{"robot_description": environment_description}],
     )
 
