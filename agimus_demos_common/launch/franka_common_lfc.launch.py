@@ -43,6 +43,9 @@ def launch_setup(
         ),
         launch_arguments={
             "arm_id": LaunchConfiguration("arm_id"),
+            "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
+            "aux_computer_user": LaunchConfiguration("aux_computer_user"),
+            "on_aux_computer": LaunchConfiguration("on_aux_computer"),
             "robot_ip": LaunchConfiguration("robot_ip"),
             "franka_controllers_params": LaunchConfiguration(
                 "franka_controllers_params"

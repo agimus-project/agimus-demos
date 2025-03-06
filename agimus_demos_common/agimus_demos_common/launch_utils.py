@@ -21,6 +21,28 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             + "If empty `use_gazebo` is expected to be set to `true`.",
         ),
         DeclareLaunchArgument(
+            "aux_computer_ip",
+            default_value="",
+            description="Hostname or IP address of the auxiliary computer "
+            + "with real-time kernel. If not empty launch file is configured "
+            + "to spawn docker container on that machine. If empty, controllers "
+            + "are spawned locally on the computer executing launch file.",
+        ),
+        DeclareLaunchArgument(
+            "aux_computer_user",
+            default_value="",
+            description="Username used to execute commands on auxiliary computer over ssh. "
+            + "Required if `aux_computer_ip` is not empty.",
+        ),
+        DeclareLaunchArgument(
+            "on_aux_computer",
+            default_value="false",
+            description="Whether launch file is executed on auxiliary computer. "
+            + "If set to `true`, `robot_ip` can not be empty and only minimal "
+            + "set of nodes to control the robot is launched on this machine.",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
             "arm_id",
             default_value="fer",
             description="ID of the type of arm used. Supported values: fer, fr3, fp3",
@@ -88,6 +110,9 @@ def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescri
         ),
         launch_arguments={
             "arm_id": LaunchConfiguration("arm_id"),
+            "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
+            "aux_computer_user": LaunchConfiguration("aux_computer_user"),
+            "on_aux_computer": LaunchConfiguration("on_aux_computer"),
             "robot_ip": LaunchConfiguration("robot_ip"),
             "use_gazebo": LaunchConfiguration("use_gazebo"),
             "use_rviz": LaunchConfiguration("use_rviz"),

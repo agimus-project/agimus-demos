@@ -1,0 +1,29 @@
+{# Template used to generate compose.yaml file used to run controllers on auxiliary computer #}
+
+services:
+  franka-real-time-controller:
+    image: gitlab.laas.fr:4567/agimus-project/agimus_dev_container:humble-devel-realtime-control
+    container_name: franka-real-time-controller
+    restart: always
+    network_mode: host
+    ipc: host
+    environment:
+      - RMW_IMPLEMENTATION={{ rmw_implementation }}
+      - ROS_DOMAIN_ID={{ ros_domain_id }}
+    volumes:
+      - /tmp/linear_feedback_controller_params.yaml:/tmp/linear_feedback_controller_params.yaml
+    ulimits:
+      rtprio:
+        soft: 99
+        hard: 99
+      memlock:
+        soft: 102400
+        hard: 102400
+    command: >
+      ros2 launch agimus_demos_common franka_common_lfc.launch.py \
+        linear_feedback_controller_params:=/tmp/linear_feedback_controller_params.yaml \
+        robot_ip:={{ robot_ip }} \
+        arm_id:={{ arm_id }} \
+        use_gazebo:=false \
+        use_rviz:=false \
+        on_aux_computer:=true
