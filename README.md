@@ -97,3 +97,16 @@ colcon build \
 # Source the workspace
 source install/setup.bash
 ```
+
+## Dual computer setup
+Dual computer setup with real time computer can be used to ensure stable control. Auxiliary computer with real-time kernel is expected to have docker installed and ssh keys exchanged with non-real-time machine.
+To exchange ssh keys you can use following command:
+```bash
+# Copy ssh keys to real-time computer to enable ssh connections
+ssh-copy-id <remote username>@<remote ip>
+```
+Once ssh keys are exchanged you can use following commands to start the controller:
+```bash
+ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> aux_computer_ip:=<remote ip> aux_computer_user:=<remote username>
+```
+This will automatically start and later a docker container on the remote machine.
