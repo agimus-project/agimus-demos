@@ -8,8 +8,13 @@ from launch.actions import (
     DeclareLaunchArgument,
     OpaqueFunction,
     RegisterEventHandler,
+    Shutdown,
 )
-from launch.event_handlers import OnProcessExit, OnShutdown
+from launch.event_handlers import (
+    OnProcessExit,
+    OnShutdown,
+    OnProcessIO,
+)
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -24,12 +29,14 @@ def evaluate_compose_template(
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
     rmw_implementation = EnvironmentVariable("RMW_IMPLEMENTATION")
-    ros_domain_id = EnvironmentVariable("ROS_DOMAIN_ID")
+    ros_domain_id = EnvironmentVariable("ROS_DOMAIN_ID", default_value="")
 
     # Load jinja template for compose.yaml file
     template_path = Path(context.perform_substitution(template_path_join_substitution))
-    environment = jinja2.Environment()
-    template = environment.get_template(template_path)
+    environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(searchpath=template_path.parents[0])
+    )
+    template = environment.get_template(template_path.name)
 
     # Render the compose.yaml file with proper values
     content = template.render(
@@ -69,8 +76,8 @@ def launch_setup(
     compose_rt_computer_template = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demos_common"),
-            "config",
-            "compose.rt_computer.yaml.jinja",
+            "templates",
+            "compose.yaml.jinja",
         ]
     )
 
@@ -82,59 +89,100 @@ def launch_setup(
     remote = f"{aux_computer_user}@{aux_computer_ip}"
     # Register list of commands to perform on bringup
     bringup_remote_commands = [
+        # Check if host is available
+        {
+            "name": "aux-ping",
+            "cmd": ["ping", "-c1", aux_computer_ip],
+        },
         # Send parameters of LFC to RT computer
-        [
-            "scp",
-            linear_feedback_controller_params,
-            f"{remote}:/tmp/linear_feedback_controller_params.yaml",
-        ],
+        {
+            "name": "aux-scp-lfc",
+            "cmd": [
+                "scp",
+                linear_feedback_controller_params,
+                f"{remote}:/tmp/linear_feedback_controller_params.yaml",
+            ],
+        },
         # Send rendered compose.yaml file to RT computer
-        [
-            "scp",
-            compose_rt_computer_path,
-            f"{remote}:/tmp/compose.yaml",
-        ],
+        {
+            "name": "aux-scp-compose",
+            "cmd": [
+                "scp",
+                compose_rt_computer_path.absolute().as_posix(),
+                f"{remote}:/tmp/compose.yaml",
+            ],
+        },
         # Start docker on the RT computer
-        [
-            "ssh",
-            remote,
-            "'bash -s 'docker compose up -f /tmp/compose.yaml'",
-        ],
+        {
+            "name": "aux-compose-up",
+            "cmd": [
+                "ssh",
+                remote,
+                "-t",
+                '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml up\\""',
+            ],
+        },
     ]
     bringup_processes = [
-        ExecuteProcess(
-            cmd=cmd,
-            output="screen",
+        (
+            ExecuteProcess(
+                name=cmd["name"],
+                cmd=cmd["cmd"],
+                output="both",
+                shell=True,
+                emulate_tty=True,
+            )
+            if isinstance(cmd, dict)
+            else cmd
         )
         for cmd in bringup_remote_commands
     ]
     # Chain commands to execute them in order
     bringup_events = [
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=bringup_processes[i],
-                on_exit=[bringup_processes[i + 1]],
-            )
-        )
-        for i in range(1, len(bringup_processes) - 1)
+        [
+            # Chain next command after previous finished correctly
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=bringup_processes[i],
+                    on_exit=[bringup_processes[i + 1]],
+                )
+            ),
+            # In case stderr is present stop launch (there is no way to capture return code)
+            RegisterEventHandler(
+                event_handler=OnProcessIO(
+                    target_action=bringup_processes[i],
+                    on_stderr=[Shutdown()],
+                )
+            ),
+        ]
+        for i in range(len(bringup_processes) - 1)
     ]
 
     # Register commands to execute on the shutdown of the system
-    shutdown_command = [
+
+    shutdown_command = {
         # Stop docker container on the RT computer
-        "ssh",
-        remote,
-        "'bash -s 'docker compose down -f /tmp/compose.yaml'",
-    ]
+        "name": "aux-compose-down",
+        "cmd": [
+            "ssh",
+            remote,
+            "-t",
+            '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml down\\""',
+        ],
+    }
+
     shutdown_process = ExecuteProcess(
-        cmd=shutdown_command,
+        name=shutdown_command["name"],
+        cmd=shutdown_command["cmd"],
         output="screen",
+        shell=True,
     )
-    shutdown_event = RegisterEventHandler(OnShutdown(on_shutdown=shutdown_process))
+    shutdown_event = RegisterEventHandler(OnShutdown(on_shutdown=[shutdown_process]))
 
     return [
         bringup_processes[0],
-        *bringup_events,
+        # Flatten list of lists
+        *[be for bes in bringup_events for be in bes],
         shutdown_event,
     ]
 
