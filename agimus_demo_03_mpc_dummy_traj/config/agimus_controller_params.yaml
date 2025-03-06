@@ -3,10 +3,10 @@ agimus_controller_node:
   ros__parameters:
     ocp:
       dt: 0.01
+      horizon_size: 40
       dt_factor_n_seq:
-        factors: [1]
-        n_steps: [19]
-      horizon_size: 19
+        n_steps: [10, 10, 10, 10]
+        factors: [1, 2, 4, 5]
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       gripper_weight: 500.0
       state_weight: 5.0
