@@ -191,7 +191,12 @@ class HPPInterface:
         self.corba.restart()
         self.setup_problem()
 
-    def plan(self, q_init: list[float], q_goal: list[float] = None):
+    def plan(
+        self,
+        q_init: list[float],
+        q_goal: list[float] = None,
+        enable_collision_between_box_and_part: bool = True,
+    ):
         object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = q_init + self.start_obj_pose + self.default_obstacle_pose
         if q_goal is None:
@@ -220,7 +225,8 @@ class HPPInterface:
                 "", srdf_disable_collisions
             )
 
-        disable_collision()
+        if not enable_collision_between_box_and_part:
+            disable_collision()
 
         build_time_start = time.time()
         print("Building constraint graph")
