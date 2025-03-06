@@ -205,7 +205,7 @@ class Orchestrator(object):
             list(current_robot_state.position), desired_configuration
         )
         self.publish(traj)
-        self.hpp_client.restart()
+        # self.hpp_client.restart()
         self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
         # del self.hpp_client
 

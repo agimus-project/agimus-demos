@@ -256,19 +256,7 @@ class HPPInterface:
             print("Solving ...")
             res = False
             if object_static:
-                # self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.01)
-                p, res, _ = self.binPicking.transitionPlanner.directPath(
-                    q_init, self.q_goal, True
-                )
-                print("Achieve to create a direct path : ", res)
-                if not res:
-                    p = self.binPicking.transitionPlanner.planPath(
-                        q_init,
-                        [
-                            self.q_goal,
-                        ],
-                        True,
-                    )
+                p = self.binPicking.move_in_free(q_init, self.q_goal)
                 print("Free path", p)
                 return p
             else:
