@@ -18,9 +18,12 @@ from launch.event_handlers import (
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-
-
 from launch.substitutions import EnvironmentVariable
+
+from agimus_demos_common.launch_utils import (
+    COMPOSE_REMOTE_PATH,
+    LFC_PARAMS_REMOTE_PATH,
+)
 
 
 def evaluate_compose_template(
@@ -42,6 +45,7 @@ def evaluate_compose_template(
     content = template.render(
         {
             "arm_id": context.perform_substitution(arm_id),
+            "lfc_params_remote_path": LFC_PARAMS_REMOTE_PATH.as_posix(),
             "robot_ip": context.perform_substitution(robot_ip),
             "rmw_implementation": context.perform_substitution(rmw_implementation),
             "ros_domain_id": context.perform_substitution(ros_domain_id),
@@ -105,7 +109,7 @@ def launch_setup(
             "cmd": [
                 "scp",
                 linear_feedback_controller_params,
-                f"{remote}:/tmp/linear_feedback_controller_params.yaml",
+                f"{remote}:{LFC_PARAMS_REMOTE_PATH.as_posix()}",
             ],
         },
         # Send rendered compose.yaml file to RT computer
@@ -114,7 +118,7 @@ def launch_setup(
             "cmd": [
                 "scp",
                 compose_rt_computer_path.absolute().as_posix(),
-                f"{remote}:/tmp/compose.yaml",
+                f"{remote}:{COMPOSE_REMOTE_PATH.as_posix()}",
             ],
         },
         # Start docker on the RT computer
@@ -124,7 +128,7 @@ def launch_setup(
                 "ssh",
                 remote,
                 "-t",
-                '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml up\\""',
+                f'"/bin/bash -c \\"docker compose -f {COMPOSE_REMOTE_PATH.as_posix()} up\\""',
             ],
         },
     ]
@@ -136,6 +140,7 @@ def launch_setup(
                 output="both",
                 shell=True,
                 emulate_tty=True,
+                log_cmd=True,
             )
             if isinstance(cmd, dict)
             else cmd
@@ -171,7 +176,8 @@ def launch_setup(
             "ssh",
             remote,
             "-t",
-            '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml down --remove-orphans\\""',
+            f'"/bin/bash -c \\"docker compose -f {COMPOSE_REMOTE_PATH.as_posix()} '
+            + 'down --remove-orphans\\""',
         ],
     }
 

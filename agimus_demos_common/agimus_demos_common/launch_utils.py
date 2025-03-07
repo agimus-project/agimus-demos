@@ -1,7 +1,13 @@
+from pathlib import Path
+
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
+
+# Constants used to synchronize paths expected on remote between launch files
+LFC_PARAMS_REMOTE_PATH: Path = Path("/tmp/linear_feedback_controller_params.yaml")
+COMPOSE_REMOTE_PATH: Path = Path("/tmp/compose.yaml")
 
 
 def generate_default_franka_args() -> list[DeclareLaunchArgument]:

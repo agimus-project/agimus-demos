@@ -21,6 +21,7 @@ from controller_manager.launch_utils import (
 )
 
 from agimus_demos_common.launch_utils import (
+    LFC_PARAMS_REMOTE_PATH,
     generate_default_franka_args,
     get_use_sim_time,
 )
@@ -29,6 +30,9 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    aux_computer_ip = LaunchConfiguration("aux_computer_ip")
+    aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
+
     franka_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -58,8 +62,13 @@ def launch_setup(
         }.items(),
     )
 
-    linear_feedback_controller_params = LaunchConfiguration(
-        "linear_feedback_controller_params"
+    # If no auxiliary computer is present tell controller manager to load
+    # params from param. If auxiliary computer is expected, load them from
+    # a hardcoded path, present in the docker.
+    linear_feedback_controller_params = (
+        LaunchConfiguration("linear_feedback_controller_params")
+        if aux_computer_ip_empty
+        else PathJoinSubstitution(LFC_PARAMS_REMOTE_PATH.as_posix())
     )
 
     wait_for_non_zero_joints_node = Node(
@@ -69,16 +78,19 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
+
     load_linear_feedback_controller = generate_load_controller_launch_description(
         controller_name="linear_feedback_controller",
         controller_params_file=linear_feedback_controller_params,
         extra_spawner_args=["--inactive", "--controller-manager-timeout", "1000"],
     )
+
     load_joint_state_estimator = generate_load_controller_launch_description(
         controller_name="joint_state_estimator",
         controller_params_file=linear_feedback_controller_params,
         extra_spawner_args=["--inactive", "--controller-manager-timeout", "1000"],
     )
+
     activate_lfc_controllers = ExecuteProcess(
         cmd=[
             "ros2",
