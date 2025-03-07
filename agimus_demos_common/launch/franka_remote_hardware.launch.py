@@ -94,6 +94,11 @@ def launch_setup(
             "name": "aux-ping",
             "cmd": ["ping", "-c1", aux_computer_ip],
         },
+        # Check if ssh keys were exchanged
+        {
+            "name": "aux-ssh-check-keys",
+            "cmd": ["ssh", "-o", "BatchMode=yes", remote, "'exit'"],
+        },
         # Send parameters of LFC to RT computer
         {
             "name": "aux-scp-lfc",
