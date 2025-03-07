@@ -11,13 +11,12 @@ services:
       - ROS_DOMAIN_ID={{ ros_domain_id }}
     volumes:
       - /tmp/linear_feedback_controller_params.yaml:/tmp/linear_feedback_controller_params.yaml
+    cap_add:
+      - SYS_NICE
     ulimits:
-      rtprio:
-        soft: 99
-        hard: 99
-      memlock:
-        soft: 102400
-        hard: 102400
+      rtprio: 99
+      rttime: -1 # corresponds to 'unlimited'
+      memlock: 8428281856
     command: >
      ros2 launch agimus_demos_common franka_common_lfc.launch.py
         linear_feedback_controller_params:=/tmp/linear_feedback_controller_params.yaml
