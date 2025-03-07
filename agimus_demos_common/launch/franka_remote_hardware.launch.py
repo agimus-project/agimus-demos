@@ -164,7 +164,6 @@ def launch_setup(
     ]
 
     # Register commands to execute on the shutdown of the system
-
     shutdown_command = {
         # Stop docker container on the RT computer
         "name": "aux-compose-down",
@@ -172,15 +171,16 @@ def launch_setup(
             "ssh",
             remote,
             "-t",
-            '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml down\\""',
+            '"/bin/bash -c \\"docker compose -f /tmp/compose.yaml down --remove-orphans\\""',
         ],
     }
 
     shutdown_process = ExecuteProcess(
         name=shutdown_command["name"],
         cmd=shutdown_command["cmd"],
-        output="screen",
+        output="both",
         shell=True,
+        emulate_tty=True,
     )
     shutdown_event = RegisterEventHandler(OnShutdown(on_shutdown=[shutdown_process]))
 
