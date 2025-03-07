@@ -29,7 +29,7 @@ def evaluate_compose_template(
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
     rmw_implementation = EnvironmentVariable("RMW_IMPLEMENTATION")
-    ros_domain_id = EnvironmentVariable("ROS_DOMAIN_ID", default_value="")
+    ros_domain_id = EnvironmentVariable("ROS_DOMAIN_ID", default_value="0")
 
     # Load jinja template for compose.yaml file
     template_path = Path(context.perform_substitution(template_path_join_substitution))

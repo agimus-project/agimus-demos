@@ -12,6 +12,7 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    OrSubstitution,
     PythonExpression,
 )
 from launch_ros.actions import Node
@@ -113,9 +114,16 @@ def launch_setup(
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
-            PythonExpression([use_gazebo, " or ", not aux_computer_ip_empty])
+            OrSubstitution(
+                use_gazebo, PythonExpression(["'", aux_computer_ip, "' != ''"])
+            )
         ),
     )
+    # Auxiliary computer's docker does not have all the dependencies like franka_description
+    # It is better to return with only minimal number of code evaluated to avoid errors
+    # evaluating paths to packages that do not exist in the system.
+    if on_aux_computer_bool:
+        return [franka_hardware_launch]
 
     franka_remote_hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -137,9 +145,7 @@ def launch_setup(
             "on_aux_computer": on_aux_computer,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
-        condition=IfCondition(
-            PythonExpression(["not ", use_gazebo, " and ", on_aux_computer])
-        ),
+        condition=UnlessCondition(use_gazebo),
     )
 
     franka_simulation_launch = IncludeLaunchDescription(
@@ -221,7 +227,6 @@ def launch_setup(
         executable="robot_state_publisher",
         parameters=[get_use_sim_time(), {"robot_description": robot_description}],
         output="screen",
-        condition=UnlessCondition(on_aux_computer),
     )
     robot_collision_publisher_node = Node(
         package="agimus_demos_common",
@@ -235,7 +240,6 @@ def launch_setup(
                 "string_value": robot_description_with_collision,
             },
         ],
-        condition=UnlessCondition(on_aux_computer),
     )
 
     srdf_file_subtitution = PathJoinSubstitution(
@@ -261,7 +265,6 @@ def launch_setup(
                 "string_value": robot_srdf_description,
             }
         ],
-        condition=UnlessCondition(on_aux_computer),
     )
 
     joint_state_publisher_node = Node(
@@ -277,7 +280,6 @@ def launch_setup(
                 "rate": 30,
             },
         ],
-        condition=UnlessCondition(on_aux_computer),
     )
 
     rviz_node = Node(
@@ -285,9 +287,7 @@ def launch_setup(
         executable="rviz2",
         parameters=[get_use_sim_time()],
         arguments=["--display-config", rviz_config_path],
-        condition=IfCondition(
-            PythonExpression([use_rviz, " and not ", on_aux_computer])
-        ),
+        condition=IfCondition(use_rviz),
     )
 
     return [
