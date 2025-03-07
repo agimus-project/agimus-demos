@@ -113,7 +113,7 @@ def launch_setup(
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
-            PythonExpression(use_gazebo, " or ", not aux_computer_ip_empty)
+            PythonExpression([use_gazebo, " or ", not aux_computer_ip_empty])
         ),
     )
 
@@ -138,7 +138,7 @@ def launch_setup(
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=IfCondition(
-            PythonExpression("not ", use_gazebo, " and ", on_aux_computer)
+            PythonExpression(["not ", use_gazebo, " and ", on_aux_computer])
         ),
     )
 
@@ -285,7 +285,9 @@ def launch_setup(
         executable="rviz2",
         parameters=[get_use_sim_time()],
         arguments=["--display-config", rviz_config_path],
-        condition=IfCondition(PythonExpression(use_rviz, " and not ", on_aux_computer)),
+        condition=IfCondition(
+            PythonExpression([use_rviz, " and not ", on_aux_computer])
+        ),
     )
 
     return [
