@@ -43,6 +43,7 @@ def launch_setup(
     aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
     aux_computer_user_empty = context.perform_substitution(aux_computer_user) == ""
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
+    use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
     on_aux_computer_bool = (
         context.perform_substitution(on_aux_computer).lower() == "true"
     )
@@ -82,13 +83,13 @@ def launch_setup(
             "`on_aux_computer_bool:=true` and non-empty `aux_computer_ip_empty`."
         )
 
-    if on_aux_computer_bool and use_gazebo:
+    if on_aux_computer_bool and use_gazebo_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
             "`on_aux_computer_bool:=true` and `use_gazebo:=true`."
         )
 
-    if on_aux_computer_bool and use_rviz:
+    if on_aux_computer_bool and use_rviz_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
             "`on_aux_computer_bool:=true` and `use_rviz:=true`."
