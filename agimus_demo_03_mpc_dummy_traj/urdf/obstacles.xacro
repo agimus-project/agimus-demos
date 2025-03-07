@@ -21,6 +21,6 @@
             <color name="grey" />
         </visual>
         <xacro:collision_capsule xyz="0.535 0 0.43" direction="x" radius="0.1"
-            length="0.4" />
+            length="0.3" />
     </link>
 </robot>

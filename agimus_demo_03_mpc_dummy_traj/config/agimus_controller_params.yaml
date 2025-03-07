@@ -22,5 +22,5 @@ agimus_controller_node:
     self_collision: false
     collision_pairs_names: [cp_1]
     cp_1:
-      first: fer_link7_sc_capsule_0
+      first: fer_hand_sc_capsule_0
       second: obstacle1_capsule_0
