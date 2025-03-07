@@ -13,6 +13,9 @@ from agimus_demos_common.launch_utils import (
     generate_include_franka_launch,
     get_use_sim_time,
 )
+from agimus_demos_common.static_transform_publisher_node import (
+    static_transform_publisher_node,
+)
 
 
 def launch_setup(
@@ -74,10 +77,18 @@ def launch_setup(
         remappings=[("robot_description", "environment_description")],
         parameters=[{"robot_description": environment_description}],
     )
+    tf_node = (
+        static_transform_publisher_node(
+            frame_id="world",
+            child_frame_id="obstacle1",
+            node_kwargs=dict(name="tf_obstacle"),
+        ),
+    )
 
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
+        tf_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
