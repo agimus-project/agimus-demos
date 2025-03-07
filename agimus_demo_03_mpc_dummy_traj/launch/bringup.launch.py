@@ -1,8 +1,8 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler
+from launch.actions import OpaqueFunction, RegisterEventHandler, DeclareLaunchArgument
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable
@@ -22,6 +22,10 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
+    use_collision_detection_arg = LaunchConfiguration("use_collision_detection")
+    use_collision_detection = (
+        context.perform_substitution(use_collision_detection_arg).lower() == "true"
+    )
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -30,6 +34,20 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
+
+    if use_collision_detection:
+        ocp_definition_file = PathJoinSubstitution(
+            [
+                FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+                "config",
+                "ocp_definition_file.yaml",
+            ]
+        )
+        extra_params = {
+            "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
+        }
+    else:
+        extra_params = {}
 
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
@@ -41,7 +59,11 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml],
+        parameters=[
+            get_use_sim_time(),
+            agimus_controller_yaml,
+            extra_params,
+        ],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -77,12 +99,9 @@ def launch_setup(
         remappings=[("robot_description", "environment_description")],
         parameters=[{"robot_description": environment_description}],
     )
-    tf_node = (
-        static_transform_publisher_node(
-            frame_id="world",
-            child_frame_id="obstacle1",
-            node_kwargs=dict(name="tf_obstacle"),
-        ),
+    tf_node = static_transform_publisher_node(
+        frame_id="fer_link0",
+        child_frame_id="obstacle1",
     )
 
     return [
@@ -103,6 +122,16 @@ def launch_setup(
 
 
 def generate_launch_description():
+    use_collision_detection = DeclareLaunchArgument(
+        "use_collision_detection",
+        default_value="false",
+        description="Whether to use collision detection",
+        choices=["true", "false"],
+    )
     return LaunchDescription(
-        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+        [
+            use_collision_detection,
+        ]
+        + generate_default_franka_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
