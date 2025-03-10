@@ -121,7 +121,8 @@ def launch_setup(
     )
     # Auxiliary computer's docker does not have all the dependencies like franka_description
     # It is better to return with only minimal number of code evaluated to avoid errors
-    # evaluating paths to packages that do not exist in the system.
+    # evaluating paths to packages that do not exist in the system. From this point on
+    # checking if we are running on auxiliary computer is not required.
     if on_aux_computer_bool:
         return [franka_hardware_launch]
 
@@ -139,10 +140,9 @@ def launch_setup(
         ),
         launch_arguments={
             "robot_ip": robot_ip,
-            "arm_id": arm_id,
             "aux_computer_ip": aux_computer_ip,
             "aux_computer_user": aux_computer_user,
-            "on_aux_computer": on_aux_computer,
+            "arm_id": arm_id,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(use_gazebo),

@@ -23,7 +23,6 @@ from launch.substitutions import EnvironmentVariable
 from agimus_demos_common.launch_utils import (
     COMPOSE_REMOTE_PATH,
     FRANKA_PARAMS_REMOTE_PATH,
-    LFC_PARAMS_REMOTE_PATH,
 )
 
 
@@ -46,7 +45,6 @@ def evaluate_compose_template(
     content = template.render(
         {
             "arm_id": context.perform_substitution(arm_id),
-            "lfc_params_remote_path": LFC_PARAMS_REMOTE_PATH.as_posix(),
             "franka_params_remote_path": FRANKA_PARAMS_REMOTE_PATH.as_posix(),
             "robot_ip": context.perform_substitution(robot_ip),
             "rmw_implementation": context.perform_substitution(rmw_implementation),
@@ -67,14 +65,10 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     aux_computer_ip = LaunchConfiguration("aux_computer_ip")
     aux_computer_user = LaunchConfiguration("aux_computer_user")
-
-    aux_computer_ip = context.perform_substitution(aux_computer_ip)
-    aux_computer_user = context.perform_substitution(aux_computer_user)
-
-    linear_feedback_controller_params = LaunchConfiguration(
-        "linear_feedback_controller_params"
-    )
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+
+    aux_computer_ip_str = context.perform_substitution(aux_computer_ip)
+    aux_computer_user_str = context.perform_substitution(aux_computer_user)
 
     compose_rt_computer_template = PathJoinSubstitution(
         [
@@ -89,13 +83,13 @@ def launch_setup(
         context, compose_rt_computer_template
     )
 
-    remote = f"{aux_computer_user}@{aux_computer_ip}"
+    remote = f"{aux_computer_user_str}@{aux_computer_ip_str}"
     # Register list of commands to perform on bringup
     bringup_remote_commands = [
         # Check if host is available
         {
             "name": "aux-ping",
-            "cmd": ["ping", "-c1", aux_computer_ip],
+            "cmd": ["ping", "-c1", aux_computer_ip_str],
             "on_exit": None,
         },
         # Check if ssh keys were exchanged
@@ -106,21 +100,11 @@ def launch_setup(
         },
         # Send parameters of Franka controller to RT computer
         {
-            "name": "aux-scp-lfc",
+            "name": "aux-scp-franka-params",
             "cmd": [
                 "scp",
                 franka_controllers_params,
                 f"{remote}:{FRANKA_PARAMS_REMOTE_PATH.as_posix()}",
-            ],
-            "on_exit": None,
-        },
-        # Send parameters of LFC to RT computer
-        {
-            "name": "aux-scp-lfc",
-            "cmd": [
-                "scp",
-                linear_feedback_controller_params,
-                f"{remote}:{LFC_PARAMS_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
         },
@@ -249,18 +233,6 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file used to define controller parameters.",
-        ),
-        DeclareLaunchArgument(
-            "linear_feedback_controller_params",
-            default_value=PathJoinSubstitution(
-                [
-                    FindPackageShare("agimus_demos_common"),
-                    "config",
-                    "linear_feedback_controller_params.yaml",
-                ]
-            ),
-            description="Path to the yaml file use to define "
-            + "Linear Feedback Controller's and Joint State Estimator's params.",
         ),
     ]
 
