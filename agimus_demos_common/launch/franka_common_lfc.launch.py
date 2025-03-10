@@ -1,7 +1,6 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
     RegisterEventHandler,
@@ -17,7 +16,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 from controller_manager.launch_utils import (
-    generate_load_controller_launch_description,  # noqa: I001
+    generate_controllers_spawner_launch_description,  # noqa: I001
 )
 
 from agimus_demos_common.launch_utils import (
@@ -58,10 +57,6 @@ def launch_setup(
         }.items(),
     )
 
-    linear_feedback_controller_params = LaunchConfiguration(
-        "linear_feedback_controller_params"
-    )
-
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -70,28 +65,8 @@ def launch_setup(
         output="screen",
     )
 
-    load_linear_feedback_controller = generate_load_controller_launch_description(
-        controller_name="linear_feedback_controller",
-        controller_params_file=linear_feedback_controller_params,
-        extra_spawner_args=["--inactive", "--controller-manager-timeout", "1000"],
-    )
-
-    load_joint_state_estimator = generate_load_controller_launch_description(
-        controller_name="joint_state_estimator",
-        controller_params_file=linear_feedback_controller_params,
-        extra_spawner_args=["--inactive", "--controller-manager-timeout", "1000"],
-    )
-
-    activate_lfc_controllers = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "service",
-            "call",
-            "/controller_manager/switch_controller",
-            "controller_manager_msgs/srv/SwitchController",
-            "{activate_controllers: ['joint_state_estimator', 'linear_feedback_controller'], stop_controllers: [], strictness: 2}",
-        ],
-        output="screen",
+    spawn_linear_feedback_controller = generate_controllers_spawner_launch_description(
+        ["linear_feedback_controller", "joint_state_estimator"]
     )
 
     return [
@@ -100,19 +75,7 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
-                on_exit=[load_linear_feedback_controller],
-            ),
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=load_linear_feedback_controller.entities[-1],
-                on_exit=[load_joint_state_estimator],
-            ),
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=load_joint_state_estimator.entities[-1],
-                on_exit=[activate_lfc_controllers],
+                on_exit=[spawn_linear_feedback_controller],
             ),
         ),
     ]
@@ -130,18 +93,6 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
-        ),
-        DeclareLaunchArgument(
-            "linear_feedback_controller_params",
-            default_value=PathJoinSubstitution(
-                [
-                    FindPackageShare("agimus_demos_common"),
-                    "config",
-                    "linear_feedback_controller_params.yaml",
-                ]
-            ),
-            description="Path to the yaml file use to define "
-            + "Linear Feedback Controller's and Joint State Estimator's params.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",
