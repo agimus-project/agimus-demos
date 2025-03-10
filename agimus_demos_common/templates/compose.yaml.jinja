@@ -18,7 +18,7 @@ services:
       rttime: -1 # corresponds to 'unlimited'
       memlock: 8428281856
     command: >
-     ros2 launch agimus_demos_common franka_common.launch.py
+      ros2 launch agimus_demos_common franka_common_lfc.launch.py
         franka_controllers_params:={{ franka_params_remote_path }}
         robot_ip:={{ robot_ip }}
         on_aux_computer:=true

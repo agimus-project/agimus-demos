@@ -5,12 +5,15 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
+    OrSubstitution,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -28,6 +31,10 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    use_gazebo = LaunchConfiguration("use_gazebo")
+    aux_computer_ip = LaunchConfiguration("aux_computer_ip")
+    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+
     franka_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -66,7 +73,8 @@ def launch_setup(
     )
 
     spawn_linear_feedback_controller = generate_controllers_spawner_launch_description(
-        ["linear_feedback_controller", "joint_state_estimator"]
+        ["linear_feedback_controller", "joint_state_estimator"],
+        controller_params_files=[franka_controllers_params],
     )
 
     return [
@@ -76,6 +84,11 @@ def launch_setup(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[spawn_linear_feedback_controller],
+            ),
+            condition=IfCondition(
+                OrSubstitution(
+                    use_gazebo, PythonExpression(["'", aux_computer_ip, "' == ''"])
+                )
             ),
         ),
     ]

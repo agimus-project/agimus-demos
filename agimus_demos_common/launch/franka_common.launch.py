@@ -145,7 +145,11 @@ def launch_setup(
             "arm_id": arm_id,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
-        condition=UnlessCondition(use_gazebo),
+        condition=UnlessCondition(
+            OrSubstitution(
+                use_gazebo, PythonExpression(["'", aux_computer_ip, "' == ''"])
+            )
+        ),
     )
 
     franka_simulation_launch = IncludeLaunchDescription(

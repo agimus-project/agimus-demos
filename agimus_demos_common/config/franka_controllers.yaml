@@ -28,7 +28,6 @@ gripper_action_controller:
 
 joint_state_estimator:
   ros__parameters:
-    type: linear_feedback_controller/JointStateEstimator
     interfaces:
     - fer_joint1/position
     - fer_joint2/position
