@@ -43,6 +43,26 @@ Launch arguments expected to be public interface of all demos using Franka robot
 
     ID of the type of arm used. Supported values: fer, fr3, fp3.
 
+- **aux_computer_ip**:
+
+    Default: *""*
+
+    Hostname or IP address of the auxiliary computer with real-time kernel. If not empty launch file is configured to spawn docker container on that machine. If empty, controllers are spawned locally on the computer executing launch file.
+
+- **aux_computer_user**:
+
+    Default: *""*
+
+    Username used to execute commands on auxiliary computer over ssh. Required if `aux_computer_ip` is not empty.
+
+- **on_aux_computer**:
+
+    Default: *false*
+
+    Valid choices: [*true*, *false*]
+
+    Whether launch file is executed on auxiliary computer. If set to `true`, `robot_ip` can not be empty and only minimal set of nodes to control the robot is launche d on this machine.
+
 - **use_gazebo**:
 
     Valid choices: [*true*, *false*]
@@ -77,11 +97,7 @@ Launch arguments expected to be public interface of all demos using Franka robot
 
 **franka_common_lfc.launch.py** extends **franka_common.launch.py** by launching Linear Feedback Controller and Joint State Estimator on top of it. This launch file in a sense is equivalent to *Demo 01 LFC Alone*.
 
-Launch arguments are the same as in **franka_common.launch.py**, and are extended by:
-
-- `linear_feedback_controller_params`: Path to the yaml file use to define Linear Feedback Controller\`s and Joint State Estimator\`s params.
-
-    Default: *agimus_demos_common/config/linear_feedback_controller_params.yaml*
+Launch arguments are the same as in **franka_common.launch.py**.
 
 **rosbag_recorder.launch.py** allows to record a rosbag for agimus_controller node data.
 

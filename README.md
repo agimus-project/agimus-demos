@@ -101,6 +101,7 @@ source install/setup.bash
 ```
 
 ## Dual computer setup
+
 Dual computer setup with real time computer can be used to ensure stable control. Auxiliary computer with real-time kernel is expected to have docker installed and ssh keys exchanged with non-real-time machine.
 To exchange ssh keys you can use following command:
 ```bash
