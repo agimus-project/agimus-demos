@@ -22,6 +22,7 @@ from launch.substitutions import EnvironmentVariable
 
 from agimus_demos_common.launch_utils import (
     COMPOSE_REMOTE_PATH,
+    FRANKA_PARAMS_REMOTE_PATH,
     LFC_PARAMS_REMOTE_PATH,
 )
 
@@ -46,6 +47,7 @@ def evaluate_compose_template(
         {
             "arm_id": context.perform_substitution(arm_id),
             "lfc_params_remote_path": LFC_PARAMS_REMOTE_PATH.as_posix(),
+            "franka_params_remote_path": FRANKA_PARAMS_REMOTE_PATH.as_posix(),
             "robot_ip": context.perform_substitution(robot_ip),
             "rmw_implementation": context.perform_substitution(rmw_implementation),
             "ros_domain_id": context.perform_substitution(ros_domain_id),
@@ -69,13 +71,10 @@ def launch_setup(
     aux_computer_ip = context.perform_substitution(aux_computer_ip)
     aux_computer_user = context.perform_substitution(aux_computer_user)
 
-    linear_feedback_controller_params = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demos_common"),
-            "config",
-            "linear_feedback_controller_params.yaml",
-        ]
+    linear_feedback_controller_params = LaunchConfiguration(
+        "linear_feedback_controller_params"
     )
+    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
 
     compose_rt_computer_template = PathJoinSubstitution(
         [
@@ -97,11 +96,23 @@ def launch_setup(
         {
             "name": "aux-ping",
             "cmd": ["ping", "-c1", aux_computer_ip],
+            "on_exit": None,
         },
         # Check if ssh keys were exchanged
         {
             "name": "aux-ssh-check-keys",
             "cmd": ["ssh", "-o", "BatchMode=yes", remote, "'exit'"],
+            "on_exit": None,
+        },
+        # Send parameters of Franka controller to RT computer
+        {
+            "name": "aux-scp-lfc",
+            "cmd": [
+                "scp",
+                franka_controllers_params,
+                f"{remote}:{FRANKA_PARAMS_REMOTE_PATH.as_posix()}",
+            ],
+            "on_exit": None,
         },
         # Send parameters of LFC to RT computer
         {
@@ -111,6 +122,7 @@ def launch_setup(
                 linear_feedback_controller_params,
                 f"{remote}:{LFC_PARAMS_REMOTE_PATH.as_posix()}",
             ],
+            "on_exit": None,
         },
         # Send rendered compose.yaml file to RT computer
         {
@@ -120,6 +132,7 @@ def launch_setup(
                 compose_rt_computer_path.absolute().as_posix(),
                 f"{remote}:{COMPOSE_REMOTE_PATH.as_posix()}",
             ],
+            "on_exit": None,
         },
         # Start docker on the RT computer
         {
@@ -130,6 +143,9 @@ def launch_setup(
                 "-t",
                 f'"/bin/bash -c \\"docker compose -f {COMPOSE_REMOTE_PATH.as_posix()} up\\""',
             ],
+            # If docker container is stopped (eg. hardware error or e-stop)
+            # Propagate this stop to the rest of the system on the main computer
+            "on_exit": Shutdown(),
         },
     ]
     bringup_processes = [
@@ -141,6 +157,7 @@ def launch_setup(
                 shell=True,
                 emulate_tty=True,
                 log_cmd=True,
+                on_exit=cmd["on_exit"],
             )
             if isinstance(cmd, dict)
             else cmd
@@ -232,6 +249,18 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file used to define controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "linear_feedback_controller_params",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "config",
+                    "linear_feedback_controller_params.yaml",
+                ]
+            ),
+            description="Path to the yaml file use to define "
+            + "Linear Feedback Controller's and Joint State Estimator's params.",
         ),
     ]
 

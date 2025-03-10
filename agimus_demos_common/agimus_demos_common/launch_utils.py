@@ -6,8 +6,9 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 # Constants used to synchronize paths expected on remote between launch files
-LFC_PARAMS_REMOTE_PATH: Path = Path("/tmp/linear_feedback_controller_params.yaml")
 COMPOSE_REMOTE_PATH: Path = Path("/tmp/compose.yaml")
+LFC_PARAMS_REMOTE_PATH: Path = Path("/tmp/linear_feedback_controller_params.yaml")
+FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
 
 def generate_default_franka_args() -> list[DeclareLaunchArgument]:

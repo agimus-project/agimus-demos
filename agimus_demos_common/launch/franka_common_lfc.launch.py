@@ -6,12 +6,14 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
+from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -21,7 +23,6 @@ from controller_manager.launch_utils import (
 )
 
 from agimus_demos_common.launch_utils import (
-    LFC_PARAMS_REMOTE_PATH,
     generate_default_franka_args,
     get_use_sim_time,
 )
@@ -31,7 +32,6 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     aux_computer_ip = LaunchConfiguration("aux_computer_ip")
-    aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
 
     franka_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -62,21 +62,18 @@ def launch_setup(
         }.items(),
     )
 
-    # If no auxiliary computer is present tell controller manager to load
-    # params from param. If auxiliary computer is expected, load them from
-    # a hardcoded path, present in the docker.
-    linear_feedback_controller_params = (
-        LaunchConfiguration("linear_feedback_controller_params")
-        if aux_computer_ip_empty
-        else PathJoinSubstitution(LFC_PARAMS_REMOTE_PATH.as_posix())
+    linear_feedback_controller_params = LaunchConfiguration(
+        "linear_feedback_controller_params"
     )
 
+    on_aux_computer = LaunchConfiguration("on_aux_computer")
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
         name="lfc_wait_for_non_zero_joints_node",
         parameters=[get_use_sim_time()],
         output="screen",
+        condition=UnlessCondition(on_aux_computer),
     )
 
     load_linear_feedback_controller = generate_load_controller_launch_description(
@@ -110,19 +107,22 @@ def launch_setup(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[load_linear_feedback_controller],
-            )
+            ),
+            condition=IfCondition(PythonExpression(["'", aux_computer_ip, "' != ''"])),
         ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_linear_feedback_controller.entities[-1],
                 on_exit=[load_joint_state_estimator],
-            )
+            ),
+            condition=IfCondition(PythonExpression(["'", aux_computer_ip, "' != ''"])),
         ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_joint_state_estimator.entities[-1],
                 on_exit=[activate_lfc_controllers],
-            )
+            ),
+            condition=IfCondition(PythonExpression(["'", aux_computer_ip, "' != ''"])),
         ),
     ]
 
