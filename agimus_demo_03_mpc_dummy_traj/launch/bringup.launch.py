@@ -1,5 +1,5 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler
+from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
@@ -83,10 +83,13 @@ def launch_setup(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[
                     agimus_controller_node,
-                    simple_trajectory_publisher_node,
                     environment_publisher_node,
                 ],
             )
+        ),
+        TimerAction(
+            period=10.0,
+            actions=[simple_trajectory_publisher_node],
         ),
     ]
 
