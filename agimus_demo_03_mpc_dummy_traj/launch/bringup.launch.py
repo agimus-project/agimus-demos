@@ -43,10 +43,18 @@ def launch_setup(
         remappings=[("robot_description", "robot_description_with_collision")],
     )
 
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+            "config",
+            "trajectory_weigths_params.yaml",
+        ]
+    )
+
     simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
         executable="simple_trajectory_publisher",
-        parameters=[get_use_sim_time()],
+        parameters=[get_use_sim_time(), trajectory_weights_yaml],
         output="screen",
     )
     environment_description = ParameterValue(
