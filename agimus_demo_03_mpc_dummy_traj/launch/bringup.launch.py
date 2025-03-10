@@ -1,6 +1,6 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
@@ -95,9 +95,14 @@ def launch_setup(
                 ],
             )
         ),
-        TimerAction(
-            period=10.0,
-            actions=[simple_trajectory_publisher_node],
+        RegisterEventHandler(
+            event_handler=OnProcessStart(
+                target_action=agimus_controller_node,
+                on_start=TimerAction(
+                    period=7.0,
+                    actions=[simple_trajectory_publisher_node],
+                ),
+            )
         ),
     ]
 
