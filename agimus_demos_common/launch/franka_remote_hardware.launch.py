@@ -16,7 +16,10 @@ from launch.event_handlers import (
     OnProcessIO,
 )
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import EnvironmentVariable
 
@@ -74,6 +77,9 @@ def launch_setup(
 
     aux_computer_ip_str = context.perform_substitution(aux_computer_ip)
     aux_computer_user_str = context.perform_substitution(aux_computer_user)
+    external_controllers_params_str = context.perform_substitution(
+        external_controllers_params
+    )
 
     compose_rt_computer_template = PathJoinSubstitution(
         [
@@ -96,12 +102,14 @@ def launch_setup(
             "name": "aux-ping",
             "cmd": ["ping", "-c1", aux_computer_ip_str],
             "on_exit": None,
+            "skip_step": False,
         },
         # Check if ssh keys were exchanged
         {
             "name": "aux-ssh-check-keys",
             "cmd": ["ssh", "-o", "BatchMode=yes", remote, "'exit'"],
             "on_exit": None,
+            "skip_step": False,
         },
         # Send parameters of Franka controller to RT computer
         {
@@ -112,8 +120,9 @@ def launch_setup(
                 f"{remote}:{FRANKA_PARAMS_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
+            "skip_step": False,
         },
-        # Send parameters of Franka controller to RT computer
+        # Send parameters of external controllers to RT computer
         {
             "name": "aux-scp-external-controller-params",
             "cmd": [
@@ -122,6 +131,8 @@ def launch_setup(
                 f"{remote}:{EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
+            # If no file is passed, skip this step
+            "skip_step": external_controllers_params_str == "",
         },
         # Send rendered compose.yaml file to RT computer
         {
@@ -132,6 +143,7 @@ def launch_setup(
                 f"{remote}:{COMPOSE_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
+            "skip_step": False,
         },
         # Start docker on the RT computer
         {
@@ -140,28 +152,26 @@ def launch_setup(
                 "ssh",
                 remote,
                 "-t",
-                f'"/bin/bash -c \\"docker compose -f {COMPOSE_REMOTE_PATH.as_posix()} up\\""',
+                f'"/bin/bash -c \\"docker compose -f {COMPOSE_REMOTE_PATH.as_posix()} up --force-recreate\\""',
             ],
             # If docker container is stopped (eg. hardware error or e-stop)
             # Propagate this stop to the rest of the system on the main computer
             "on_exit": Shutdown(),
+            "skip_step": False,
         },
     ]
     bringup_processes = [
-        (
-            ExecuteProcess(
-                name=cmd["name"],
-                cmd=cmd["cmd"],
-                output="both",
-                shell=True,
-                emulate_tty=True,
-                log_cmd=True,
-                on_exit=cmd["on_exit"],
-            )
-            if isinstance(cmd, dict)
-            else cmd
+        ExecuteProcess(
+            name=cmd["name"],
+            cmd=cmd["cmd"],
+            output="both",
+            shell=True,
+            emulate_tty=True,
+            log_cmd=True,
+            on_exit=cmd["on_exit"],
         )
         for cmd in bringup_remote_commands
+        if not cmd["skip_step"]
     ]
     # Chain commands to execute them in order
     bringup_events = [
