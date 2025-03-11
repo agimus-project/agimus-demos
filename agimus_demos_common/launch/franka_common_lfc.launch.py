@@ -81,6 +81,17 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
+                    "linear_feedback_controller_params.yaml",
+                ]
+            ),
+            description="Path to the yaml file use to define Linear Feedback Controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "linear_feedback_controller_params",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "config",
                     "franka",
                     "linear_feedback_controller_params.yaml",
                 ]
