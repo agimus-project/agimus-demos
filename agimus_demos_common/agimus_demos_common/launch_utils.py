@@ -7,6 +7,9 @@ from launch_ros.substitutions import FindPackageShare
 
 # Constants used to synchronize paths expected on remote between launch files
 COMPOSE_REMOTE_PATH: Path = Path("/tmp/compose.yaml")
+EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
+    "/tmp/external_controllers_params.yaml"
+)
 FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
 

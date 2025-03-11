@@ -3,37 +3,27 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
-    RegisterEventHandler,
 )
-from launch.conditions import IfCondition
-from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
-    PythonExpression,
-    OrSubstitution,
 )
-from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from controller_manager.launch_utils import (
-    generate_controllers_spawner_launch_description,  # noqa: I001
-)
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    get_use_sim_time,
 )
 
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    use_gazebo = LaunchConfiguration("use_gazebo")
-    aux_computer_ip = LaunchConfiguration("aux_computer_ip")
-    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+    linear_feedback_controllers_names = [
+        "linear_feedback_controller",
+        "joint_state_estimator",
+    ]
 
     franka_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -53,6 +43,10 @@ def launch_setup(
             "aux_computer_user": LaunchConfiguration("aux_computer_user"),
             "on_aux_computer": LaunchConfiguration("on_aux_computer"),
             "robot_ip": LaunchConfiguration("robot_ip"),
+            "external_controllers_params": LaunchConfiguration(
+                "linear_feedback_controller_params"
+            ),
+            "external_controllers_names": str(linear_feedback_controllers_names),
             "franka_controllers_params": LaunchConfiguration(
                 "franka_controllers_params"
             ),
@@ -64,34 +58,7 @@ def launch_setup(
         }.items(),
     )
 
-    wait_for_non_zero_joints_node = Node(
-        package="agimus_demos_common",
-        executable="wait_for_non_zero_joints_node",
-        name="lfc_wait_for_non_zero_joints_node",
-        parameters=[get_use_sim_time()],
-        output="screen",
-    )
-
-    spawn_linear_feedback_controller = generate_controllers_spawner_launch_description(
-        ["linear_feedback_controller", "joint_state_estimator"],
-        controller_params_files=[franka_controllers_params],
-    )
-
-    return [
-        franka_robot_launch,
-        wait_for_non_zero_joints_node,
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=wait_for_non_zero_joints_node,
-                on_exit=[spawn_linear_feedback_controller],
-            ),
-            condition=IfCondition(
-                OrSubstitution(
-                    use_gazebo, PythonExpression(["'", aux_computer_ip, "' == ''"])
-                )
-            ),
-        ),
-    ]
+    return [franka_robot_launch]
 
 
 def generate_launch_description():
@@ -106,6 +73,17 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "linear_feedback_controller_params",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "config",
+                    "linear_feedback_controller_params.yaml",
+                ]
+            ),
+            description="Path to the yaml file use to define Linear Feedback Controller parameters.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

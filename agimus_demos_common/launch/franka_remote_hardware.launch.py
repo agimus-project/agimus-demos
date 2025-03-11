@@ -22,6 +22,7 @@ from launch.substitutions import EnvironmentVariable
 
 from agimus_demos_common.launch_utils import (
     COMPOSE_REMOTE_PATH,
+    EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH,
     FRANKA_PARAMS_REMOTE_PATH,
 )
 
@@ -31,6 +32,7 @@ def evaluate_compose_template(
 ) -> Path:
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
+    external_controllers_names = LaunchConfiguration("external_controllers_names")
     rmw_implementation = EnvironmentVariable("RMW_IMPLEMENTATION")
     ros_domain_id = EnvironmentVariable("ROS_DOMAIN_ID", default_value="0")
 
@@ -46,6 +48,8 @@ def evaluate_compose_template(
         {
             "arm_id": context.perform_substitution(arm_id),
             "franka_params_remote_path": FRANKA_PARAMS_REMOTE_PATH.as_posix(),
+            "external_controllers_params_remote_path": EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH.as_posix(),
+            "external_controllers_names": f'"{context.perform_substitution(external_controllers_names)}"',
             "robot_ip": context.perform_substitution(robot_ip),
             "rmw_implementation": context.perform_substitution(rmw_implementation),
             "ros_domain_id": context.perform_substitution(ros_domain_id),
@@ -65,6 +69,7 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     aux_computer_ip = LaunchConfiguration("aux_computer_ip")
     aux_computer_user = LaunchConfiguration("aux_computer_user")
+    external_controllers_params = LaunchConfiguration("external_controllers_params")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
 
     aux_computer_ip_str = context.perform_substitution(aux_computer_ip)
@@ -105,6 +110,16 @@ def launch_setup(
                 "scp",
                 franka_controllers_params,
                 f"{remote}:{FRANKA_PARAMS_REMOTE_PATH.as_posix()}",
+            ],
+            "on_exit": None,
+        },
+        # Send parameters of Franka controller to RT computer
+        {
+            "name": "aux-scp-external-controller-params",
+            "cmd": [
+                "scp",
+                external_controllers_params,
+                f"{remote}:{EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
         },
@@ -188,6 +203,7 @@ def launch_setup(
         output="both",
         shell=True,
         emulate_tty=True,
+        log_cmd=True,
     )
     shutdown_event = RegisterEventHandler(OnShutdown(on_shutdown=[shutdown_process]))
 
@@ -222,6 +238,16 @@ def generate_launch_description():
             default_value="fer",
             description="ID of the type of arm used. Supported values: fer, fr3, fp3",
             choices=["fer", "fr3", "fp3"],
+        ),
+        DeclareLaunchArgument(
+            "external_controllers_params",
+            default_value="",
+            description="Path to the yaml file use to define external controllers parameters.",
+        ),
+        DeclareLaunchArgument(
+            "external_controllers_names",
+            default_value="['']",
+            description="Names of the external controllers to spawn.",
         ),
         DeclareLaunchArgument(
             "franka_controllers_params",
