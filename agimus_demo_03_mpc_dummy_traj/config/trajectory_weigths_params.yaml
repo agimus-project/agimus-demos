@@ -1,0 +1,8 @@
+---
+simple_trajectory_publisher:
+  ros__parameters:
+    w_q: [1.0]
+    w_qdot: [0.1]
+    w_qddot: [0.000001]
+    w_robot_effort: [0.0003]
+    w_pose: [0.1]
