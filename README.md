@@ -108,7 +108,7 @@ To exchange ssh keys you can use following command:
 # Copy ssh keys to real-time computer to enable ssh connections
 ssh-copy-id <remote username>@<remote ip>
 ```
-Once ssh keys are exchanged you can use following commands to start the controller:
+Once ssh keys are exchanged you can use the following commands to start the controller:
 ```bash
 ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> aux_computer_ip:=<remote ip> aux_computer_user:=<remote username>
 ```
