@@ -1,27 +1,27 @@
-import jinja2
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+import jinja2
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
-    ExecuteProcess,
     DeclareLaunchArgument,
+    ExecuteProcess,
     OpaqueFunction,
     RegisterEventHandler,
     Shutdown,
 )
 from launch.event_handlers import (
     OnProcessExit,
-    OnShutdown,
     OnProcessIO,
+    OnShutdown,
 )
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import (
+    EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
 )
 from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import EnvironmentVariable
 
 from agimus_demos_common.launch_utils import (
     COMPOSE_REMOTE_PATH,

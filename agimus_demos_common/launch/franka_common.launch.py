@@ -15,8 +15,8 @@ from launch.substitutions import (
     Command,
     FindExecutable,
     LaunchConfiguration,
-    PathJoinSubstitution,
     OrSubstitution,
+    PathJoinSubstitution,
     PythonExpression,
 )
 from launch_ros.actions import Node
