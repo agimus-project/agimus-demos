@@ -8,8 +8,7 @@ Expected behavior: robot not moving, LFC is implementing a default PD+ controlle
 
 This demo requires source built of dependencies found in:
 - [fraka.repos](../franka.repos)
-- [lfc.repos](../lfc.repos)
-- [mpc.repos](../mpc.repos)
+- [control.repos](../control.repos)
 
 ### Simulation
 

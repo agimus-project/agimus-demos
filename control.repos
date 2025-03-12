@@ -25,6 +25,28 @@ repositories:
     url: https://github.com/Gepetto/example-robot-data.git
     version: devel
 
+  # TODO waiting for release with
+  # https://github.com/loco-3d/crocoddyl/pull/1336
+  vcs_control/crocoddyl:
+    type: git
+    url: https://github.com/loco-3d/crocoddyl
+    version: devel
+
+  # TODO waiting for release with
+  # https://github.com/agimus-project/colmpc/pull/38
+  # https://github.com/agimus-project/colmpc/pull/39
+  vcs_control/colmpc:
+    type: git
+    url: https://github.com/agimus-project/colmpc
+    version: main
+
+  # TODO waiting for release with
+  # https://github.com/machines-in-motion/mim_solvers/pull/42
+  vcs_control/mim_solvers:
+    type: git
+    url: https://github.com/machines-in-motion/mim_solvers
+    version: devel
+
   vcs_control/linear-feedback-controller:
     type: git
     url: https://github.com/loco-3d/linear-feedback-controller
@@ -33,4 +55,14 @@ repositories:
   vcs_control/linear_feedback_controller_msgs:
     type: git
     url: https://github.com/loco-3d/linear-feedback-controller-msgs
+    version: humble-devel
+
+  vcs_control/agimus_controller:
+    type: git
+    url: https://github.com/agimus-project/agimus_controller
+    version: humble-devel
+
+  vcs_control/agimus_msgs:
+    type: git
+    url: https://github.com/agimus-project/agimus_msgs
     version: humble-devel

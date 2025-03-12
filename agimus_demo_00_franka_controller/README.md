@@ -7,7 +7,6 @@ This demo checks whether of ROS 2 dependencies for Franka robots was done correc
 
 This demo requires source built of dependencies found in:
 - [fraka.repos](../franka.repos)
-- [lfc.repos](../lfc.repos)
 
 ### Simulation
 

@@ -61,13 +61,11 @@ cd ~/ros2_ws
 git clone https://github.com/agimus-project/agimus-demos.git src/agimus-demos
 # Clone dependencies required by Franka robots
 vcs import --recursive src < src/agimus-demos/franka.repos
-# Clone dependencies for Linear Feedback Controller
-vcs import --recursive src < src/agimus-demos/lfc.repos
+# Clone dependencies for MPC and collision avoidance
+vcs import --recursive src < src/agimus-demos/control.repos
 # Pinocchio has a hardcoded hpp-fcl as dependency while we expect Coal
 # Until it is fixed we need to change it manually
 sed -i 's/hpp-fcl/coal/g' src/vcs_control/pinocchio/package.xml
-# Clone dependencies for MPC and collision avoidance
-vcs import --recursive src < src/agimus-demos/mpc.repos
 
 sudo apt update
 rosdep update --rosdistro $ROS_DISTRO
