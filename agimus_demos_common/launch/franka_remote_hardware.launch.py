@@ -52,6 +52,7 @@ def evaluate_compose_template(
             "arm_id": context.perform_substitution(arm_id),
             "franka_params_remote_path": FRANKA_PARAMS_REMOTE_PATH.as_posix(),
             "external_controllers_params_remote_path": EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH.as_posix(),
+            # Add quotes around the list to make it look as "['val_0', 'val_1]" so it is recognized as ROS param
             "external_controllers_names": f'"{context.perform_substitution(external_controllers_names)}"',
             "robot_ip": context.perform_substitution(robot_ip),
             "rmw_implementation": context.perform_substitution(rmw_implementation),

@@ -83,7 +83,8 @@ def generate_launch_description():
                     "linear_feedback_controller_params.yaml",
                 ]
             ),
-            description="Path to the yaml file use to define Linear Feedback Controller parameters.",
+            description="Path to the yaml file use to define "
+            + "Linear Feedback Controller's and Joint State Estimator's params.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

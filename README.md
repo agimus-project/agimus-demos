@@ -112,3 +112,6 @@ Once ssh keys are exchanged you can use the following commands to start the cont
 ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> aux_computer_ip:=<remote ip> aux_computer_user:=<remote username>
 ```
 This will automatically start a docker container with real time controllers on the specified auxiliary computer and launch all remaining nodes on the machine where this command is executed.
+
+> [!NOTE]
+> In many cases when ROS launch is stopped, the auxiliary computer leaves docker container running. Then the docker container has to be either manually stopped from terminal, or in case Linear Feedback Controller is running this can be done by pressing emergency stop of the robot. Emergency stop interrupts the controller end interrupts the execution of the docker container.

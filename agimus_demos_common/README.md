@@ -115,7 +115,7 @@ Most of the arguments are the same as in **franka_common.launch.py**, except the
 
     Default: *agimus_demos_common/config/linear_feedback_controller_params.yaml*
 
-    Path to the yaml file use to define Linear Feedback Controller parameters.
+    Path to the yaml file use to define Linear Feedback Controller's and Joint State Estimator's params.
 
 **rosbag_recorder.launch.py** allows to record a rosbag for agimus_controller node data.
 
