@@ -97,3 +97,21 @@ colcon build \
 # Source the workspace
 source install/setup.bash
 ```
+
+## Dual computer setup
+
+Dual computer setup with real time computer can be used to ensure stable control. Auxiliary computer with real-time kernel is expected to have docker installed and ssh keys exchanged with non-real-time machine. User account on the auxiliary computer requires access to `docker` group and a group with real time priorities.
+
+Before launching the demo, you have to exchange ssh keys:
+```bash
+# Copy ssh keys to real-time computer to enable ssh connections
+ssh-copy-id <remote username>@<remote ip>
+```
+Once ssh keys are exchanged you can use the following commands to start the controller:
+```bash
+ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> aux_computer_ip:=<remote ip> aux_computer_user:=<remote username>
+```
+This will automatically start a docker container with real time controllers on the specified auxiliary computer and launch all remaining nodes on the machine where this command is executed.
+
+> [!NOTE]
+> In many cases when ROS launch is stopped, the auxiliary computer leaves docker container running. Then the docker container has to be either manually stopped from terminal, or in case Linear Feedback Controller is running this can be done by pressing emergency stop of the robot. Emergency stop interrupts the controller end interrupts the execution of the docker container.

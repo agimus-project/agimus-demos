@@ -18,6 +18,7 @@ ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
 # Installation
 #
 # install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch rviz templates
+        DESTINATION share/${PROJECT_NAME})
 
 ament_auto_package()

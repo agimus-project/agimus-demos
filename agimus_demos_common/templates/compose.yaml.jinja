@@ -1,0 +1,30 @@
+{# Template used to generate compose.yaml file used to run controllers on auxiliary computer #}
+
+services:
+  franka-real-time-controller:
+    image: gitlab.laas.fr:4567/agimus-project/agimus_dev_container:humble-devel-realtime-control
+    container_name: franka-real-time-controller
+    network_mode: host
+    ipc: host
+    environment:
+      - RMW_IMPLEMENTATION={{ rmw_implementation }}
+      - ROS_DOMAIN_ID={{ ros_domain_id }}
+    volumes:
+      - {{ franka_params_remote_path }}:{{ franka_params_remote_path }}
+      - {{ external_controllers_params_remote_path }}:{{ external_controllers_params_remote_path }}
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+      rttime: -1 # corresponds to 'unlimited'
+      memlock: 8428281856
+    command: >
+      ros2 launch agimus_demos_common franka_common.launch.py
+        franka_controllers_params:={{ franka_params_remote_path }}
+        external_controllers_params:={{ external_controllers_params_remote_path }}
+        external_controllers_names:={{ external_controllers_names }}
+        robot_ip:={{ robot_ip }}
+        on_aux_computer:=true
+        arm_id:={{ arm_id }}
+        use_gazebo:=false
+        use_rviz:=false

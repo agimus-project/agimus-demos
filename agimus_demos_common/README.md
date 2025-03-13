@@ -15,6 +15,18 @@ This package intends to be used as a common source of basic launch files allowin
 **franka_common.launch.py** is meant to be included in demos where Franka Emika robots are used. Depending on configuration it launches Gazebo simulation or connects to the real robot. Aside from unifying include interface of Franka Emika robot between simulation and hardware it also provides options to launch RViz2 and configure verbosity of the simulation.
 
 Launch arguments specific to this launch file:
+- **external_controllers_params**:
+
+    Default: *""*
+
+    Path to the yaml file use to define external controllers parameters.
+
+- **external_controllers_names**:
+
+    Default: *[""]*
+
+    List of names of the external controllers to spawn.
+
 - **franka_controllers_params**:
 
     Default: *agimus_demos_common/config/franka_controllers.yaml*
@@ -42,6 +54,26 @@ Launch arguments expected to be public interface of all demos using Franka robot
     Default: *fer*
 
     ID of the type of arm used. Supported values: fer, fr3, fp3.
+
+- **aux_computer_ip**:
+
+    Default: *""*
+
+    Hostname or IP address of the auxiliary computer with real-time kernel. If not empty launch file is configured to spawn docker container on that machine. If empty, controllers are spawned locally on the computer executing launch file.
+
+- **aux_computer_user**:
+
+    Default: *""*
+
+    Username used to execute commands on auxiliary computer over ssh. Required if `aux_computer_ip` is not empty.
+
+- **on_aux_computer**:
+
+    Default: *false*
+
+    Valid choices: [*true*, *false*]
+
+    Whether launch file is executed on auxiliary computer. If set to `true`, `robot_ip` can not be empty and only minimal set of nodes to control the robot is launche d on this machine.
 
 - **use_gazebo**:
 
@@ -77,11 +109,13 @@ Launch arguments expected to be public interface of all demos using Franka robot
 
 **franka_common_lfc.launch.py** extends **franka_common.launch.py** by launching Linear Feedback Controller and Joint State Estimator on top of it. This launch file in a sense is equivalent to *Demo 01 LFC Alone*.
 
-Launch arguments are the same as in **franka_common.launch.py**, and are extended by:
+Most of the arguments are the same as in **franka_common.launch.py**, except there is no **external_controllers_names** and **external_controllers_names** and there is a new param:
 
-- `linear_feedback_controller_params`: Path to the yaml file use to define Linear Feedback Controller\`s and Joint State Estimator\`s params.
+- **linear_feedback_controller_params**:
 
     Default: *agimus_demos_common/config/linear_feedback_controller_params.yaml*
+
+    Path to the yaml file use to define Linear Feedback Controller's and Joint State Estimator's params.
 
 **rosbag_recorder.launch.py** allows to record a rosbag for agimus_controller node data.
 
