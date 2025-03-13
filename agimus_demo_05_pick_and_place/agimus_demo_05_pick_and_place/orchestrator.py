@@ -205,7 +205,8 @@ class Orchestrator(object):
             list(current_robot_state.position), desired_configuration
         )
         self.publish(traj)
-        self.hpp_client.restart()
+        # Commented out since restart does not work properly (corba crashes)
+        # self.hpp_client.restart()
         self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
         # del self.hpp_client
 
@@ -257,7 +258,7 @@ class Orchestrator(object):
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)
-
+        # Commented out since restart does not work properly (corba crashes)
         # self.hpp_client.restart()
         # del self.hpp_client
 

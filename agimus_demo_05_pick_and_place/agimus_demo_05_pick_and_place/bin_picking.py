@@ -488,6 +488,19 @@ class BinPicking(object):
             raise RuntimeError(f"Failed to connect {q_start} and {q_goal}: {exc}")
         return True, p_direct
 
+    def move_in_free(self, q_start, q_goal):
+        self.setParam("approach")
+        edge = "Loop | f"
+        self.transitionPlanner.setEdge(self.graph.edges[edge])
+        p = self.wd(
+            self.transitionPlanner.planPath(
+                q_start,
+                [q_goal],
+                True,
+            )
+        )
+        return p
+
     def solve(self, q):
         """
         Compute a trajectory to grasp and release the object

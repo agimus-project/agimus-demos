@@ -1,6 +1,6 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, DeclareLaunchArgument
-from launch.event_handlers import OnProcessExit
+from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction, DeclareLaunchArgument
+from launch.event_handlers import OnProcessExit, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
@@ -68,10 +68,18 @@ def launch_setup(
         remappings=[("robot_description", "robot_description_with_collision")],
     )
 
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+            "config",
+            "trajectory_weigths_params.yaml",
+        ]
+    )
+
     simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
         executable="simple_trajectory_publisher",
-        parameters=[get_use_sim_time()],
+        parameters=[get_use_sim_time(), trajectory_weights_yaml],
         output="screen",
     )
     environment_description = ParameterValue(
@@ -113,9 +121,17 @@ def launch_setup(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[
                     agimus_controller_node,
-                    simple_trajectory_publisher_node,
                     environment_publisher_node,
                 ],
+            )
+        ),
+        RegisterEventHandler(
+            event_handler=OnProcessStart(
+                target_action=agimus_controller_node,
+                on_start=TimerAction(
+                    period=7.0,
+                    actions=[simple_trajectory_publisher_node],
+                ),
             )
         ),
     ]
