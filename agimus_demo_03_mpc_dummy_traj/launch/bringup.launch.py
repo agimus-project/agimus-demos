@@ -22,9 +22,9 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
-    use_collision_detection_arg = LaunchConfiguration("use_collision_detection")
+    ocp_choice_arg = LaunchConfiguration("ocp")
     use_collision_detection = (
-        context.perform_substitution(use_collision_detection_arg).lower() == "true"
+        context.perform_substitution(ocp_choice_arg).lower() == "custom_with_collision_avoidance"
     )
 
     agimus_controller_yaml = PathJoinSubstitution(
@@ -122,15 +122,15 @@ def launch_setup(
 
 
 def generate_launch_description():
-    use_collision_detection = DeclareLaunchArgument(
-        "use_collision_detection",
-        default_value="false",
-        description="Whether to use collision detection",
-        choices=["true", "false"],
+    ocp_choice = DeclareLaunchArgument(
+        "ocp",
+        default_value="default_ocp",
+        description="Select the ocp to use. Either the default one or the one from this package that does collision avoidance.",
+        choices=["default_ocp", "custom_with_collision_avoidance"],
     )
     return LaunchDescription(
         [
-            use_collision_detection,
+            ocp_choice,
         ]
         + generate_default_franka_args()
         + [OpaqueFunction(function=launch_setup)]
