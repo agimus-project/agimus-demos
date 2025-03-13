@@ -45,16 +45,16 @@ running_model:
           alpha: 1e-4 # 1cm squared
         residual:
           class: ResidualDistanceCollision
-          collision_pair: ["fer_hand_sc_capsule_0", "obstacle1_capsule_0"]
-  constraints:
+          collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
+    constraints:
     - name: collision
       constraint:
         class: ConstraintModelResidual
-        lower: 0.01 # cm
+        lower: 0.01   # cm
         upper: inf
         residual:
           class: ResidualDistanceCollision
-          collision_pair: ["fer_hand_sc_capsule_0", "obstacle1_capsule_0"]
+          collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
 
 terminal_model:
   class: IntegratedActionModelEuler
@@ -92,4 +92,4 @@ terminal_model:
           alpha: 1e-4 # 1cm squared
         residual:
           class: ResidualDistanceCollision
-          collision_pair: ["fer_hand_sc_capsule_0", "obstacle1_capsule_0"]
+          collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
