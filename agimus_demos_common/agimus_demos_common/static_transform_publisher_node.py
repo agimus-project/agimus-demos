@@ -10,9 +10,9 @@ def static_transform_publisher_node(
     rot_rpy: T.Optional[T.Tuple[float, float, float]] = None,
     node_kwargs={},
 ) -> Node:
-    assert (
-        rot_rpy is None or rot_xyzw is None
-    ), "Quaternion and RPY vector cannot be passed at the same time."
+    assert rot_rpy is None or rot_xyzw is None, (
+        "Quaternion and RPY vector cannot be passed at the same time."
+    )
     args = [
         "--frame-id",
         frame_id,
