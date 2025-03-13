@@ -29,7 +29,7 @@ def launch_setup(
         ),
     )
 
-    linear_feedback_controllers_names = ["joint_impedance_example_controller"]
+    joint_impedance_example_controller_names = ["joint_impedance_example_controller"]
 
     franka_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -44,7 +44,7 @@ def launch_setup(
             ]
         ),
         launch_arguments={
-            "external_controllers_names": str(linear_feedback_controllers_names),
+            "external_controllers_names": str(joint_impedance_example_controller_names),
             "external_controllers_params": joint_impedance_example_controller_params,
             "arm_id": LaunchConfiguration("arm_id"),
             "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
