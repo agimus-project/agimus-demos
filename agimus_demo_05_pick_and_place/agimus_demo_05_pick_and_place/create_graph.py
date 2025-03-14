@@ -103,7 +103,7 @@ def makeGraph(ps, robot, grippers, objects, handles, rules, possibleGrasps):
     factory = Factory(ps, graph)
     factory.constraints.removeEmptyConstraints = False
     factory.setGrippers(grippers)
-    factory.setObjects(objects, handles, [[], []])
+    factory.setObjects(objects, handles, [[], [], []])
     factory.setRules(rules)
     factory.setPossibleGrasps(possibleGrasps)
     factory.generate()
