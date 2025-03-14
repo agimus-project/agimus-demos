@@ -63,8 +63,8 @@ class HPPInterface:
         object_name: str = "obj_01",
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
-        start_obj_pose: list[float] = [0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 1.0],
-        goal_obj_pose: list[float] = [0.2, -0.4, 0.95, 0.0, 0.0, 0.0, 1.0],
+        start_obj_pose: list[float] = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
+        goal_obj_pose: list[float] = [0.5, 0.2, 0.95, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt=True,
         gripper_open_value=0.04,
     ):
@@ -75,7 +75,24 @@ class HPPInterface:
         self.goal_obj_pose = goal_obj_pose
         self.gripper_open_value = gripper_open_value
 
-        self.default_obstacle_pose = [-0.99, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
+        self.default_obstacle_pose = [
+            0.05,
+            -0.2,
+            0.761,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+        ]  # source box
+        self.default_obstacle2_pose = [
+            0.5,
+            0.2,
+            0.761,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+        ]  # destination box
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
@@ -98,7 +115,12 @@ class HPPInterface:
         self.obstacle_object = BaseObject(
             urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
             srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
-            name="box",
+            name="source_box",
+        )
+        self.obstacle2_object = BaseObject(
+            urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
+            srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
+            name="dest_box",
         )
         # Init corbaserver
         self.corba = CorbaServer()
@@ -139,8 +161,12 @@ class HPPInterface:
 
         # load moving obstacle
         self.vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
+        self.vf.loadObjectModel(self.obstacle2_object, self.obstacle2_object.name)
         self.robot.setJointBounds(
             f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
+        )
+        self.robot.setJointBounds(
+            f"{self.obstacle2_object.name}/root_joint", self.default_object_bounds
         )
         print("Part and box loaded")
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
@@ -198,13 +224,27 @@ class HPPInterface:
         enable_collision_between_box_and_part: bool = True,
     ):
         object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
-        self.q_init = q_init + self.start_obj_pose + self.default_obstacle_pose
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
         if q_goal is None:
             q_goal = q_init.copy()
-        self.q_goal = q_goal + self.goal_obj_pose + self.default_obstacle_pose
+        self.q_goal = (
+            q_goal
+            + self.goal_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
 
         self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
-        self.binPicking.objects = [self.manip_object.name, self.obstacle_object.name]
+        self.binPicking.objects = [
+            self.manip_object.name,
+            self.obstacle_object.name,
+            self.obstacle2_object.name,
+        ]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
         self.binPicking.goalGrippers = ["goal/gripper"]
         self.binPicking.goalHandles = self.goal_handles
@@ -218,7 +258,7 @@ class HPPInterface:
                 """  <disable_collisions link1="{}" link2="{}" reason=""/>\n"""
             )
             srdf_disable_collisions += srdf_disable_collisions_fmt.format(
-                "box/base_link", "part/base_link"
+                "source_box/base_link", "part/base_link"
             )
             srdf_disable_collisions += "</robot>"
             self.robot.client.manipulation.robot.insertRobotSRDFModelFromString(
@@ -239,7 +279,10 @@ class HPPInterface:
         if not object_static:
             print("Building effector.")  # this hardcodes sequence of steps
             self.binPicking.buildEffectors(
-                [f"box/base_link_{i}" for i in range(5)], self.q_init
+                [f"source_box/base_link_{i}" for i in range(5)], self.q_init
+            )
+            self.binPicking.buildEffectors(
+                [f"dest_box/base_link_{i}" for i in range(5)], self.q_init
             )
 
             print("Generating goal configurations.")
