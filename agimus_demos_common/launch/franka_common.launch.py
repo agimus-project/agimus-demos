@@ -45,6 +45,7 @@ def launch_setup(
     external_controllers_params = LaunchConfiguration("external_controllers_params")
     external_controllers_names = LaunchConfiguration("external_controllers_names")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+    franka_description_path = LaunchConfiguration("franka_description_path")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
     gz_verbose = LaunchConfiguration("gz_verbose")
@@ -249,20 +250,13 @@ def launch_setup(
         "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
     }
-    robot_description_file_substitution = PathJoinSubstitution(
-        [
-            FindPackageShare("franka_description"),
-            "robots",
-            arm_id_str,
-            f"{arm_id_str}.urdf.xacro",
-        ]
-    )
+
     robot_description = ParameterValue(
         Command(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
-                robot_description_file_substitution,
+                franka_description_path,
                 # Convert dict to list of parameters
                 *[arg for key, val in xacro_args.items() for arg in (f" {key}:=", val)],
             ]
@@ -279,7 +273,7 @@ def launch_setup(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
                 " ",
-                robot_description_file_substitution,
+                franka_description_path,
                 # Convert dict to list of parameters
                 *[
                     arg
@@ -394,6 +388,18 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "franka_description_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "robots",
+                    "fer",
+                    "fer.urdf.xacro",
+                ]
+            ),
+            description="Path to URDF file containing robot description.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

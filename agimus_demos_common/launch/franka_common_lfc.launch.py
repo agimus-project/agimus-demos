@@ -1,11 +1,9 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
     OpaqueFunction,
 )
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -14,6 +12,7 @@ from launch_ros.substitutions import FindPackageShare
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
+    generate_include_franka_launch,
 )
 
 
@@ -25,24 +24,9 @@ def launch_setup(
         "joint_state_estimator",
     ]
 
-    franka_robot_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demos_common"),
-                        "launch",
-                        "franka_common.launch.py",
-                    ]
-                )
-            ]
-        ),
-        launch_arguments={
-            "arm_id": LaunchConfiguration("arm_id"),
-            "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
-            "aux_computer_user": LaunchConfiguration("aux_computer_user"),
-            "on_aux_computer": LaunchConfiguration("on_aux_computer"),
-            "robot_ip": LaunchConfiguration("robot_ip"),
+    franka_robot_launch = generate_include_franka_launch(
+        "franka_common.launch.py",
+        extra_launch_arguments={
             "external_controllers_params": LaunchConfiguration(
                 "linear_feedback_controller_params"
             ),
@@ -50,12 +34,8 @@ def launch_setup(
             "franka_controllers_params": LaunchConfiguration(
                 "franka_controllers_params"
             ),
-            "use_gazebo": LaunchConfiguration("use_gazebo"),
-            "use_rviz": LaunchConfiguration("use_rviz"),
-            "rviz_config_path": LaunchConfiguration("rviz_config_path"),
-            "gz_verbose": LaunchConfiguration("gz_verbose"),
-            "gz_headless": LaunchConfiguration("gz_headless"),
-        }.items(),
+            "franka_description_path": LaunchConfiguration("franka_description_path"),
+        },
     )
 
     return [franka_robot_launch]
@@ -85,6 +65,18 @@ def generate_launch_description():
             ),
             description="Path to the yaml file use to define "
             + "Linear Feedback Controller's and Joint State Estimator's params.",
+        ),
+        DeclareLaunchArgument(
+            "franka_description_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "robots",
+                    "fer",
+                    "fer.urdf.xacro",
+                ]
+            ),
+            description="Path to URDF file containing robot description.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

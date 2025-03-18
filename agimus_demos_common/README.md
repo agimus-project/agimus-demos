@@ -33,6 +33,12 @@ Launch arguments specific to this launch file:
 
     Path to the yaml file use to define controller parameters.
 
+- **franka_description_path**:
+
+    Default: *franka_description/fer/fer.urdf.xacro*
+
+    Path to URDF file containing robot description.
+
 - **rviz_config_path**:
 
     Default: *agimus_demos_common/rviz/franka_preview.rviz*
@@ -137,7 +143,19 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     # Helper function that includes `franka_common_lfc.launch.py`.
-    franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
+    # Pass custom URDF argument to the launch file.
+    franka_robot_launch = generate_include_franka_launch(
+        "franka_common_lfc.launch.py"
+        extra_launch_arguments={
+            "franka_description_path": PathJoinSubstitution(
+                [
+                    FindPackageShare("my_custom_description_package"),
+                    "urdf",
+                    "my_custom_robot.urdf.xacro",
+                ]
+            )
+        }
+    )
 
     # Utility ROS node, delaying stat of other nodes until
     # robot's position was initialized in the simulation.

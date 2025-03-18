@@ -87,14 +87,19 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
     ]
 
 
-def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescription:
+def generate_include_franka_launch(
+    launch_file_name: str = "franka_common.launch.py",
+    extra_launch_arguments={},
+) -> IncludeLaunchDescription:
     """Generates IncludeLaunchDescription object of default launch files
         for Agimus Demos for Franka robots. Automatically obtains values of launch arguments required
         by the launch file. Assumes argument are declared with function `generate_default_franka_args()`.
 
     Args:
         launch_file_name (str): Name of the python launch file to included
-            from directory `agimus_demos_common/launch`.
+            from directory `agimus_demos_common/launch`. Defaults to `franka_common.launch.py`.
+        extra_launch_arguments (dict, optional): Dictionary with extra launch arguments passed to
+            the launch file. Defaults to {}.
 
     Returns:
         IncludeLaunchDescription: Include launch description with all default parameters passed to it.
@@ -105,6 +110,7 @@ def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescri
             f"Incorrect launch file name! '{launch_file_name}' is not part of public API "
             + f"launch files of Agimus Demos! Allowed options are {public_launch_files}!"
         )
+
     return IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -127,6 +133,7 @@ def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescri
             "use_rviz": LaunchConfiguration("use_rviz"),
             "gz_verbose": LaunchConfiguration("gz_verbose"),
             "gz_headless": LaunchConfiguration("gz_headless"),
+            **extra_launch_arguments,
         }.items(),
     )
 
