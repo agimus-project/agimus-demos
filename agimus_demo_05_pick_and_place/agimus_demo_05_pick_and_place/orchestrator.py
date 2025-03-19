@@ -123,7 +123,7 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
-        self.use_hardcoded_poses = False
+        self.use_hardcoded_poses = True
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
