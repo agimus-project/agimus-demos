@@ -1,10 +1,9 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, ExecuteProcess
+from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from pathlib import Path
 
 
 def launch_setup(
