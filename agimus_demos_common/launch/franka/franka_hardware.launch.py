@@ -47,7 +47,9 @@ def launch_setup(
     )
 
     spawn_default_controller = generate_load_controller_launch_description(
-        "joint_state_broadcaster"
+        "joint_state_broadcaster",
+        "force_torque_sensor_broadcaster",
+        "net_ft_diagnostic_broadcaster",
     )
 
     franka_gripper_launch = IncludeLaunchDescription(
