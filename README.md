@@ -6,6 +6,15 @@ The repository is organized as set of demos with increasing complexity.
 Each folder contains a ROS 2 package launching the demo.
 The `README.md` file of each demo contains a detailed description of the expected results and instruction on how to launch the demo.
 
+## Table of content
+
+- [Usage](#Usage)
+- [Installation](#Installation)
+
+## Usage
+
+### Running demos
+
 All of the demos are launched in a similar manner. For Gazebo simulation use
 ```bash
 ros2 launch agimus_demo_<demo-name> bringup.launch.py use_gazebo:=true use_rviz:=true
@@ -15,7 +24,28 @@ For the real robot use
 ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
 ```
 
-## Running demos with Docker
+### Plotting and debugging
+
+> [!CAUTION]
+> This is work in progress and subject to change.
+
+The following tools assume that agimus-controller node was started with parameter `publish_debug_data` set to `true`.
+
+You can visualize MPC outputs using PlotJuggler with
+```bash
+ros2 launch agimus_demos_common plotjuggler_mpc.launch.py
+```
+
+You can visualize the current prediction of MPC in RViz in two steps:
+```bash
+ros2 run agimus_controller_ros mpc_debugger_node --frame fer_hand_tcp
+```
+Then use Rviz to display the marker array published to `mpc_states_prediction_markers`.
+If your RViz config file is up-to-date, the visualization is already configured and just needs to be enabled by checking the box of `MPC predictions`.
+
+## Installation
+
+### Running demos with Docker
 
 > [!NOTE]
 > This is a recommended installation for this package. You can always install it from source (see below), but to avoid issues with building from source we advise you to use prebuilt docker images, that contains all the dependencies.
@@ -48,7 +78,7 @@ source install/setup.bash
 
 Now you are ready to run all of your demos!
 
-## Building dependencies from source
+### Building dependencies from source
 
 > [!IMPORTANT]
 > Not all demos require all dependencies. Check README.md files of each demo to learn which dependencies are required.
@@ -98,7 +128,7 @@ colcon build \
 source install/setup.bash
 ```
 
-## Dual computer setup
+### Dual computer setup
 
 Dual computer setup with real time computer can be used to ensure stable control. Auxiliary computer with real-time kernel is expected to have docker installed and ssh keys exchanged with non-real-time machine. User account on the auxiliary computer requires access to `docker` group and a group with real time priorities.
 
