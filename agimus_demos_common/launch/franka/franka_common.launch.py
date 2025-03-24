@@ -302,6 +302,7 @@ def launch_setup(
         "ee_id": "franka_hand",
         "gazebo_effort": "true",
         "with_sc": "false",
+        "special_connection": "ati_mini45_tool_mount",
         "franka_controllers_params": franka_controllers_params,
     }
     robot_description_file_substitution = PathJoinSubstitution(
