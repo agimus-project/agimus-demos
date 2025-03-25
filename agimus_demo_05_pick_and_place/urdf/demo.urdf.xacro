@@ -6,16 +6,4 @@
   <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/support.urdf.xacro"/>
 
   <xacro:support/>
-
-  <xacro:if value="$(arg gazebo)">
-    <xacro:include filename="$(find agimus_demos)/urdf/_d435.gazebo.xacro"/>
-    <xacro:gazebo_d435 camera_name="d435"
-                        reference_link="fer_ref_camera_link"
-                        topics_ns="camera"
-                        depth_optical_frame="camera_depth_optical_frame"
-                        color_optical_frame="camera_color_optical_frame"
-                        infrared1_optical_frame="camera_infrared1_optical_frame"
-                        infrared2_optical_frame="camera_infrared2_optical_frame">
-    </xacro:gazebo_d435>
-  </xacro:if>
 </robot>
