@@ -21,6 +21,7 @@
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>xterm</exec_depend>
   <exec_depend>ipython3</exec_depend>
+  <exec_depend>gripper_controllers</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
