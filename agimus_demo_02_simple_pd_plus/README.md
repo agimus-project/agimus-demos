@@ -10,7 +10,7 @@ Expected behavior: robot's joints are oscillating gently.
 This demo requires source built of dependencies found in:
 - [franka.repos](../franka.repos)
 - [control.repos](../control.repos)
-- [agimus.repos](../agimus.repos)
+- [agimus_dev.repos](../agimus_dev.repos)
 
 ### Simulation
 

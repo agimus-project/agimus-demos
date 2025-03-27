@@ -94,7 +94,7 @@ vcs import --shallow --recursive src < src/agimus-demos/franka.repos
 # Clone base dependencies for optimal control
 vcs import --shallow --recursive src < src/agimus-demos/control.repos
 # Clone Agimus-specific dependencies
-vcs import --shallow --recursive src < src/agimus-demos/agimus.repos
+vcs import --shallow --recursive src < src/agimus-demos/agimus_dev.repos
 # Pinocchio has a hardcoded hpp-fcl as dependency while we expect Coal
 # Until it is fixed we need to change it manually
 sed -i 's/hpp-fcl/coal/g' src/vcs_control/pinocchio/package.xml
