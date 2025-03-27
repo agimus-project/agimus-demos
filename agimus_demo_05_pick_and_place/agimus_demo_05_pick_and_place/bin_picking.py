@@ -69,13 +69,13 @@ def writeHandleInSrdf(robot, handle, clearance, mask):
                 f"Expected prefix {prefix}/ in link name, but got {link}"
             )
         link_short = link[rank + 1 :]
-    res = f'''
+    res = f"""
   <handle name="{handle_short}" clearance="{clearance}">
     <position xyz="{pose[0]} {pose[1]} {pose[2]}" wxyz="{pose[6]} {pose[3]} {pose[4]} {pose[5]}"/>
     <link name="{link_short}"/>
     <mask>{mask[0]} {mask[1]} {mask[2]} {mask[3]} {mask[4]} {mask[5]}</mask>
   </handle>
-'''
+"""
     return res
 
 
@@ -211,7 +211,7 @@ class BinPicking(object):
             self.robot,
             self.robotGrippers + self.goalGrippers,
             self.objects,
-            [handles, []],
+            [handles, [], []],
             self._rules(),
             self._possibleGrasps(),
         )
@@ -332,7 +332,7 @@ class BinPicking(object):
                 qrand = q[:]
             else:
                 qrand = self.robot.shootRandomConfig()
-                r = self.robot.rankInConfiguration["box/root_joint"]
+                r = self.robot.rankInConfiguration["source_box/root_joint"]
                 qrand[r : r + 7] = q[r : r + 7]
             waypoints = list()
             success = True
