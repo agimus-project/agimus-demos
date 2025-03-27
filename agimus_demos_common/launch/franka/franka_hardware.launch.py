@@ -88,8 +88,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka",
-                    "controllers.yaml",
+                    "franka_controllers.yaml",
                 ]
             ),
             description="Path to the yaml file used to define controller parameters.",
