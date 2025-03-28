@@ -7,7 +7,7 @@ running_model:
       - name: control_reg
         update: true
         weight: 0.0008
-        active: false
+        active: true
         cost:
           class: CostModelResidual
           activation:
@@ -39,6 +39,7 @@ running_model:
       - name: distance
         update: false
         weight: 0.05
+        publish_residual: true
         cost:
           class: CostModelResidual
           activation:

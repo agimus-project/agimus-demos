@@ -3,12 +3,12 @@ agimus_controller_node:
   ros__parameters:
     ocp:
       dt: 0.01
-      horizon_size: 40
+      horizon_size: 30
       dt_factor_n_seq:
-        n_steps: [10, 10, 10, 10]
-        factors: [1, 2, 4, 6]
+        n_steps: [20, 10]
+        factors: [1, 2]
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-      max_qp_iter: 125
+      max_qp_iter: 200
       max_iter: 20
       activate_callback: false
     publish_debug_data: true
