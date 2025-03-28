@@ -6,4 +6,5 @@ simple_trajectory_publisher:
     w_qddot: [0.000001]
     w_robot_effort: [1.0]
     w_pose: [1.0]
-  robot_name: "Tiago-pro"
+    # robot_name: "Tiago-pro"
+    ee_frame_name: arm_left_7_joint

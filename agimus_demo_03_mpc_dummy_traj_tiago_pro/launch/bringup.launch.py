@@ -1,5 +1,11 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import LogInfo, OpaqueFunction, RegisterEventHandler, TimerAction
+from launch.actions import (
+    LogInfo,
+    OpaqueFunction,
+    RegisterEventHandler,
+    TimerAction,
+    ExecuteProcess,
+)
 from launch.event_handlers import OnProcessExit, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, Command, FindExecutable
@@ -8,8 +14,8 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
 
 from agimus_demos_common.launch_utils import (
-    generate_default_tiago_args,
-    generate_include_tiago_launch,
+    generate_default_tiago_pro_args,
+    generate_include_launch,
     get_use_sim_time,
 )
 
@@ -17,7 +23,7 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    tiago_robot_launch = generate_include_tiago_launch("tiago_common_lfc.launch.py")
+    tiago_robot_launch = generate_include_launch("tiago_pro_common_lfc.launch.py")
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -88,11 +94,26 @@ def launch_setup(
         parameters=[{"robot_description": environment_description}],
     )
 
+    activate_lfc_controllers = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "control",
+            "switch_controllers",
+            "--deactivate",
+            "arm_left_controller",
+            "--activate",
+            "joint_state_estimator",
+            "linear_feedback_controller",
+        ],
+        output="screen",
+    )
+
     def on_tuck_arm_exit_callback(event, context):
         if "tuck_arm.py" in event.process_name:
             if event.returncode == 0:
                 return [
                     LogInfo(msg="Starting the MPC controller."),
+                    activate_lfc_controllers,
                     agimus_controller_node,
                     environment_publisher_node,
                     RegisterEventHandler(
@@ -121,5 +142,5 @@ def launch_setup(
 
 def generate_launch_description():
     return LaunchDescription(
-        generate_default_tiago_args() + [OpaqueFunction(function=launch_setup)]
+        generate_default_tiago_pro_args() + [OpaqueFunction(function=launch_setup)]
     )
