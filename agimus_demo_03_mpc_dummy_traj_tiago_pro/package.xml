@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>agimus_demo_03_mpc_dummy_traj_tiago_pro</name>
+  <version>0.0.0</version>
+  <description>
+    agimus_demo_03_mpc_dummy_traj_tiago_pro contains the entry points for a simple TIAGo pal-robotics
+    demo with the LFC and an MPC following a dummy trajectory.
+  </description>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <license>BSD-2</license>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
+
+  <url type="website">https://www.agimus-project.eu/</url>
+  <url type="repository">https://github.com/agimus-project/agimus-demos</url>
+  <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <exec_depend>agimus_demos_common</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <controller_interface plugin="${prefix}/controller_plugins.xml" />
+  </export>
+</package>
