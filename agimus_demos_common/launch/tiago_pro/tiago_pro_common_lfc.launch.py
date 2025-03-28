@@ -1,11 +1,9 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
     OpaqueFunction,
 )
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -13,7 +11,8 @@ from launch.substitutions import (
 from launch_ros.substitutions import FindPackageShare
 
 from agimus_demos_common.launch_utils import (
-    generate_default_franka_args,
+    generate_default_tiago_pro_args,
+    generate_include_launch,
 )
 
 
@@ -24,53 +23,28 @@ def launch_setup(
         "linear_feedback_controller",
         "joint_state_estimator",
     ]
-
-    franka_robot_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demos_common"),
-                        "launch",
-                        "franka_common.launch.py",
-                    ]
-                )
-            ]
-        ),
-        launch_arguments={
-            "arm_id": LaunchConfiguration("arm_id"),
-            "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
-            "aux_computer_user": LaunchConfiguration("aux_computer_user"),
-            "on_aux_computer": LaunchConfiguration("on_aux_computer"),
-            "robot_ip": LaunchConfiguration("robot_ip"),
+    tiago_pro_robot_launch = generate_include_launch(
+        "tiago_pro_common.launch.py",
+        extra_launch_arguments={
+            "external_controllers_names": str(linear_feedback_controllers_names),
             "external_controllers_params": LaunchConfiguration(
                 "linear_feedback_controller_params"
             ),
-            "external_controllers_names": str(linear_feedback_controllers_names),
-            "franka_controllers_params": LaunchConfiguration(
-                "franka_controllers_params"
-            ),
-            "use_gazebo": LaunchConfiguration("use_gazebo"),
-            "use_rviz": LaunchConfiguration("use_rviz"),
-            "rviz_config_path": LaunchConfiguration("rviz_config_path"),
-            "gz_verbose": LaunchConfiguration("gz_verbose"),
-            "gz_headless": LaunchConfiguration("gz_headless"),
-        }.items(),
+        },
     )
-
-    return [franka_robot_launch]
+    return [tiago_pro_robot_launch]
 
 
 def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
-            "franka_controllers_params",
+            "tiago_pro_controllers_params",
             default_value=PathJoinSubstitution(
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka",
-                    "controllers.yaml",
+                    "tiago_pro",
+                    "tiago_pro_controllers.yaml",
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
@@ -81,7 +55,6 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka",
                     "linear_feedback_controller_params.yaml",
                 ]
             ),
@@ -94,7 +67,6 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka",
                     "linear_feedback_controller_params.yaml",
                 ]
             ),
@@ -107,7 +79,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "rviz",
-                    "frankapreview.rviz",
+                    "tiago_pro",
+                    "preview.rviz",
                 ]
             ),
             description="Path to RViz configuration file",
@@ -116,6 +89,6 @@ def generate_launch_description():
 
     return LaunchDescription(
         declared_arguments
-        + generate_default_franka_args()
+        + generate_default_tiago_pro_args()
         + [OpaqueFunction(function=launch_setup)]
     )

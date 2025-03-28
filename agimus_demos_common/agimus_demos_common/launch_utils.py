@@ -87,51 +87,7 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
     ]
 
 
-def generate_include_franka_launch(launch_file_name: str) -> IncludeLaunchDescription:
-    """Generates IncludeLaunchDescription object of default launch files
-        for Agimus Demos for Franka robots. Automatically obtains values of launch arguments required
-        by the launch file. Assumes argument are declared with function `generate_default_franka_args()`.
-
-    Args:
-        launch_file_name (str): Name of the python launch file to included
-            from directory `agimus_demos_common/launch`.
-
-    Returns:
-        IncludeLaunchDescription: Include launch description with all default parameters passed to it.
-    """
-    public_launch_files = ["franka_common.launch.py", "franka_common_lfc.launch.py"]
-    if launch_file_name not in public_launch_files:
-        raise RuntimeError(
-            f"Incorrect launch file name! '{launch_file_name}' is not part of public API "
-            + f"launch files of Agimus Demos! Allowed options are {public_launch_files}!"
-        )
-    return IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demos_common"),
-                        "launch",
-                        launch_file_name,
-                    ]
-                )
-            ]
-        ),
-        launch_arguments={
-            "arm_id": LaunchConfiguration("arm_id"),
-            "aux_computer_ip": LaunchConfiguration("aux_computer_ip"),
-            "aux_computer_user": LaunchConfiguration("aux_computer_user"),
-            "on_aux_computer": LaunchConfiguration("on_aux_computer"),
-            "robot_ip": LaunchConfiguration("robot_ip"),
-            "use_gazebo": LaunchConfiguration("use_gazebo"),
-            "use_rviz": LaunchConfiguration("use_rviz"),
-            "gz_verbose": LaunchConfiguration("gz_verbose"),
-            "gz_headless": LaunchConfiguration("gz_headless"),
-        }.items(),
-    )
-
-
-def generate_default_tiago_args() -> list[DeclareLaunchArgument]:
+def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
     """Generates list of default arguments expected to be public interface of
         launch files used by Agimus Demos for Tiago-Pro robot.
 
@@ -141,10 +97,24 @@ def generate_default_tiago_args() -> list[DeclareLaunchArgument]:
     """
     return [
         DeclareLaunchArgument(
+            "robot_ip",
+            default_value="",
+            description="Hostname or IP address of the robot. "
+            + "If not empty launch file is configured for real robot. "
+            + "If empty `use_gazebo` is expected to be set to `true`.",
+        ),
+        DeclareLaunchArgument(
+            "on_robot",
+            default_value="false",
+            description="Are we running on the robot?",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
             "use_gazebo",
             default_value="false",
             description="Configures launch file for Gazebo simulation. "
-            + "If set to `true` launch file is configured for simulated robot. ",
+            + "If set to `true` launch file is configured for simulated robot. "
+            + "If set to `false` argument `robot_ip` is expected not to be empty.",
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
@@ -287,24 +257,38 @@ def generate_default_tiago_args() -> list[DeclareLaunchArgument]:
     ]
 
 
-def generate_include_tiago_launch(launch_file_name: str) -> IncludeLaunchDescription:
+def generate_include_launch(
+    launch_file_name: str, extra_launch_arguments={}
+) -> IncludeLaunchDescription:
     """Generates IncludeLaunchDescription object of default launch files
-        for Agimus Demos for tiago robots. Automatically obtains values of launch arguments required
-        by the launch file. Assumes argument are declared with function `generate_default_tiago_args()`.
+        for Agimus Demos for robots. Automatically obtains values of launch arguments required
+        by the launch file. Assumes argument are declared with function `generate_default_franka_args()`.
 
     Args:
         launch_file_name (str): Name of the python launch file to included
             from directory `agimus_demos_common/launch`.
+        extra_launch_arguments (dict): List of extra arguments.
 
     Returns:
         IncludeLaunchDescription: Include launch description with all default parameters passed to it.
     """
-    public_launch_files = ["tiago_common.launch.py", "tiago_common_lfc.launch.py"]
+    public_launch_files = [
+        "franka_common.launch.py",
+        "franka_common_lfc.launch.py",
+        "tiago_pro_common.launch.py",
+        "tiago_pro_common_lfc.launch.py",
+    ]
     if launch_file_name not in public_launch_files:
         raise RuntimeError(
             f"Incorrect launch file name! '{launch_file_name}' is not part of public API "
             + f"launch files of Agimus Demos! Allowed options are {public_launch_files}!"
         )
+    if "tiago_pro" in launch_file_name:
+        robot_name = "tiago_pro"
+        generate_default_args = generate_default_tiago_pro_args
+    elif "franka" in launch_file_name:
+        robot_name = "franka"
+        generate_default_args = generate_default_franka_args
     return IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -312,14 +296,19 @@ def generate_include_tiago_launch(launch_file_name: str) -> IncludeLaunchDescrip
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        robot_name,
                         launch_file_name,
                     ]
                 )
             ]
         ),
         launch_arguments={
-            "use_gazebo": LaunchConfiguration("use_gazebo"),
-            "use_rviz": LaunchConfiguration("use_rviz"),
+            **{
+                arg.name: LaunchConfiguration(arg.name)
+                for arg in generate_default_args()
+                if arg.name not in extra_launch_arguments.keys()
+            },
+            **extra_launch_arguments,
         }.items(),
     )
 
