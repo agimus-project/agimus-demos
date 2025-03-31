@@ -5,6 +5,7 @@ from launch.actions import (
     OpaqueFunction,
     Shutdown,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -21,6 +22,7 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
+    disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
 
     controller_manager_node = Node(
@@ -63,10 +65,19 @@ def launch_setup(
         }.items(),
     )
 
+    disable_franka_collisions_node = Node(
+        package="agimus_demos_common",
+        executable="disable_franka_collisions",
+        name="disable_franka_collisions",
+        output="screen",
+        condition=IfCondition(disable_collision_safety),
+    )
+
     return [
         controller_manager_node,
         franka_gripper_launch,
         spawn_default_controller,
+        disable_franka_collisions_node,
     ]
 
 
@@ -79,8 +90,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "arm_id",
             default_value="fer",
-            description="ID of the type of arm used. Supported values: fer, fr3, fp3",
+            description="ID of the type of arm used. Supported values: fer, fr3, fp3.",
             choices=["fer", "fr3", "fp3"],
+        ),
+        DeclareLaunchArgument(
+            "disable_collision_safety",
+            default_value="false",
+            description="Whether to disable safety limits for franka robot.",
+            choices=["true", "false"],
         ),
         DeclareLaunchArgument(
             "franka_controllers_params",

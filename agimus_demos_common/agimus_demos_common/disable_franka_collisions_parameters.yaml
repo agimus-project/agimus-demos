@@ -1,0 +1,53 @@
+---
+disable_franka_collisions:
+  lower_torque_thresholds_acceleration:
+    type: double_array
+    default_value: [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0]
+    description: Contact torque thresholds during acceleration/deceleration for each joint
+      in [Nm].
+    read_only: true
+
+  upper_torque_thresholds_acceleration:
+    type: double_array
+    default_value: [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]
+    description: Collision torque thresholds during acceleration/deceleration for each joint
+      in [Nm].
+    read_only: true
+
+  lower_torque_thresholds_nominal:
+    type: double_array
+    default_value: [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0]
+    description: Contact torque thresholds for each joint in [Nm].
+    read_only: true
+
+  upper_torque_thresholds_nominal:
+    type: double_array
+    default_value: [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]
+    description: Collision torque thresholds for each joint in [Nm].
+    read_only: true
+
+  lower_force_thresholds_acceleration:
+    type: double_array
+    default_value: [30.0, 30.0, 30.0, 25.0, 25.0, 25.0]
+    description: Contact force thresholds during acceleration/deceleration for (x,y,z,R,P,Y)
+      in [N].
+    read_only: true
+
+  upper_force_thresholds_acceleration:
+    type: double_array
+    default_value: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+    description: Collision force thresholds during acceleration/deceleration for (x,y,z,R,P,Y)
+      in [N].
+    read_only: true
+
+  lower_force_thresholds_nominal:
+    type: double_array
+    default_value: [30.0, 30.0, 30.0, 25.0, 25.0, 25.0]
+    description: Contact force thresholds for (x,y,z,R,P,Y) in [N].
+    read_only: true
+
+  upper_force_thresholds_nominal:
+    type: double_array
+    default_value: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
+    description: Collision force thresholds for (x,y,z,R,P,Y) in [N].
+    read_only: true
