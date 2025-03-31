@@ -5,7 +5,6 @@ from launch.actions import (
     OpaqueFunction,
     Shutdown,
 )
-from launch.conditions import IfCondition
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -24,6 +23,10 @@ def launch_setup(
     robot_ip = LaunchConfiguration("robot_ip")
     disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+
+    disable_collision_safety_bool = (
+        context.perform_substitution(disable_collision_safety).lower() == "true"
+    )
 
     controller_manager_node = Node(
         package="controller_manager",
@@ -70,7 +73,21 @@ def launch_setup(
         executable="disable_franka_collisions",
         name="disable_franka_collisions",
         output="screen",
-        condition=IfCondition(disable_collision_safety),
+        # If set to `true`, change values to custom ones. If `false` use default.
+        # Robot remembers previous parameters, so we need to change them every time.
+        parameters=(
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("agimus_demos_common"),
+                        "config",
+                        "franka_collisions_unsafe.yaml",
+                    ]
+                )
+            ]
+            if disable_collision_safety_bool
+            else []
+        ),
     )
 
     return [
