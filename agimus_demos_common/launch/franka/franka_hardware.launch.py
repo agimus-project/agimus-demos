@@ -12,7 +12,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 from controller_manager.launch_utils import (
-    generate_load_controller_launch_description,  # noqa: I001
+    generate_controllers_spawner_launch_description,  # noqa: I001
 )
 
 
@@ -46,10 +46,12 @@ def launch_setup(
         on_exit=Shutdown(),
     )
 
-    spawn_default_controller = generate_load_controller_launch_description(
-        "joint_state_broadcaster",
-        "force_torque_sensor_broadcaster",
-        "net_ft_diagnostic_broadcaster",
+    spawn_default_controller = generate_controllers_spawner_launch_description(
+        [
+            "joint_state_broadcaster",
+            "force_torque_sensor_broadcaster",
+            "net_ft_diagnostic_broadcaster",
+        ],
     )
 
     franka_gripper_launch = IncludeLaunchDescription(
