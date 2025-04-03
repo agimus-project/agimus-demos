@@ -1,10 +1,22 @@
 ---
 simple_trajectory_publisher:
   ros__parameters:
-    w_q: [1.0]
-    w_qdot: [0.04]
+    w_q: [0.001]
+    w_qdot: [0.001]
     w_qddot: [0.000001]
     w_robot_effort: [1.0]
     w_pose: [1.0]
-    # robot_name: "Tiago-pro"
     ee_frame_name: arm_left_7_joint
+    amplitude: [0.1, 0.1, 0.0]
+    period: [4.0, 4.0, 4.0]
+
+simple_cartesian_trajectory_publisher:
+  ros__parameters:
+    w_q: [0.001]
+    w_qdot: [0.001]
+    w_qddot: [0.000001]
+    w_robot_effort: [1.0]
+    w_pose: [1.0]
+    ee_frame_name: arm_left_7_joint
+    amplitude: [0.1, 0.1, 0.0]
+    period: [4.0, 4.0, 4.0]
