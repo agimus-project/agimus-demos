@@ -64,7 +64,6 @@ class HPPInterface:
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: list[float] = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
-        goal_obj_pose: list[float] = [0.5, 0.2, 0.95, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt=True,
         gripper_open_value=0.04,
     ):
@@ -72,9 +71,10 @@ class HPPInterface:
 
         self.use_spline_gradient_based_opt = use_spline_gradient_based_opt
         self.start_obj_pose = start_obj_pose
-        self.goal_obj_pose = goal_obj_pose
+        self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
-        
+
+        self._goal_gripper_clearance = 0.05
         self._after_picking_clearance = 0.3
 
         self.default_obstacle_pose = [
@@ -127,6 +127,32 @@ class HPPInterface:
         # Init corbaserver
         self.corba = CorbaServer()
         self.setup_problem()
+
+    @property
+    def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
+        """Returns a list of size 7 contains the pose of the goal,
+        defined in the destination box frame.
+
+        The pose is expressed as [tx, ty, tz, qx, qy, qz, qw]
+        """
+        return self._goal_obj_pose
+
+    @goal_obj_pose.setter
+    def goal_obj_pose(self, pose: T.Tuple[float, float, float]):
+        """Sets the position of the goal wrt the destination box.
+
+        Only the translation can be changed so only the 3 first element of the input
+        are use.
+        """
+        if self._goal_obj_pose is not None:
+            raise RuntimeError("Cannot reset the goal object pose")
+        self._goal_obj_pose = pose[:3] + [0, sqrt(2) / 2, 0, -sqrt(2) / 2]
+        self.ps.client.manipulation.robot.addGripper(
+            "dest_box/base_link",
+            "goal/gripper",
+            self._goal_obj_pose,
+            self._goal_gripper_clearance,
+        )
 
     def set_robot(self):
         self.robot = Robot("robot", "panda", rootJointType="anchor")
@@ -186,14 +212,6 @@ class HPPInterface:
             "panda", srdfString
         )
 
-        # Create robot gripper handle, x-axis is facing up (for pregrasp)
-        self.ps.client.manipulation.robot.addGripper(
-            "panda/support_link",
-            "goal/gripper",
-            self.goal_obj_pose[:3] + [0, sqrt(2) / 2, 0, -sqrt(2) / 2],
-            0.0,
-        )
-
         # Lock gripper in open position.
         self.ps.createLockedJoint(
             "locked_finger_1", "panda/fer_finger_joint1", [self.gripper_open_value]
@@ -227,28 +245,12 @@ class HPPInterface:
         self.corba.restart()
         self.setup_problem()
 
-    def plan(
+    def _build_bin_picking(
         self,
-        q_init: list[float],
-        q_goal: list[float] = None,
-        enable_collision_between_box_and_part: bool = True,
+        enable_collision_between_box_and_part: bool,
+        build_effector: bool,
+        config_box_poses=None,
     ):
-        object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
-        self.q_init = (
-            q_init
-            + self.start_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
-        if q_goal is None:
-            q_goal = q_init.copy()
-        self.q_goal = (
-            q_goal
-            + self.goal_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
-
         self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
         self.binPicking.objects = [
             self.manip_object.name,
@@ -285,15 +287,13 @@ class HPPInterface:
 
         build_time_start = time.time()
         print("Building constraint graph")
-        self.binPicking.buildGraph(
-            placement_clearance=self._after_picking_clearance
-        )
+        self.binPicking.buildGraph(placement_clearance=self._after_picking_clearance)
         build_time_stop = time.time()
         building_time = build_time_stop - build_time_start
         print("The graph took ", building_time, "s to build.")
 
         # Create effector
-        if not object_static:
+        if build_effector:
             print("Building effector.")  # this hardcodes sequence of steps
             self.binPicking.buildEffectors(
                 [f"source_box/base_link_{i}" for i in range(5)], self.q_init
@@ -303,16 +303,42 @@ class HPPInterface:
             )
 
             print("Generating goal configurations.")
-            self.binPicking.generateGoalConfigs(self.q_goal)
+            self.binPicking.generateGoalConfigs(config_box_poses)
+
+    def plan_pick_and_place(
+        self,
+        q_init: list[float],
+        enable_collision_between_box_and_part: bool = True,
+    ):
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
+
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+
+        self._build_bin_picking(
+            enable_collision_between_box_and_part,
+            build_effector=True,
+            config_box_poses=(
+                q_init  # Not important
+                + self.start_obj_pose  # Not important
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
+            ),
+        )
 
         res, q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
         )
         assert res, f"Robot q_init isn't a valid configuration {err}"
-        poses = np.array(q_init[9:16])
-
+        r = self.robot.rankInConfiguration["part/root_joint"]
         print(q_init)
-        print("\nPose of the object : \n", poses, "\n")
+        print("\nPose of the object : \n", q_init[r : r + 7], "\n")
 
         found, msg = self.robot.isConfigValid(q_init)
 
@@ -320,32 +346,77 @@ class HPPInterface:
         if found:
             print("[INFO] Object found with no collision")
             print("Solving ...")
-            res = False
-            if object_static:
-                p = self.binPicking.move_in_free(q_init, self.q_goal)
-                print("Free path", p)
-                return p
-            else:
-                res, p = self.binPicking.solve(q_init)
+            res, p = self.binPicking.solve(q_init)
+            if res:
                 print("Pick and place path", p)
                 print(p.length())
-                if res:
-                    grasp_path, placing_path, freefly_path = split_path(
-                        p, self.binPicking.c_robot()
-                    )
-                    self.ps.client.basic.problem.addPath(grasp_path)
-                    self.ps.client.basic.problem.addPath(placing_path)
-                    self.ps.client.basic.problem.addPath(freefly_path)
-                    print("Path generated.")
-                    return grasp_path, placing_path, freefly_path
-                else:
-                    print("No solution")
-                    return None
+                grasp_path, placing_path, freefly_path = split_path(
+                    p, self.binPicking.c_robot()
+                )
+                self.ps.client.basic.problem.addPath(grasp_path)
+                self.ps.client.basic.problem.addPath(placing_path)
+                self.ps.client.basic.problem.addPath(freefly_path)
+                print("Path generated.")
+                return grasp_path, placing_path, freefly_path
+            else:
+                # In this case, p is a string containing the error message
+                print("No solution", p)
+                return None
 
         else:
             print("[INFO] Object found but not collision free")
             print("Trying solving without playing path for simulation ...")
             return
+
+    def plan_free_motion(
+        self,
+        q_init: list[float],
+        q_goal: list[float],
+    ):
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
+
+        object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+        if q_goal is None:
+            q_goal = q_init.copy()
+        self.q_goal = (
+            q_goal
+            + self.goal_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+
+        self._build_bin_picking(True, build_effector=False)
+
+        res, q_init, err = self.binPicking.graph.applyNodeConstraints(
+            "free", self.q_init
+        )
+        assert res, f"Robot q_init isn't a valid configuration {err}"
+        q_init_ok, msg_init = self.robot.isConfigValid(q_init)
+
+        res, q_goal, err = self.binPicking.graph.applyNodeConstraints(
+            "free", self.q_goal
+        )
+        assert res, f"Robot q_goal isn't a valid configuration {err}"
+        q_goal_ok, msg_goal = self.robot.isConfigValid(q_goal)
+
+        if not q_init_ok:
+            print("q_init is not collision free", msg_init)
+        elif not q_goal_ok:
+            print("q_goal is not collision free", msg_goal)
+        else:
+            print("Solving ...")
+            p = self.binPicking.move_in_free(q_init, self.q_goal)
+            print("Free path", p)
+            return p
+        return
 
 
 # ____________________________________________________________________________
