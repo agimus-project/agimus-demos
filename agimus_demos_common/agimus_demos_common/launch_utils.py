@@ -124,6 +124,18 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
+            "rviz_config_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "rviz",
+                    "tiago_pro",
+                    "preview.rviz",
+                ]
+            ),
+            description="Path to RViz configuration file",
+        ),
+        DeclareLaunchArgument(
             "world_name",
             default_value="empty",
             description="Gazebo world name from the pal_gazebo_worlds package.",
@@ -276,7 +288,6 @@ def generate_include_launch(
         "franka_common.launch.py",
         "franka_common_lfc.launch.py",
         "tiago_pro_common.launch.py",
-        "tiago_pro_common_lfc.launch.py",
     ]
     if launch_file_name not in public_launch_files:
         raise RuntimeError(
