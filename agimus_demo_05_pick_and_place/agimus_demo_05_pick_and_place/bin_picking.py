@@ -189,7 +189,7 @@ class BinPicking(object):
             res[g] = self.handles
         return res
 
-    def buildGraph(self):
+    def buildGraph(self, placement_clearance=0.3):
         """
         Build the constraint graph
           - discretize handles,
@@ -214,6 +214,9 @@ class BinPicking(object):
             [handles, [], []],
             self._rules(),
             self._possibleGrasps(),
+            factory_kwargs=dict(
+                placement_clearance=placement_clearance,
+            ),
         )
         self.graph.addConstraints(
             graph=True, constraints=Constraints(numConstraints=self.graphConstraints)

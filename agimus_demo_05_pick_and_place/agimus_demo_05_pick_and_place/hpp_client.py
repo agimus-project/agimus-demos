@@ -74,6 +74,8 @@ class HPPInterface:
         self.start_obj_pose = start_obj_pose
         self.goal_obj_pose = goal_obj_pose
         self.gripper_open_value = gripper_open_value
+        
+        self._after_picking_clearance = 0.3
 
         self.default_obstacle_pose = [
             0.05,
@@ -270,7 +272,9 @@ class HPPInterface:
 
         build_time_start = time.time()
         print("Building constraint graph")
-        self.binPicking.buildGraph()
+        self.binPicking.buildGraph(
+            placement_clearance=self._after_picking_clearance
+        )
         build_time_stop = time.time()
         building_time = build_time_stop - build_time_start
         print("The graph took ", building_time, "s to build.")
