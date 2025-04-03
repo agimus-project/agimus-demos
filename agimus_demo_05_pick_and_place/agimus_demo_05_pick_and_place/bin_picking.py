@@ -31,24 +31,36 @@ from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths
+import typing as T
 
 
-def generateTargetConfig(robot, graph, edge, qLeaf, qRand):
+def generateTargetConfig(
+    robot, graph, edge, qLeaf, qRand
+) -> T.Tuple[T.Optional[T.List[float]], bool, str]:
     # print(f"gonna segfault? {edge}")
     # node_from, node_to = graph.getNodesConnectedByEdge(edge)
     # print(graph.getConfigErrorForNode(node_from, qLeaf))
     # print(graph.getConfigErrorForNode(node_from, qRand))
-    res, q1, _ = graph.generateTargetConfig(edge, qLeaf, qRand)
+    res, q1, error = graph.generateTargetConfig(edge, qLeaf, qRand)
     # print("NOPE")
     if not res:
-        return None
-    res, _ = robot.isConfigValid(q1)
+        return (
+            None,
+            False,
+            (
+                f"Failed to apply constraints. Error is {error}\n"
+                + f""" edge = "{edge}"\n"""
+                + f" qLeaf = {qLeaf}\n"
+                + f" qRand = {qRand}\n"
+            ),
+        )
+    res, msg = robot.isConfigValid(q1)
     # print("q1: ", q1)
     # print(msg)
     if res:
-        return q1
+        return q1, True, ""
     else:
-        return None
+        return None, True, msg
 
 
 ## Write a handle in a string in srdf format
@@ -312,7 +324,7 @@ class BinPicking(object):
                             f"{robotGripper} < {handle} | {irg}-{ih}:"
                             + f"{ggIndex}-{ghIndex}_21",
                         ]
-                        p = self.generateConsecutivePaths(edges, q)
+                        p, msg = self.generateConsecutivePaths(edges, q)
                         if p:
                             self.placePaths[robotGripper][handle] = p
                             found = True
@@ -330,6 +342,12 @@ class BinPicking(object):
           - the input configuration q for the first edge,
           - the end of the previous path for the following edges
         """
+        target_config_generated = [
+            (-1, ""),
+        ] * len(edges)
+        path_generated = [
+            False,
+        ] * (len(edges) - 1)
         for i in range(Nsamples + 1):
             if i == 0:
                 qrand = q[:]
@@ -339,8 +357,13 @@ class BinPicking(object):
                 qrand[r : r + 7] = q[r : r + 7]
             waypoints = list()
             success = True
-            for edge in edges:
-                q1 = generateTargetConfig(self.robot, self.graph, edge, q, qrand)
+            for ie, edge in enumerate(edges):
+                q1, constraint_ok, msg = generateTargetConfig(
+                    self.robot, self.graph, edge, q, qrand
+                )
+                new_status = int(q1 is not None) + int(constraint_ok)
+                if new_status > target_config_generated[ie][0]:
+                    target_config_generated[ie] = (new_status, msg)
                 if not q1:
                     success = False
                     break
@@ -351,7 +374,9 @@ class BinPicking(object):
             # plan paths between them
             paths = list()
             if success:
-                for q1, q2, edge in zip(waypoints, waypoints[1:], edges[1:]):
+                for q1, q2, (ie, edge) in zip(
+                    waypoints, waypoints[1:], enumerate(edges[1:])
+                ):
                     self.transitionPlanner.setEdge(self.graph.edges[edge])
                     self.setParam("grasping")
                     p, res, msg = self.transitionPlanner.directPath(q1, q2, True)
@@ -363,9 +388,21 @@ class BinPicking(object):
                         # TODO this always uses SimpleTimeParameterization
                         p = self.transitionPlanner.timeParameterization(p.asVector())
                         paths.append(self.wd(p))
+                        path_generated[ie] = True
             if success:
-                return concatenatePaths(paths, self.c_robot())
-        return None
+                return concatenatePaths(paths, self.c_robot()), ""
+        # Build error message
+        if all(s[0] == 2 for s in target_config_generated):
+            msg = "Failed to connect paths for edges: " + ", ".join(
+                e for e, success in zip(edges[1:], path_generated) if not success
+            )
+        else:
+            msg = "Failed to generate target config for edges: " + ", ".join(
+                f"{e}({status[1]})"
+                for e, status in zip(edges, target_config_generated)
+                if status[0] < 2
+            )
+        return None, msg
 
     def checkObjectPoses(self, q):
         """
@@ -388,20 +425,28 @@ class BinPicking(object):
                     + " goal configurations."
                 )
 
-    def computeFreeGrasps(self, q):
+    def computeFreeGrasps(self, q) -> T.Tuple[bool, T.List]:
         """
         For each gripper, compute list of object handles that are not in
         collision in the given configuration.
 
         Result is a dictionary of keys the robot grippers and with values
         lists of handles.
+
+        Returns:
+        - a boolean that is True when a free grasp is found.
+        - list of (gripper, handle, message) for all the failed trials.
         """
 
         res = False
+        failure_reports = []
         for gripper in self.robotGrippers:
             freeGrasps = list()
             self._freeGrasps[gripper] = list()
             for handle in self.handles:
+                if self.placePaths[gripper].get(handle) is None:
+                    failure_reports.append((gripper, handle, "no place path"))
+                    continue
                 col, msg, gripperAxis = self.bpc.bin_picking.collisionTest(
                     gripper, handle, q
                 )
@@ -409,11 +454,13 @@ class BinPicking(object):
                     # Store pairs (handle, score)
                     freeGrasps.append((handle, gripperAxis[2]))
                     res = True
+                else:
+                    failure_reports.append((gripper, handle, msg))
             # Sort handles by increasing z coordinate of gripper axis
             sorted_handles = sorted(freeGrasps, key=lambda x: x[1])
             if len(sorted_handles) > 0:
                 self._freeGrasps[gripper] = list(zip(*sorted_handles))[0]
-        return res
+        return res, failure_reports
 
     def selectGrasp(self, q):
         """
@@ -424,11 +471,15 @@ class BinPicking(object):
                  - pregrasp, grasp, preplace configurations to release the
                    object.
         """
+        failure_reports = []
         for gripper in self.robotGrippers:
             for handle in self._freeGrasps[gripper]:
                 # check that place path exists for this grasp
                 placePath = self.placePaths[gripper].get(handle)
                 if not placePath:
+                    failure_reports.append(
+                        (gripper, handle, f"No place path for {gripper} / {handle}")
+                    )
                     break
                 # generate pregrasp, grasp and preplace configuration to
                 # grasp the object
@@ -437,11 +488,12 @@ class BinPicking(object):
                     f"{gripper} > {handle} | f_12",
                     f"{gripper} > {handle} | f_23",
                 ]
-                pickPath = self.generateConsecutivePaths(edges, q)
+                pickPath, msg = self.generateConsecutivePaths(edges, q)
                 if pickPath:
-                    return gripper, handle, pickPath, placePath
-
-        return 4 * (None,)
+                    return gripper, handle, pickPath, placePath, None
+                else:
+                    failure_reports.append((gripper, handle, msg))
+        return None, None, None, None, failure_reports
 
     def setParam(self, state):
         if state not in self.timeParamDict:
@@ -473,7 +525,7 @@ class BinPicking(object):
             p_direct, res, _ = self.transitionPlanner.directPath(q_start, q_goal, True)
             print("Achieve to create a direct path : ", res)
             if not res:
-                _, _, pickPath, _ = self.selectGrasp(
+                _, _, pickPath, _, report = self.selectGrasp(
                     q
                 )  # gripper, handle, pickPath, placePath
                 q1 = pickPath.initial()
@@ -510,15 +562,23 @@ class BinPicking(object):
         - q initial configuration of the robot and objects
         """
         self.checkObjectPoses(q)
-        res = self.computeFreeGrasps(q)
+        res, report = self.computeFreeGrasps(q)
+        failure_reports = "computeFreeGrasps:\n" + "\n".join(
+            "- {0} - {1}: {2}".format(*v) for v in report
+        )
         if not res:
-            msg = "End effector in collision for all possible grasps."
-            return False, msg
-        gripper, handle, pickPath, placePath = self.selectGrasp(q)
+            msg = "End effector in collision for all possible grasps.\n"
+            return False, msg + failure_reports
+        gripper, handle, pickPath, placePath, report = self.selectGrasp(q)
+        if report is not None:
+            failure_reports += "\n\nselectGrasp:\n- " + "\n- ".join(
+                v[2] for v in report
+            )
         if gripper is None:
             msg = (
                 "Failed to generate collision-free grasp with valid goal "
-                + "configurations"
+                + "configurations.\n"
+                + failure_reports
             )
             return False, msg
         print("Pick path:", pickPath.length())
