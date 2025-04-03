@@ -329,8 +329,8 @@ class BinPicking(object):
                             self.placePaths[robotGripper][handle] = p
                             found = True
                             break
-                        if found:
-                            break
+                    if found:
+                        break
 
     def generateConsecutivePaths(self, edges, q, Nsamples=50):
         """
