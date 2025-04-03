@@ -154,42 +154,36 @@
         </material>
       </visual>
     </link>
-    <!-- Gazebo requires a joint to a link called "world" for statically mounted robots -->
-    <link name="world" />
-    <joint name="world_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <parent link="world" />
-      <child link="support_link" />
-    </joint>
 
+    <link name="robot_attachment_link" />
     <joint name="support_joint" type="fixed">
       <origin xyz="0.563 -0.1655 .78" rpy="0 0 ${pi}" />
       <parent link="support_link" />
-      <child link="base" />
+      <child link="robot_attachment_link" />
     </joint>
     <joint name="wall_joint_1" type="fixed">
       <origin xyz="0 1.07 0" />
-      <parent link="world" />
+      <parent link="support_link" />
       <child link="wall_link_1" />
     </joint>
     <joint name="wall_joint_2" type="fixed">
       <origin xyz="1.78 0 0" />
-      <parent link="world" />
+      <parent link="support_link" />
       <child link="wall_link_2" />
     </joint>
     <joint name="wall_joint_3" type="fixed">
       <origin xyz="1.40 0.96 0" />
-      <parent link="world" />
+      <parent link="support_link" />
       <child link="wall_link_3" />
     </joint>
     <joint name="pedestal_joint" type="fixed">
       <origin xyz="1.05 0 0" />
-      <parent link="world" />
+      <parent link="support_link" />
       <child link="pedestal" />
     </joint>
     <joint name="panda1_box_joint" type="fixed">
       <origin xyz="-0.6315 0 1.17" />
-      <parent link="world" />
+      <parent link="support_link" />
       <child link="panda1_box" />
     </joint>
   </xacro:macro>
