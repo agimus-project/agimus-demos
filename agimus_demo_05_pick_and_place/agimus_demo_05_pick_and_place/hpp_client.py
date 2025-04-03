@@ -203,6 +203,14 @@ class HPPInterface:
         )
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
+
+        for name, position in (
+            ("source_box", self.default_obstacle_pose),
+            ("dest_box", self.default_obstacle2_pose),
+        ):
+            lj_name = f"locked_{name}"
+            self.ps.createLockedJoint(lj_name, f"{name}/root_joint", position)
+            self.ps.setConstantRightHandSide(lj_name, True)
         # Add handle of the objects
         self.handles, self.goal_handles = get_obj_goal_handles(
             prefix=self.manip_object.name + "/",
@@ -251,7 +259,12 @@ class HPPInterface:
         self.binPicking.goalGrippers = ["goal/gripper"]
         self.binPicking.goalHandles = self.goal_handles
         self.binPicking.handles = self.handles
-        self.binPicking.graphConstraints = ["locked_finger_1", "locked_finger_2"]
+        self.binPicking.graphConstraints = [
+            "locked_finger_1",
+            "locked_finger_2",
+            "locked_source_box",
+            "locked_dest_box",
+        ]
 
         # TODO: restructure this
         def disable_collision():
