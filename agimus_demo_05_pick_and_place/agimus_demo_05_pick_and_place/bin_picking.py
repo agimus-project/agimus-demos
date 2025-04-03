@@ -353,8 +353,6 @@ class BinPicking(object):
                 qrand = q[:]
             else:
                 qrand = self.robot.shootRandomConfig()
-                r = self.robot.rankInConfiguration["source_box/root_joint"]
-                qrand[r : r + 7] = q[r : r + 7]
             waypoints = list()
             success = True
             for ie, edge in enumerate(edges):
