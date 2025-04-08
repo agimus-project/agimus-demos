@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import typing as T
 from math import sqrt
 from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import shrinkJointRange

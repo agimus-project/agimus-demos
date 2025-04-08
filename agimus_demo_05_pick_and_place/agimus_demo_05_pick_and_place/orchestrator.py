@@ -47,13 +47,13 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
 
 
 def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
-    """Return desired object position in world frame."""
+    """Return desired object position in destination box frame."""
     if object_name == "obj_21":
-        return [0.38, 0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return [-0.12, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return [0.5, 0.17, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return [0.0, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
-        return [0.65, 0.25, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return [0.15, 0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -125,7 +125,19 @@ class Orchestrator(object):
             pose.orientation.w,
         ]
 
-    def get_object_start_and_goal_pose(self, object_name: str) -> Tuple[float, float]:
+    def set_temporary_hpp_q_init(self, pose):
+        """Useful to get correct transformation between robot's frames."""
+        q_tmp = (
+            pose
+            + [0, 0, 1.0, 0, 0, 0, 1]
+            + self.hpp_client.default_obstacle_pose
+            + self.hpp_client.default_obstacle2_pose
+        )
+        self.hpp_client.robot.setCurrentConfig(q_tmp)
+
+    def get_object_start_and_goal_pose(
+        self, object_name: str, q_init: list[np.float64]
+    ) -> Tuple[float, float]:
         """Return start and goal pose of the object in world frame."""
         obj_in_world_start_pose = None
         if self.use_hardcoded_poses:
@@ -139,6 +151,9 @@ class Orchestrator(object):
             obj_in_cam_start_pose = self.get_most_confident_object_pose(
                 object_detections, object_name
             )
+
+            # needed to get right transform with camera
+            self.set_temporary_hpp_q_init(q_init)
             # TODO: change from hardcoded robot name
             cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
                 linkName="panda/camera_color_optical_frame"
@@ -195,27 +210,28 @@ class Orchestrator(object):
         # del self.hpp_client
 
     def pick_and_place(self, object_name: str):
+        current_robot_state = self.state_client.wait_for_future()
+        q_init = list(current_robot_state.position)
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
-            object_name=object_name
+            object_name=object_name, q_init=q_init
         )
         self.hpp_client = HPPInterface(
             object_name=object_name,
             start_obj_pose=start_obj_pose,
-            goal_obj_pose=goal_obj_pose,
             use_spline_gradient_based_opt=False,
         )
+        self.hpp_client.goal_obj_pose = goal_obj_pose[:3]
         self.v = self.hpp_client.vf.createViewer()
-        current_robot_state = self.state_client.wait_for_future()
 
         hpp_q_init = (
-            list(current_robot_state.position)
+            q_init
             + self.hpp_client.start_obj_pose
             + self.hpp_client.default_obstacle_pose
             + self.hpp_client.default_obstacle2_pose
         )
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
 
-        grasp_path, placing_path, freefly_path = self.hpp_client.plan(
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position)
         )
 

@@ -18,4 +18,4 @@ agimus_controller_node:
     collision_pairs_names: [cp_1]
     cp_1:
       first: fer_link7_sc_capsule_0
-      second: obstacle1_capsule_0
+      second: fer_link3_sc_capsule_0
