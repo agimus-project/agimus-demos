@@ -53,6 +53,9 @@ def hack_for_ros2_support_in_hpp():
         )
 
 
+corba = None
+
+
 class HPPInterface:
     """This interface assumes that there is one object to manipulate and one moving obstacle.
     Both the object and the obstacle are encoded in the space
@@ -126,7 +129,11 @@ class HPPInterface:
             name="dest_box",
         )
         # Init corbaserver
-        self.corba = CorbaServer()
+        global corba
+        if corba is None:
+            corba = CorbaServer()
+        else:
+            corba.restart()
         self.setup_problem()
 
     @property
@@ -243,7 +250,7 @@ class HPPInterface:
 
     def restart(self):
         """This needs to be improved"""
-        self.corba.restart()
+        corba.restart()
         self.setup_problem()
 
     def _build_bin_picking(
