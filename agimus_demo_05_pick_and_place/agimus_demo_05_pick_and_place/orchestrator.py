@@ -77,7 +77,8 @@ class Orchestrator(object):
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
 
-        self.use_hardcoded_poses = True
+        self.use_hardcoded_poses = False
+        self.is_simulation = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -168,7 +169,7 @@ class Orchestrator(object):
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
         goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
-        return obj_in_world_start_pose, goal_obj_pose
+        return list(obj_in_world_start_pose), goal_obj_pose
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
@@ -176,16 +177,16 @@ class Orchestrator(object):
         time.sleep(0.05)
 
     def close_gripper(self):
-        self.franka_gripper_cient.send_goal(
-            position=0.0, max_effort=self.param.max_holding_force
-        )
-        # TODO: change it to something normal
-        time.sleep(0.05)
-
-    def grasp(self):
-        self.franka_gripper_cient.grasp()
-        # TODO: change it to something normal
-        time.sleep(1.0)
+        if self.is_simulation:
+            self.franka_gripper_cient.send_goal(
+                position=0.04, max_effort=self.param.max_holding_force
+            )
+            # TODO: change it to something normal
+            time.sleep(0.05)
+        else:
+            self.franka_gripper_cient.grasp()
+            # TODO: change it to something normal
+            time.sleep(1.0)
 
     def publish(self, path_vector):
         traj = get_traj_points_from_path(path_vector)
@@ -212,14 +213,15 @@ class Orchestrator(object):
     def pick_and_place(self, object_name: str):
         current_robot_state = self.state_client.wait_for_future()
         q_init = list(current_robot_state.position)
+
+        self.hpp_client = HPPInterface(
+            object_name=object_name,
+            use_spline_gradient_based_opt=False,
+        )
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name=object_name, q_init=q_init
         )
-        self.hpp_client = HPPInterface(
-            object_name=object_name,
-            start_obj_pose=start_obj_pose,
-            use_spline_gradient_based_opt=False,
-        )
+        self.hpp_client.start_obj_pose = start_obj_pose
         self.hpp_client.goal_obj_pose = goal_obj_pose[:3]
         self.v = self.hpp_client.vf.createViewer()
 
@@ -240,8 +242,7 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
-            self.close_gripper()  # for simulation
-            # self.grasp()  # for hardware robot
+            self.close_gripper()
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)
