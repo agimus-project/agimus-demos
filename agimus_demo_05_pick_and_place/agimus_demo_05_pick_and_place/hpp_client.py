@@ -92,7 +92,7 @@ class HPPInterface:
         ]  # source box
         self.default_obstacle2_pose = [
             0.5,
-            0.2,
+            0.3,
             0.761,
             0.0,
             0.0,
@@ -318,9 +318,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         self.q_init = (
             q_init
@@ -381,9 +381,9 @@ class HPPInterface:
         q_init: list[float],
         q_goal: list[float],
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = (
