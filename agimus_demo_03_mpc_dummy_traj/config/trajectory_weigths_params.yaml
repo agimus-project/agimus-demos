@@ -6,4 +6,4 @@ simple_trajectory_publisher:
     w_qddot: [0.000001]
     w_robot_effort: [0.0003]
     w_pose: [0.1]
-    ee_frame_name: "fer_hand_tcp"
+    ee_frame_name: fer_hand_tcp

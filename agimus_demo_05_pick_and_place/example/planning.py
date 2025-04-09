@@ -2,7 +2,6 @@ import numpy as np
 from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
 from agimus_demo_05_pick_and_place.orchestrator import (
     get_hardcoded_initial_object_pose,
-    multiply_poses,
 )
 import pinocchio.liegroups
 import eigenpy
@@ -10,9 +9,11 @@ import random
 
 eigenpy.seed(random.randint(0, 1000))
 
+
 def random_quaternion():
     so3 = pinocchio.liegroups.SO3()
     return so3.random().tolist()
+
 
 scenario = 2
 if scenario == 0:
@@ -29,7 +30,7 @@ if scenario == 0:
         0.04,
         0.04,
     ]
-    goal_obj_pose = [0., 0., 0.15]
+    goal_obj_pose = [0.0, 0.0, 0.15]
 elif scenario == 1:
     object_name = "obj_23"
     robot_init_config = [
@@ -53,7 +54,7 @@ elif scenario == 1:
         -0.017221056753064356,
     ]
 
-    goal_obj_pose = [0., 0., 0.15]
+    goal_obj_pose = [0.0, 0.0, 0.15]
     #     0.05,
     #     -0.2,
     #     0.761,
@@ -88,7 +89,7 @@ elif scenario == 2:
         0.8752371533471734,
     ] + random_quaternion()
 
-    goal_obj_pose = [0., 0., 0.15]
+    goal_obj_pose = [0.0, 0.0, 0.15]
 # hpp_q_init = (
 #     robot_init_config + hpp_client.start_obj_pose + hpp_client.default_obstacle_pose + hpp_client.default_obstacle2_pose
 # )
@@ -106,4 +107,4 @@ hpp_client.goal_obj_pose = goal_obj_pose
 output = hpp_client.plan_pick_and_place(robot_init_config)
 
 v = hpp_client.vf.createViewer()
-v (hpp_client.q_init)
+v(hpp_client.q_init)
