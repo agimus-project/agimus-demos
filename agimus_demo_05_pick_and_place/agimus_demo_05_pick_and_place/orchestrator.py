@@ -5,13 +5,13 @@ import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
 import time
-from typing import Tuple
+import typing as T
 
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from vision_msgs.msg import Detection2DArray
+from vision_msgs.msg import Detection2DArray, Detection2D
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
@@ -34,14 +34,15 @@ def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
     return pin.SE3ToXYZQUAT(p1 * p2)
 
 
-def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
+def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[float]]:
     """Return initial object position in world frame."""
+    frame = "universe"
     if object_name == "obj_21":
-        return [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return frame, [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return [0.0, -0.23, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return frame, [0.0, -0.23, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
-        return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
+        return frame, [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -49,11 +50,11 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
 def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
     """Return desired object position in destination box frame."""
     if object_name == "obj_21":
-        return [-0.12, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [-0.12, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return [0.0, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.0, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
-        return [0.15, 0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.15, 0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -94,18 +95,17 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        if not self.use_hardcoded_poses:
-            self.vision_client = AsyncSubscriber(
-                self._node,
-                Detection2DArray,
-                "/happypose/detections",
-                qos_profile_system_default,
-            )
+        self.vision_client = AsyncSubscriber(
+            self._node,
+            Detection2DArray,
+            "/happypose/detections",
+            qos_profile_system_default,
+        )
         self.open_gripper()
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray, object_name: str
-    ) -> list[float]:
+    ) -> T.Tuple[str, list[float]]:
         # TODO: change the map if we want to use YCBV
         filtered_detections = [
             (d, d.results[0].hypothesis.score)
@@ -113,18 +113,21 @@ class Orchestrator(object):
             if d.results[0].hypothesis.class_id == map_object_id(object_name)
         ]
         if len(filtered_detections) == 0:
-            return
-        detection = max(filtered_detections, key=lambda pair: pair[1])[0]
+            return "", None
+        detection: Detection2D = max(filtered_detections, key=lambda pair: pair[1])[0]
         pose: Pose = detection.results[0].pose.pose
-        return [
-            pose.position.x,
-            pose.position.y,
-            pose.position.z,
-            pose.orientation.x,
-            pose.orientation.y,
-            pose.orientation.z,
-            pose.orientation.w,
-        ]
+        return (
+            detection.header.frame_id,
+            [
+                pose.position.x,
+                pose.position.y,
+                pose.position.z,
+                pose.orientation.x,
+                pose.orientation.y,
+                pose.orientation.z,
+                pose.orientation.w,
+            ],
+        )
 
     def set_temporary_hpp_q_init(self, pose):
         """Useful to get correct transformation between robot's frames."""
@@ -137,39 +140,27 @@ class Orchestrator(object):
         self.hpp_client.robot.setCurrentConfig(q_tmp)
 
     def get_object_start_and_goal_pose(
-        self, object_name: str, q_init: list[np.float64]
-    ) -> Tuple[float, float]:
+        self, object_name: str, use_hardcoded_poses: bool
+    ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
-        obj_in_world_start_pose = None
-        if self.use_hardcoded_poses:
+        obj_start_pose = None
+        if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
-            obj_in_world_start_pose = get_hardcoded_initial_object_pose(object_name)
+            obj_start_pose = get_hardcoded_initial_object_pose(object_name)
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
             object_detections = self.vision_client.wait_for_future()
             print("got obj pose")
-            obj_in_cam_start_pose = self.get_most_confident_object_pose(
+            obj_start_pose = self.get_most_confident_object_pose(
                 object_detections, object_name
             )
+            obj_start_pose[0] = "panda/" + obj_start_pose[0]
 
-            # needed to get right transform with camera
-            self.set_temporary_hpp_q_init(q_init)
-            # TODO: change from hardcoded robot name
-            cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
-                linkName="panda/camera_color_optical_frame"
-            )
-            obj_in_world_start_pose = multiply_poses(
-                cam_in_world_pose, obj_in_cam_start_pose
-            )
-            # TODO: make this better
-            obj_in_world_start_pose[3:] = obj_in_world_start_pose[3:] / np.linalg.norm(
-                obj_in_world_start_pose[3:]
-            )
-        if obj_in_world_start_pose is None:
+        if obj_start_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
-        goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
-        return list(obj_in_world_start_pose), goal_obj_pose
+        obj_goal_pose = get_hardcoded_final_object_pose(object_name=object_name)
+        return obj_start_pose, obj_goal_pose
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
@@ -194,23 +185,30 @@ class Orchestrator(object):
         traj += [traj[-1]] * 40  # OCP horizon
         self.trajectory_publisher.publish(traj)
 
-    def go_to(self, desired_configuration):
+    def go_to(
+        self,
+        desired_configuration: T.List[float],
+        enable_visualization_in_gepetto_gui: bool = True,
+    ):
         self.hpp_client = HPPInterface(
             object_name=self.default_object_name, use_spline_gradient_based_opt=False
         )
         current_robot_state = self.state_client.wait_for_future()
-        backup_goal_pose = self.hpp_client.goal_obj_pose.copy()
-        self.hpp_client.goal_obj_pose = self.hpp_client.start_obj_pose.copy()
-        traj = self.hpp_client.plan(
+        traj = self.hpp_client.plan_free_motion(
             list(current_robot_state.position), desired_configuration
         )
+        if enable_visualization_in_gepetto_gui:
+            self.v = self.hpp_client.vf.createViewer()
+            self.v(self.hpp_client.q_init)
+            input("Trajectory computed. Ready to move. Press Enter to start motion...")
         self.publish(traj)
-        # Commented out since restart does not work properly (corba crashes)
-        # self.hpp_client.restart()
-        self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
-        # del self.hpp_client
 
-    def pick_and_place(self, object_name: str):
+    def pick_and_place(
+        self,
+        object_name: str,
+        use_hardcoded_poses: bool = False,
+        enable_visualization_in_gepetto_gui: bool = True,
+    ):
         current_robot_state = self.state_client.wait_for_future()
         q_init = list(current_robot_state.position)
 
@@ -219,23 +217,21 @@ class Orchestrator(object):
             use_spline_gradient_based_opt=False,
         )
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
-            object_name=object_name, q_init=q_init
+            object_name, use_hardcoded_poses=use_hardcoded_poses
         )
-        self.hpp_client.start_obj_pose = start_obj_pose
-        self.hpp_client.goal_obj_pose = goal_obj_pose[:3]
-        self.v = self.hpp_client.vf.createViewer()
-
-        hpp_q_init = (
-            q_init
-            + self.hpp_client.start_obj_pose
-            + self.hpp_client.default_obstacle_pose
-            + self.hpp_client.default_obstacle2_pose
+        self.hpp_client.set_relative_start_obj_pose(
+            start_obj_pose[1], q_init, start_obj_pose[0]
         )
-        self.hpp_client.robot.setCurrentConfig(hpp_q_init)
+        self.hpp_client.set_goal_obj_pose(goal_obj_pose[0], goal_obj_pose[1][:3])
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position)
         )
+
+        if enable_visualization_in_gepetto_gui:
+            self.v = self.hpp_client.vf.createViewer()
+            self.v(self.hpp_client.q_init)
+            input("Trajectory computed. Ready to move. Press Enter to start motion...")
 
         self.open_gripper()
         self.open_gripper()

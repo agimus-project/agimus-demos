@@ -43,9 +43,11 @@ from agimus_demo_05_pick_and_place.utils import (
 )
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
+import pinocchio
 
 
-XYZQuatType: T.TypeAlias = T.Tuple[float,float,float,float,float,float,float]
+XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
+
 
 def hack_for_ros2_support_in_hpp():
     import os
@@ -71,10 +73,10 @@ class HPPInterface:
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
-        use_spline_gradient_based_opt: bool=True,
-        gripper_open_value: float=0.04,
-        source_bin_pose: XYZQuatType=[0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
-        destination_bin_pose: XYZQuatType=[0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
+        use_spline_gradient_based_opt: bool = True,
+        gripper_open_value: float = 0.04,
+        source_bin_pose: XYZQuatType = [0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        destination_bin_pose: XYZQuatType = [0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
     ):
         hack_for_ros2_support_in_hpp()
 
@@ -126,6 +128,16 @@ class HPPInterface:
             corba.restart()
         self.setup_problem()
 
+    def set_relative_start_obj_pose(
+        self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
+    ):
+        frame_pose = pinocchio.XYZQUATToSE3(
+            self.get_robot_link_position(q_robot, frame_name)
+        )
+        self.start_obj_pose = pinocchio.SE3ToXYZQUAT(
+            frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
+        ).tolist()
+
     @property
     def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
         """Returns a list of size 7 contains the pose of the goal,
@@ -135,9 +147,8 @@ class HPPInterface:
         """
         return self._goal_obj_pose
 
-    @goal_obj_pose.setter
-    def goal_obj_pose(self, pose: T.Tuple[float, float, float]):
-        """Sets the position of the goal wrt the destination box.
+    def set_goal_obj_pose(self, frame_name: str, pose: T.Tuple[float, float, float]):
+        """Sets the position of the goal wrt `frame_name`.
 
         Only the translation can be changed so only the 3 first element of the input
         are use.
@@ -146,7 +157,7 @@ class HPPInterface:
             raise RuntimeError("Cannot reset the goal object pose")
         self._goal_obj_pose = pose[:3] + [0, sqrt(2) / 2, 0, -sqrt(2) / 2]
         self.ps.client.manipulation.robot.addGripper(
-            "dest_box/base_link",
+            frame_name,
             "goal/gripper",
             self._goal_obj_pose,
             self._goal_gripper_clearance,
@@ -248,8 +259,7 @@ class HPPInterface:
         q_robot: T.List[float],
         frame_name: str,
     ) -> T.List[float]:
-        """Get the position of a robot frame
-        """
+        """Get the position of a robot frame"""
         # TODO don't assume q_robot is of right size.
         q = self.robot.getCurrentConfig()
         q[: len(q_robot)] = q_robot
@@ -343,9 +353,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         self.q_init = (
             q_init
@@ -406,9 +416,9 @@ class HPPInterface:
         q_init: list[float],
         q_goal: list[float],
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = (
