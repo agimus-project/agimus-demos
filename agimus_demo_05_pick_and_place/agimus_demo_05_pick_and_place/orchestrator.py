@@ -116,10 +116,10 @@ class Orchestrator(object):
             if d.results[0].hypothesis.class_id == map_object_id(object_name)
         ]
         if len(filtered_detections) == 0:
-            return "", None
+            return ["", None]
         detection: Detection2D = max(filtered_detections, key=lambda pair: pair[1])[0]
         pose: Pose = detection.results[0].pose.pose
-        return (
+        return [
             detection.header.frame_id,
             [
                 pose.position.x,
@@ -130,7 +130,7 @@ class Orchestrator(object):
                 pose.orientation.z,
                 pose.orientation.w,
             ],
-        )
+        ]
 
     def set_temporary_hpp_q_init(self, pose):
         """Useful to get correct transformation between robot's frames."""

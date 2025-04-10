@@ -84,7 +84,7 @@ class HPPInterface:
         self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
 
-        self._goal_gripper_clearance = 0.05
+        self._goal_gripper_clearance = 0.3
         self._after_picking_clearance = 0.3
         self._point_cloud_res = 0.001
 
@@ -133,9 +133,11 @@ class HPPInterface:
         frame_pose = pinocchio.XYZQUATToSE3(
             self.get_robot_link_position(q_robot, frame_name)
         )
-        self.start_obj_pose = pinocchio.SE3ToXYZQUAT(
+        pose = pinocchio.SE3ToXYZQUAT(
             frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
-        ).tolist()
+        )
+        pose[3:] = pose[3:] / np.linalg.norm(pose[3:])
+        self.start_obj_pose = pose.tolist()
 
     @property
     def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
@@ -347,9 +349,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         self.q_init = (
             q_init
@@ -410,22 +412,15 @@ class HPPInterface:
         q_init: list[float],
         q_goal: list[float],
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
-
-        object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = (
             q_init
             + self.start_obj_pose
             + self.default_obstacle_pose
             + self.default_obstacle2_pose
         )
-        if q_goal is None:
-            q_goal = q_init.copy()
         self.q_goal = (
             q_goal
-            + self.goal_obj_pose
+            + self.start_obj_pose
             + self.default_obstacle_pose
             + self.default_obstacle2_pose
         )
