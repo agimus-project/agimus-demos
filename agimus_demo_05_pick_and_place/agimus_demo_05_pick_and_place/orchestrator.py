@@ -41,6 +41,8 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
         return frame, [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
         return frame, [0.0, -0.23, 0.85, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_25":
+        return frame, [0.1, -0.17, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return frame, [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     else:
@@ -53,6 +55,8 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         return "dest_box/base_link", [-0.12, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
         return "dest_box/base_link", [0.0, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_25":
+        return "dest_box/base_link", [0.0, -0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return "dest_box/base_link", [0.15, 0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
     else:
@@ -78,7 +82,7 @@ class Orchestrator(object):
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
 
-        self.use_hardcoded_poses = False
+        self.use_hardcoded_poses = True
         self.is_simulation = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
