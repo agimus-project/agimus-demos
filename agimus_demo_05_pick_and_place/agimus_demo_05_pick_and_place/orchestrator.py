@@ -36,7 +36,7 @@ def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
 
 def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[float]]:
     """Return initial object position in world frame."""
-    frame = "universe"
+    frame = "panda/support_link"  # world frame
     if object_name == "obj_21":
         return frame, [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
@@ -82,7 +82,6 @@ class Orchestrator(object):
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
 
-        self.use_hardcoded_poses = True
         self.is_simulation = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
