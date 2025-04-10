@@ -32,6 +32,7 @@ from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import numpy as np
+import typing as T
 
 import time
 
@@ -43,6 +44,8 @@ from agimus_demo_05_pick_and_place.utils import (
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
 
+
+XYZQuatType: T.TypeAlias = T.Tuple[float,float,float,float,float,float,float]
 
 def hack_for_ros2_support_in_hpp():
     import os
@@ -67,9 +70,11 @@ class HPPInterface:
         object_name: str = "obj_01",
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
-        start_obj_pose: list[float] = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
-        use_spline_gradient_based_opt=True,
-        gripper_open_value=0.04,
+        start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
+        use_spline_gradient_based_opt: bool=True,
+        gripper_open_value: float=0.04,
+        source_bin_pose: XYZQuatType=[0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        destination_bin_pose: XYZQuatType=[0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
     ):
         hack_for_ros2_support_in_hpp()
 
@@ -80,25 +85,10 @@ class HPPInterface:
 
         self._goal_gripper_clearance = 0.05
         self._after_picking_clearance = 0.3
+        self._point_cloud_res = 0.001
 
-        self.default_obstacle_pose = [
-            0.05,
-            -0.2,
-            0.761,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
-        ]  # source box
-        self.default_obstacle2_pose = [
-            0.5,
-            0.3,
-            0.761,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
-        ]  # destination box
+        self.default_obstacle_pose = source_bin_pose
+        self.default_obstacle2_pose = destination_bin_pose
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
@@ -220,6 +210,11 @@ class HPPInterface:
             "panda", srdfString
         )
 
+        # Add an empty point cloud
+        self.ps.client.basic.obstacle.loadPointCloudFromPoints(
+            "pointcloud", self._point_cloud_res, []
+        )
+
         # Lock gripper in open position.
         self.ps.createLockedJoint(
             "locked_finger_1", "panda/fer_finger_joint1", [self.gripper_open_value]
@@ -247,6 +242,36 @@ class HPPInterface:
         newProblem()
         self.set_robot()
         self.set_problem()
+
+    def get_robot_link_position(
+        self,
+        q_robot: T.List[float],
+        frame_name: str,
+    ) -> T.List[float]:
+        """Get the position of a robot frame
+        """
+        # TODO don't assume q_robot is of right size.
+        q = self.robot.getCurrentConfig()
+        q[: len(q_robot)] = q_robot
+        (frame_position,) = self.robot.client.basic.robot.getLinksPosition(
+            q, [frame_name]
+        )
+        return frame_position
+
+    def set_point_cloud(
+        self,
+        q_robot: T.List[float],
+        camera_frame_name: str,
+        points: T.List[T.Tuple[float, float, float]],
+        colors: T.Optional[T.List[T.Tuple[float, float, float, float]]] = None,
+    ):
+        frame_position = self.get_robot_link_position(q_robot, camera_frame_name)
+
+        self.vf.loadPointCloudFromPoints(
+            "pointcloud", self._point_cloud_res, points, colors=colors
+        )
+
+        self.vf.moveObstacle("pointcloud", frame_position)
 
     def restart(self):
         """This needs to be improved"""
