@@ -349,9 +349,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
         self.q_init = (
             q_init
