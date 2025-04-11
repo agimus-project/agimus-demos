@@ -86,6 +86,14 @@ def launch_setup(
         package="agimus_controller_ros",
         executable="simple_trajectory_publisher",
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
+        arguments=[
+            "-T",
+            "4",
+            "-A",
+            "0.2",
+            "fer_joint3",
+            "fer_joint5",
+        ],
         output="screen",
     )
     environment_description = ParameterValue(
