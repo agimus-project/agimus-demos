@@ -31,7 +31,9 @@ from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
+from agimus_demo_05_pick_and_place.utils import concatenatePaths
 import numpy as np
+from hpp_idl.hpp.core_idl import Path as HPPPath
 
 import time
 
@@ -74,7 +76,7 @@ class HPPInterface:
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt: bool = True,
         gripper_open_value: float = 0.04,
-        source_bin_pose: XYZQuatType = [0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        source_bin_pose: XYZQuatType = [0.06, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
         destination_bin_pose: XYZQuatType = [0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
     ):
         hack_for_ros2_support_in_hpp()
@@ -449,6 +451,88 @@ class HPPInterface:
             print("Free path", p)
             return p
         return
+
+    def plan_calib_motion(
+        self, q_init: list[float], box_handles: list[str], n_samples: int = 0
+    ) -> list[T.Optional[HPPPath]]:
+        """Calculates a set of motion to calibrate the position of the bins.
+
+        It returns a list of either a HPP path or None. None marks the time when the
+        gripper should be closed then opened.
+        """
+
+        gripper = "panda/panda_gripper"
+        self.ps.createLockedJoint(
+            "locked_object", f"{self.manip_object.name}/root_joint", self.start_obj_pose
+        )
+        self.ps.setConstantRightHandSide("locked_object", True)
+        bp = self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
+        bp.objects = [
+            self.manip_object.name,
+            self.obstacle_object.name,
+            self.obstacle2_object.name,
+        ]
+        bp.robotGrippers = [gripper]
+        bp.handles = box_handles
+        bp.graphConstraints = [
+            "locked_finger_1",
+            "locked_finger_2",
+            "locked_object",
+            "locked_source_box",
+            "locked_dest_box",
+        ]
+        bp.buildGraph(placement_clearance=self._after_picking_clearance)
+
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+
+        res, self.q_init, err = bp.graph.applyNodeConstraints("free", self.q_init)
+        assert res, f"Robot q_init isn't a valid configuration {err}"
+        q_init_ok, msg_init = self.robot.isConfigValid(self.q_init)
+
+        assert q_init_ok, f"q_init is not collision free: {msg_init}"
+
+        edge_fmt = "{gripper} > {handle} | f_{num}"
+        last_q = self.q_init
+        paths = []
+        for handle in box_handles:
+            edges = [
+                edge_fmt.format(gripper=gripper, handle=handle, num="01"),
+                edge_fmt.format(gripper=gripper, handle=handle, num="12"),
+            ]
+            path, report = bp.generateConsecutivePaths(edges, last_q, Nsamples=n_samples)
+
+            assert path is not None, f"Failed to generate path: {report}"
+            bp.transitionPlanner.setEdge(bp.graph.edges[edges[0]])
+            p_to_start, res, msg = bp.transitionPlanner.directPath(
+                last_q, path.initial(), True
+            )
+            assert res, f"Failed to generate path: {msg}"
+
+            last_q = path.initial()
+            paths.append(p_to_start)
+            paths.append(path)
+            paths.append(None)
+            paths.append(path.reverse())
+
+        bp.transitionPlanner.setEdge(bp.graph.edges["Loop | f"])
+        back_to_init, res, msg = bp.transitionPlanner.directPath(
+            last_q, self.q_init, True
+        )
+        paths.append(back_to_init)
+
+        # For gepetto GUI
+        global_path = concatenatePaths(
+            [p for p in paths if p is not None], bp.c_robot()
+        )
+        self.ps.hppcorba.problem.addPath(global_path)
+        print(f"Added to path vector at index {self.ps.numberPaths()-1}")
+
+        return paths
 
 
 # ____________________________________________________________________________

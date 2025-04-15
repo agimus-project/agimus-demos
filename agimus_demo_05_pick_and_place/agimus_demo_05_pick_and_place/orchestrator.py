@@ -249,6 +249,42 @@ class Orchestrator(object):
         # self.hpp_client.restart()
         # del self.hpp_client
 
+
+    def calibrate(
+        self,
+        box_handles: list[str],
+        enable_visualization_in_gepetto_gui: bool = True,
+        n_samples: int = 1000,
+    ):
+        current_robot_state = self.state_client.wait_for_future()
+        q_init = list(current_robot_state.position)
+
+        self.hpp_client = HPPInterface(
+            object_name="obj_26",
+            use_spline_gradient_based_opt=False,
+        )
+
+        paths = self.hpp_client.plan_calib_motion(
+            q_init,
+            box_handles,
+            n_samples=n_samples,
+        )
+
+        if enable_visualization_in_gepetto_gui:
+            self.v = self.hpp_client.vf.createViewer()
+            input("Trajectory computed. Ready to move. Press Enter to start motion...")
+
+        self.open_gripper()
+        self.open_gripper()
+        for path in paths:
+            if path is None:
+                input("Press Enter to close the gripper...")
+                self.close_gripper()
+                input("Press Enter to open the gripper and continue...")
+                self.open_gripper()
+            else:
+                self.publish(path)
+
     # def go_to_ee(self, target_ee):
     #     current_robot_state = self.state_client.wait_for_new_state()
     #     trajectory = self.hpp_client.plan_ee(current_robot_state.position, target_ee)
