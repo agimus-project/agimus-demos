@@ -289,6 +289,7 @@ class HPPInterface:
     def _build_bin_picking(
         self,
         enable_collision_between_box_and_part: bool,
+        only_free_node: bool,
         build_effector: bool,
         config_box_poses=None,
     ):
@@ -299,9 +300,14 @@ class HPPInterface:
             self.obstacle2_object.name,
         ]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
-        self.binPicking.goalGrippers = ["goal/gripper"]
-        self.binPicking.goalHandles = self.goal_handles
-        self.binPicking.handles = self.handles
+        if only_free_node:
+            self.binPicking.goalGrippers = []
+            self.binPicking.goalHandles = []
+            self.binPicking.handles = []
+        else:
+            self.binPicking.goalGrippers = ["goal/gripper"]
+            self.binPicking.goalHandles = self.goal_handles
+            self.binPicking.handles = self.handles
         self.binPicking.graphConstraints = [
             "locked_finger_1",
             "locked_finger_2",
@@ -351,9 +357,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         self.q_init = (
             q_init
@@ -364,6 +370,7 @@ class HPPInterface:
 
         self._build_bin_picking(
             enable_collision_between_box_and_part,
+            only_free_node=False,
             build_effector=True,
             config_box_poses=(
                 q_init  # Not important
@@ -427,15 +434,15 @@ class HPPInterface:
             + self.default_obstacle2_pose
         )
 
-        self._build_bin_picking(True, build_effector=False)
+        self._build_bin_picking(True, only_free_node=True, build_effector=False)
 
-        res, q_init, err = self.binPicking.graph.applyNodeConstraints(
+        res, self.q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
         )
         assert res, f"Robot q_init isn't a valid configuration {err}"
         q_init_ok, msg_init = self.robot.isConfigValid(q_init)
 
-        res, q_goal, err = self.binPicking.graph.applyNodeConstraints(
+        res, self.q_goal, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_goal
         )
         assert res, f"Robot q_goal isn't a valid configuration {err}"
@@ -447,7 +454,7 @@ class HPPInterface:
             print("q_goal is not collision free", msg_goal)
         else:
             print("Solving ...")
-            p = self.binPicking.move_in_free(q_init, self.q_goal)
+            p = self.binPicking.move_in_free(self.q_init, self.q_goal)
             print("Free path", p)
             return p
         return
