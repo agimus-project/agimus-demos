@@ -21,6 +21,7 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+from hpp.corbaserver.manipulation import loadServerPlugin
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -100,6 +101,9 @@ class Orchestrator(object):
                 qos_profile_system_default,
             )
         self.open_gripper()
+        # if hppcorbaserver is running in a separate script
+        loadServerPlugin("corbaserver", "manipulation-corba.so")
+        loadServerPlugin("corbaserver", "bin_picking.so")
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray, object_name: str
@@ -151,6 +155,7 @@ class Orchestrator(object):
             )
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
+        # TODO: multiply this with camera too? looks weird so far. seems w.r.t to dest box
         goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
         return obj_in_world_start_pose, goal_obj_pose
 
@@ -200,9 +205,9 @@ class Orchestrator(object):
         self.hpp_client = HPPInterface(
             object_name=object_name,
             start_obj_pose=start_obj_pose,
-            goal_obj_pose=goal_obj_pose,
             use_spline_gradient_based_opt=False,
         )
+        self.hpp_client.goal_obj_pose = goal_obj_pose
         self.v = self.hpp_client.vf.createViewer()
         current_robot_state = self.state_client.wait_for_future()
 
@@ -214,7 +219,7 @@ class Orchestrator(object):
         )
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
 
-        grasp_path, placing_path, freefly_path = self.hpp_client.plan(
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position)
         )
 

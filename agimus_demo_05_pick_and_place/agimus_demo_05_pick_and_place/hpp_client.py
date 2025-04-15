@@ -25,9 +25,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from math import sqrt
-from agimus_demo_05_pick_and_place.corba import CorbaServer
+
+# Used if hppcorbaserver is not running in separate script
+# from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import shrinkJointRange
-from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
+from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver, Client
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import numpy as np
@@ -44,7 +46,8 @@ from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
 
 
-XYZQuatType: T.TypeAlias = T.Tuple[float,float,float,float,float,float,float]
+XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
+
 
 def hack_for_ros2_support_in_hpp():
     import os
@@ -67,10 +70,10 @@ class HPPInterface:
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
-        use_spline_gradient_based_opt: bool=True,
-        gripper_open_value: float=0.04,
-        source_bin_pose: XYZQuatType=[0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
-        destination_bin_pose: XYZQuatType=[0.5, 0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        use_spline_gradient_based_opt: bool = True,
+        gripper_open_value: float = 0.04,
+        source_bin_pose: XYZQuatType = [0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        destination_bin_pose: XYZQuatType = [0.5, 0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
     ):
         hack_for_ros2_support_in_hpp()
 
@@ -114,8 +117,10 @@ class HPPInterface:
             srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
             name="dest_box",
         )
-        # Init corbaserver
-        self.corba = CorbaServer()
+        # Init corbaserver programmatically
+        # self.corba = CorbaServer()
+        # if hppcorbaserver runs already
+        Client().problem.resetProblem()
         self.setup_problem()
 
     @property
@@ -240,8 +245,7 @@ class HPPInterface:
         q_robot: T.List[float],
         frame_name: str,
     ) -> T.List[float]:
-        """Get the position of a robot frame
-        """
+        """Get the position of a robot frame"""
         # TODO don't assume q_robot is of right size.
         q = self.robot.getCurrentConfig()
         q[: len(q_robot)] = q_robot
@@ -335,9 +339,9 @@ class HPPInterface:
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
         self.q_init = (
             q_init
@@ -398,11 +402,11 @@ class HPPInterface:
         q_init: list[float],
         q_goal: list[float],
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
-        object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
+        # object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
         self.q_init = (
             q_init
             + self.start_obj_pose
