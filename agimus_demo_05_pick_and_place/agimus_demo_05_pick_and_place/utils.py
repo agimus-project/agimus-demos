@@ -1,5 +1,8 @@
 import numpy as np
 import xml.etree.ElementTree as ET
+import typing as T
+
+XYZQuatType: T.TypeAlias = tuple[float, float, float, float, float, float, float]
 
 
 def concatenatePaths(paths, c_robot=None):
@@ -69,3 +72,8 @@ def get_obj_goal_handles(prefix: str, srdf_path: str) -> (list[str], list[str]):
     goal_handles = [prefix + handle for handle in all_handles if "goal" in handle]
     object_handles = [prefix + handle for handle in all_handles if "goal" not in handle]
     return object_handles, goal_handles
+
+
+def normalize_quaternion(pose: XYZQuatType) -> XYZQuatType:
+    pose[3:] = pose[3:] / np.linalg.norm(pose[3:])
+    return pose

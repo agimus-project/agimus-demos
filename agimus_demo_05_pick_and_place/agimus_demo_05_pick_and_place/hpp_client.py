@@ -33,7 +33,6 @@ from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver, Clien
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
 import numpy as np
-import typing as T
 
 import time
 
@@ -41,12 +40,10 @@ from agimus_demo_05_pick_and_place.utils import (
     split_path,
     BaseObject,
     get_obj_goal_handles,
+    XYZQuatType,
 )
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
-
-
-XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
 
 
 def hack_for_ros2_support_in_hpp():
@@ -124,7 +121,7 @@ class HPPInterface:
         self.setup_problem()
 
     @property
-    def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
+    def goal_obj_pose(self) -> XYZQuatType:
         """Returns a list of size 7 contains the pose of the goal,
         defined in the destination box frame.
 
@@ -133,7 +130,7 @@ class HPPInterface:
         return self._goal_obj_pose
 
     @goal_obj_pose.setter
-    def goal_obj_pose(self, pose: T.Tuple[float, float, float]):
+    def goal_obj_pose(self, pose: tuple[float, float, float]):
         """Sets the position of the goal wrt the destination box.
 
         Only the translation can be changed so only the 3 first element of the input
@@ -242,9 +239,9 @@ class HPPInterface:
 
     def get_robot_link_position(
         self,
-        q_robot: T.List[float],
+        q_robot: list[float],
         frame_name: str,
-    ) -> T.List[float]:
+    ) -> list[float]:
         """Get the position of a robot frame"""
         # TODO don't assume q_robot is of right size.
         q = self.robot.getCurrentConfig()
@@ -256,10 +253,10 @@ class HPPInterface:
 
     def set_point_cloud(
         self,
-        q_robot: T.List[float],
+        q_robot: list[float],
         camera_frame_name: str,
-        points: T.List[T.Tuple[float, float, float]],
-        colors: T.Optional[T.List[T.Tuple[float, float, float, float]]] = None,
+        points: list[tuple[float, float, float]],
+        colors: list[tuple[float, float, float, float]] | None = None,
     ):
         frame_position = self.get_robot_link_position(q_robot, camera_frame_name)
 

@@ -21,6 +21,7 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+from agimus_demo_05_pick_and_place.utils import normalize_quaternion
 from hpp.corbaserver.manipulation import loadServerPlugin
 
 
@@ -42,6 +43,8 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
     elif object_name == "obj_23":
         return [0.0, -0.23, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
+        return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "cont_grasp_net_obj":
         return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
@@ -76,7 +79,7 @@ class Orchestrator(object):
         self.param = OrchestratorParams()
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
-        self.default_object_name = "obj_23"
+        self.default_object_name = "cont_grasp_net_obj"
         self.use_hardcoded_poses = True
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
@@ -135,10 +138,8 @@ class Orchestrator(object):
             # TEMP fix: just hardcode pose from happypose
             obj_in_world_start_pose = get_hardcoded_initial_object_pose(object_name)
         else:
-            # REAL setup, TODO: fix communication error when happy pose is running
-            print("waiting for obj pose")
+            # REAL setup,
             object_detections = self.vision_client.wait_for_future()
-            print("got obj pose")
             obj_in_cam_start_pose = self.get_most_confident_object_pose(
                 object_detections, object_name
             )
@@ -146,12 +147,8 @@ class Orchestrator(object):
             cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
                 linkName="panda/camera_color_optical_frame"
             )
-            obj_in_world_start_pose = multiply_poses(
-                cam_in_world_pose, obj_in_cam_start_pose
-            )
-            # TODO: make this better
-            obj_in_world_start_pose[3:] = obj_in_world_start_pose[3:] / np.linalg.norm(
-                obj_in_world_start_pose[3:]
+            obj_in_world_start_pose = normalize_quaternion(
+                multiply_poses(cam_in_world_pose, obj_in_cam_start_pose)
             )
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
