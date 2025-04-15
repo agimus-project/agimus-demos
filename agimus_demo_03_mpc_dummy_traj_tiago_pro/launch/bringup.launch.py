@@ -2,9 +2,8 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
-    TimerAction,
 )
-from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, Command, FindExecutable
 from launch_ros.actions import Node
@@ -50,7 +49,7 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
             "config",
-            "trajectory_weigths_params.yaml",
+            "trajectory_weights_params.yaml",
         ]
     )
     environment_description = ParameterValue(
@@ -69,6 +68,13 @@ def launch_setup(
             ]
         ),
         value_type=str,
+    )
+    plotjuggler_file = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
+            "config",
+            "plotjuggler_view.xml",
+        ]
     )
 
     #
@@ -89,11 +95,12 @@ def launch_setup(
             extra_params,
         ],
         output="screen",
-        remappings=[("robot_description", "robot_description_with_collision")],
+        # remappings=[("robot_description", "robot_description_with_collision")],
     )
     simple_cartesian_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
         executable="simple_cartesian_trajectory_publisher",
+        name="simple_cartesian_trajectory_publisher",
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
         output="screen",
     )
@@ -104,6 +111,33 @@ def launch_setup(
         output="screen",
         remappings=[("robot_description", "environment_description")],
         parameters=[{"robot_description": environment_description}],
+    )
+    mpc_debugger_node = Node(
+        package="agimus_controller_ros",
+        executable="mpc_debugger_node",
+        name="mpc_debugger_node",
+        arguments=[
+            "--frame=arm_right_7_joint",
+            "--parent-frame=base_footprint",
+            "--marker-size=0.05",
+        ],
+        # Disable ROS 2 arguments
+        additional_env={"ROS_DISABLE_ARGUMENTS": "true"},
+        output="screen",
+    )
+    plotjuggler_node = Node(
+        package="plotjuggler",
+        executable="plotjuggler",
+        name="plotjuggler_node",
+        arguments=[
+            "-l",
+            plotjuggler_file,  # Load the layout file
+            # "--start",              # Start immediately
+            "--nosplash",  # Skip the splash screen
+            "--start_streamer",
+            "ros2",  # Automatically start the ROS 2 streamer
+        ],
+        output="screen",
     )
 
     environment_description = ParameterValue(
@@ -128,19 +162,12 @@ def launch_setup(
         tiago_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
+        simple_cartesian_trajectory_publisher_node,
+        plotjuggler_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
-                on_exit=[agimus_controller_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=agimus_controller_node,
-                on_start=TimerAction(
-                    period=2.0,
-                    actions=[simple_cartesian_trajectory_publisher_node],
-                ),
+                on_exit=[agimus_controller_node, mpc_debugger_node],
             )
         ),
     ]
