@@ -5,10 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Status1
-        - /RobotModel1
         - /RobotModel1/Description Topic1
-      Splitter Ratio: 0.5
+        - /MarkerArray1
+      Splitter Ratio: 0.5088235139846802
     Tree Height: 555
   - Class: rviz_common/Selection
     Name: Selection
@@ -191,76 +190,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        gripper_left_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_fingertip_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_fingertip_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_inner_finger_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_inner_finger_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_outer_finger_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_left_outer_finger_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_fingertip_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_fingertip_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_inner_finger_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_inner_finger_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_outer_finger_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_right_outer_finger_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         head_1_link:
           Alpha: 1
           Show Axes: false
@@ -401,6 +330,219 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        arm_left_1_link:
+          Value: false
+        arm_left_2_link:
+          Value: false
+        arm_left_3_link:
+          Value: false
+        arm_left_4_link:
+          Value: false
+        arm_left_5_link:
+          Value: false
+        arm_left_6_link:
+          Value: false
+        arm_left_7_link:
+          Value: false
+        arm_left_tool_link:
+          Value: false
+        arm_right_1_link:
+          Value: false
+        arm_right_2_link:
+          Value: false
+        arm_right_3_link:
+          Value: false
+        arm_right_4_link:
+          Value: false
+        arm_right_5_link:
+          Value: false
+        arm_right_6_link:
+          Value: false
+        arm_right_7_link:
+          Value: true
+        arm_right_tool_link:
+          Value: false
+        base_antenna_left_link:
+          Value: false
+        base_antenna_right_link:
+          Value: false
+        base_dock_link:
+          Value: false
+        base_footprint:
+          Value: true
+        base_front_laser_link:
+          Value: false
+        base_imu_link:
+          Value: false
+        base_link:
+          Value: false
+        base_rear_laser_link:
+          Value: false
+        eye_left_link:
+          Value: false
+        eye_right_link:
+          Value: false
+        head_1_link:
+          Value: false
+        head_2_link:
+          Value: false
+        head_front_camera_bottom_screw_frame:
+          Value: false
+        head_front_camera_color_frame:
+          Value: false
+        head_front_camera_color_optical_frame:
+          Value: false
+        head_front_camera_depth_frame:
+          Value: false
+        head_front_camera_depth_optical_frame:
+          Value: false
+        head_front_camera_infra1_frame:
+          Value: false
+        head_front_camera_infra1_optical_frame:
+          Value: false
+        head_front_camera_infra2_frame:
+          Value: false
+        head_front_camera_infra2_optical_frame:
+          Value: false
+        head_front_camera_link:
+          Value: false
+        head_screen_link:
+          Value: false
+        sellion_link:
+          Value: false
+        suspension_front_left_link:
+          Value: false
+        suspension_front_right_link:
+          Value: false
+        suspension_rear_left_link:
+          Value: false
+        suspension_rear_right_link:
+          Value: false
+        torso_arm_left_link:
+          Value: false
+        torso_arm_right_link:
+          Value: false
+        torso_base_link:
+          Value: false
+        torso_fixed_column_link:
+          Value: false
+        torso_head_link:
+          Value: false
+        torso_lift_link:
+          Value: false
+        virtual_base_laser_link:
+          Value: false
+        wheel_front_left_link:
+          Value: false
+        wheel_front_right_link:
+          Value: false
+        wheel_rear_left_link:
+          Value: false
+        wheel_rear_right_link:
+          Value: false
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        base_footprint:
+          base_link:
+            base_antenna_left_link:
+              {}
+            base_antenna_right_link:
+              {}
+            base_dock_link:
+              {}
+            base_front_laser_link:
+              {}
+            base_imu_link:
+              {}
+            base_rear_laser_link:
+              {}
+            suspension_front_left_link:
+              wheel_front_left_link:
+                {}
+            suspension_front_right_link:
+              wheel_front_right_link:
+                {}
+            suspension_rear_left_link:
+              wheel_rear_left_link:
+                {}
+            suspension_rear_right_link:
+              wheel_rear_right_link:
+                {}
+            torso_base_link:
+              torso_lift_link:
+                arm_left_1_link:
+                  arm_left_2_link:
+                    arm_left_3_link:
+                      arm_left_4_link:
+                        arm_left_5_link:
+                          arm_left_6_link:
+                            arm_left_7_link:
+                              arm_left_tool_link:
+                                {}
+                arm_right_1_link:
+                  arm_right_2_link:
+                    arm_right_3_link:
+                      arm_right_4_link:
+                        arm_right_5_link:
+                          arm_right_6_link:
+                            arm_right_7_link:
+                              arm_right_tool_link:
+                                {}
+                torso_arm_left_link:
+                  {}
+                torso_arm_right_link:
+                  {}
+                torso_head_link:
+                  head_1_link:
+                    head_2_link:
+                      head_front_camera_bottom_screw_frame:
+                        head_front_camera_link:
+                          head_front_camera_color_frame:
+                            head_front_camera_color_optical_frame:
+                              {}
+                          head_front_camera_depth_frame:
+                            head_front_camera_depth_optical_frame:
+                              {}
+                          head_front_camera_infra1_frame:
+                            head_front_camera_infra1_optical_frame:
+                              {}
+                          head_front_camera_infra2_frame:
+                            head_front_camera_infra2_optical_frame:
+                              {}
+                      head_screen_link:
+                        {}
+                      sellion_link:
+                        eye_left_link:
+                          {}
+                        eye_right_link:
+                          {}
+            torso_fixed_column_link:
+              {}
+            virtual_base_laser_link:
+              {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visualization_marker_array
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -454,18 +596,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.10618482530117035
-        Y: -0.004402043763548136
-        Z: 0.25645458698272705
+        X: -0.04183947667479515
+        Y: -0.22217276692390442
+        Z: 0.28866249322891235
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.36039841175079346
+      Pitch: 0.3703986704349518
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.47039830684661865
+      Yaw: 0.39539849758148193
     Saved: ~
 Window Geometry:
   Displays:
