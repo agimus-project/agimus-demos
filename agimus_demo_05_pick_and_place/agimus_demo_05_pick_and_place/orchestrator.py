@@ -7,11 +7,13 @@ import pinocchio as pin
 import time
 from typing import Tuple
 
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray
+from contact_graspnet_msgs.srv import GetSceneGrasps
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
@@ -21,19 +23,19 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
-from agimus_demo_05_pick_and_place.utils import normalize_quaternion
+from agimus_demo_05_pick_and_place.utils import (
+    normalize_quaternion,
+    posemsg2mat,
+    graspnet_to_handle,
+    inverse_pose,
+    multiply_poses,
+)
 from hpp.corbaserver.manipulation import loadServerPlugin
 
 
 def map_object_id(obj_id, dataset="tless"):
     num_part = obj_id.split("_")[1]
     return f"{dataset}-obj_{int(num_part):06d}"
-
-
-def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
-    p1 = pin.XYZQUATToSE3(pose1)
-    p2 = pin.XYZQUATToSE3(pose2)
-    return pin.SE3ToXYZQUAT(p1 * p2)
 
 
 def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
@@ -62,6 +64,20 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         raise ValueError(f"Object {object_name} not found")
 
 
+def get_goal_box_pose(obj_id: str) -> list[float]:
+    # small objects
+    if int(obj_id) in [1, 2, 3, 4, 11, 12, 13, 14, 15, 16]:
+        print("Grasping a small object")
+        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+    # plugs and stuff
+    elif int(obj_id) in [19, 20, 23, 24]:
+        print("Grasping a plug")
+        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+    else:
+        print("Grasping other stuff")
+        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+
+
 @dataclass
 class OrchestratorParams:
     """Orchestrator parameters."""
@@ -80,7 +96,7 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "cont_grasp_net_obj"
-        self.use_hardcoded_poses = True
+        self.use_hardcoded_poses = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -103,10 +119,44 @@ class Orchestrator(object):
                 "/happypose/detections",
                 qos_profile_system_default,
             )
+        self.grasps_client = self._node.create_client(
+            GetSceneGrasps, "contact_graspnet/get_scene_grasps"
+        )
         self.open_gripper()
         # if hppcorbaserver is running in a separate script
         loadServerPlugin("corbaserver", "manipulation-corba.so")
         loadServerPlugin("corbaserver", "bin_picking.so")
+
+        self.detected_grasps = self.get_all_grasps()
+        current_robot_state = self.state_client.wait_for_future()
+        self.grasp_q = list(current_robot_state.position)
+
+    def get_all_grasps(self) -> dict[list[tuple[np.array, float]]]:
+        """Get all grasps from the graspnet service"""
+        self.grasps_client.wait_for_service()
+        self._node.get_logger().info("Graspnet service is available, calling...")
+        request = GetSceneGrasps.Request()
+        future = self.grasps_client.call_async(request)
+        rclpy.spin_until_future_complete(self._node, future)
+        self._node.get_logger().info("Graspnet service response received!")
+        resp: GetSceneGrasps.GetSceneGrasps.Response = future.result()
+        scene_grasps = resp.scene_grasps
+
+        object_nb = len(scene_grasps.object_types)
+        all_grasps = {}
+        for i in range(object_nb):
+            object_type = scene_grasps.object_types[i]
+            object_id = f"{i}_{object_type}"
+
+            # grasps of the i-th object
+            grasps_i = scene_grasps.object_grasps[i]
+
+            all_grasps[object_id] = [
+                (posemsg2mat(grasp), score)
+                for grasp, score in zip(grasps_i.grasps, grasps_i.scores)
+            ]
+
+        return all_grasps
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray, object_name: str
@@ -131,6 +181,58 @@ class Orchestrator(object):
             pose.orientation.w,
         ]
 
+    def process_cont_graspnet_grasps(self, object_to_pick: str):
+        """
+        This function iterates over grasps detected with ContactGraspNet and adds corresponding handles
+        """
+        grasp_hpp_q = (
+            self.grasp_q
+            + self.hpp_client.start_obj_pose
+            + self.hpp_client.default_obstacle_pose
+            + self.hpp_client.default_obstacle2_pose
+        )
+        self.hpp_client.robot.setCurrentConfig(grasp_hpp_q)
+        # TODO: change from hardcoded robot name
+        cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
+            linkName="panda/camera_color_optical_frame"
+        )
+
+        possible_grasps = self.detected_grasps[object_to_pick]
+        # sort and leave only 20 best grasps
+        possible_grasps = sorted(possible_grasps, key=lambda x: x[1], reverse=True)[:10]
+        print(f"object {object_to_pick} has {len(possible_grasps)} grasps")
+        # take the first grasp as identity and place the object there
+        # identity handles are defined in the srdf file
+        # express other handles in this frame
+        ref_grasp_pose, _ = possible_grasps[0]
+        obj_in_world_pose = graspnet_to_handle(
+            pin.XYZQUATToSE3(cam_in_world_pose), pin.SE3(ref_grasp_pose)
+        )
+        for i, (grasp, _) in enumerate(possible_grasps[1:]):
+            handle_in_world_pose = graspnet_to_handle(
+                pin.XYZQUATToSE3(cam_in_world_pose), pin.SE3(grasp)
+            )
+            # convert to be expressed in the object frame
+
+            self.hpp_client.add_handle(
+                multiply_poses(inverse_pose(obj_in_world_pose), handle_in_world_pose),
+                str(i),
+            )
+        return obj_in_world_pose
+
+    def select_object_to_pick(self) -> str:
+        """The first object to pick is the one that is the closest to the camera on z-axis"""
+        closest_dist = np.inf
+        object_to_pick = None
+        for k, v in self.detected_grasps.items():
+            print(f"Object {k} has {len(v)} grasps")
+            for grasp, _ in v:
+                if grasp[2, 3] < closest_dist:
+                    closest_dist = grasp[2, 3]
+                    object_to_pick = k
+        print("Picking up object", object_to_pick, "with distance", closest_dist)
+        return object_to_pick
+
     def get_object_start_and_goal_pose(self, object_name: str) -> Tuple[float, float]:
         """Return start and goal pose of the object in world frame."""
         obj_in_world_start_pose = None
@@ -138,22 +240,31 @@ class Orchestrator(object):
             # TEMP fix: just hardcode pose from happypose
             obj_in_world_start_pose = get_hardcoded_initial_object_pose(object_name)
         else:
-            # REAL setup,
-            object_detections = self.vision_client.wait_for_future()
-            obj_in_cam_start_pose = self.get_most_confident_object_pose(
-                object_detections, object_name
-            )
-            # TODO: change from hardcoded robot name
-            cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
-                linkName="panda/camera_color_optical_frame"
-            )
-            obj_in_world_start_pose = normalize_quaternion(
-                multiply_poses(cam_in_world_pose, obj_in_cam_start_pose)
-            )
+            if object_name == "cont_grasp_net_obj":
+                object_to_pick = self.select_object_to_pick()
+                obj_id = object_to_pick.split("_")[1]
+                goal_obj_pose = get_goal_box_pose(obj_id)
+                obj_in_world_start_pose = self.process_cont_graspnet_grasps(
+                    object_to_pick
+                )
+            else:
+                # REAL setup
+                object_detections = self.vision_client.wait_for_future()
+                obj_in_cam_start_pose = self.get_most_confident_object_pose(
+                    object_detections, object_name
+                )
+                # TODO: change from hardcoded robot name
+                cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
+                    linkName="panda/camera_color_optical_frame"
+                )
+                obj_in_world_start_pose = normalize_quaternion(
+                    multiply_poses(cam_in_world_pose, obj_in_cam_start_pose)
+                )
+                # TODO: looks weird so far. seems w.r.t to dest box
+                goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
-        # TODO: multiply this with camera too? looks weird so far. seems w.r.t to dest box
-        goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
+
         return obj_in_world_start_pose, goal_obj_pose
 
     def open_gripper(self):
@@ -196,14 +307,16 @@ class Orchestrator(object):
         # del self.hpp_client
 
     def pick_and_place(self, object_name: str):
+        self.hpp_client = HPPInterface(
+            object_name=object_name,
+            use_spline_gradient_based_opt=False,
+            source_bin_pose=[-0.3, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0],
+            destination_bin_pose=[0.3, 0.7, 0.761, 0.0, 0.0, 0.0, 1.0],
+        )
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name=object_name
         )
-        self.hpp_client = HPPInterface(
-            object_name=object_name,
-            start_obj_pose=start_obj_pose,
-            use_spline_gradient_based_opt=False,
-        )
+        self.hpp_client.start_obj_pose = start_obj_pose
         self.hpp_client.goal_obj_pose = goal_obj_pose
         self.v = self.hpp_client.vf.createViewer()
         current_robot_state = self.state_client.wait_for_future()
@@ -215,6 +328,7 @@ class Orchestrator(object):
             + self.hpp_client.default_obstacle2_pose
         )
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
+        input("Look on the robot in gepetto-viewer")
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position)
@@ -225,8 +339,8 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
-            self.close_gripper()  # for simulation
-            # self.grasp()  # for hardware robot
+            # self.close_gripper()  # for simulation
+            self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)

@@ -30,7 +30,7 @@ from hpp.corbaserver.manipulation import Client as ManipClient, ProblemSolver
 from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
-from agimus_demo_05_pick_and_place.utils import concatenatePaths
+from agimus_demo_05_pick_and_place.utils import concatenatePaths, config_dist
 import typing as T
 
 
@@ -488,6 +488,31 @@ class BinPicking(object):
                 ]
                 pickPath, msg = self.generateConsecutivePaths(edges, q)
                 if pickPath:
+                    # if handle_rotated is in self._freeGrasps[gripper], compare the two
+                    # return the one where difference in q is smallest
+                    if handle + "_rotated" in self._freeGrasps[gripper]:
+                        edges = [
+                            f"{gripper} > {handle}_rotated | f_01",
+                            f"{gripper} > {handle}_rotated | f_12",
+                            f"{gripper} > {handle}_rotated | f_23",
+                        ]
+                        rotated_placePath = self.placePaths[gripper].get(
+                            handle + "_rotated"
+                        )
+                        if rotated_placePath:
+                            rotated_pickPath = self.generateConsecutivePaths(edges, q)
+                            if rotated_pickPath:
+                                q1 = pickPath.initial()
+                                q2 = rotated_pickPath.initial()
+                                if config_dist(q2, q) < config_dist(q1, q):
+                                    return (
+                                        gripper,
+                                        handle + "_rotated",
+                                        rotated_pickPath,
+                                        rotated_placePath,
+                                        None,
+                                    )
+
                     return gripper, handle, pickPath, placePath, None
                 else:
                     failure_reports.append((gripper, handle, msg))

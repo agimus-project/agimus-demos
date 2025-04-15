@@ -41,6 +41,7 @@ from agimus_demo_05_pick_and_place.utils import (
     BaseObject,
     get_obj_goal_handles,
     XYZQuatType,
+    multiply_poses,
 )
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
@@ -237,6 +238,41 @@ class HPPInterface:
         self.set_robot()
         self.set_problem()
 
+    def add_handle(self, transform: XYZQuatType, handle_id: str):
+        # Create handle from Grasp generator
+        self.ps.client.manipulation.robot.addHandle(
+            f"{self.manip_object.name}/base_link",
+            f"{self.manip_object.name}/handle{handle_id}",
+            transform,  # xyz_quatxyzw
+            0.03,  # default clearance for handle
+            [1, 1, 1, 1, 1, 1],
+        )
+        # rotate around x np.pi to account for both possible orientations of gripper
+        self.ps.client.manipulation.robot.addHandle(
+            f"{self.manip_object.name}/base_link",
+            f"{self.manip_object.name}/handle{handle_id}_rotated",
+            multiply_poses(transform, [0, 0, 0, 1, 0, 0, 0]),  # xyz_quatxyzw
+            0.03,  # default clearance for handle
+            [1, 1, 1, 1, 1, 1],
+        )
+
+        # Create a goal handle that is opposite to generated grasp
+        # (rotate 180 degrees around y-axis)
+        self.ps.client.manipulation.robot.addHandle(
+            f"{self.manip_object.name}/base_link",
+            f"{self.manip_object.name}/goal_handle{handle_id}",
+            multiply_poses(
+                transform, [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+            ),  # xyz_quatxyzw
+            0.01,  # default clearance for goal handle
+            # [1, 1, 1, 0, 1, 1]  # goal mask allows rotation around x-axis
+            [1, 1, 1, 0, 0, 0],  # goal mask allows any rotation
+        )
+        # Add handles to respective lists
+        self.handles.append(f"{self.manip_object.name}/handle{handle_id}")
+        self.handles.append(f"{self.manip_object.name}/handle{handle_id}_rotated")
+        self.goal_handles.append(f"{self.manip_object.name}/goal_handle{handle_id}")
+
     def get_robot_link_position(
         self,
         q_robot: list[float],
@@ -390,9 +426,9 @@ class HPPInterface:
                 return None
 
         else:
-            print("[INFO] Object found but not collision free")
-            print("Trying solving without playing path for simulation ...")
-            return
+            print("[INFO] Initial configuration is invalid:")
+            print(msg)
+            return None
 
     def plan_free_motion(
         self,
