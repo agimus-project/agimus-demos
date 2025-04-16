@@ -206,7 +206,9 @@ class BinPicking(object):
         Build the constraint graph
           - discretize handles,
         """
-        if "graph" in self.ps.client.manipulation.problem.getAvailable("ConstraintGraph"):
+        if "graph" in self.ps.client.manipulation.problem.getAvailable(
+            "ConstraintGraph"
+        ):
             self.ps.client.manipulation.graph.deleteGraph("graph")
 
         print("Started building the graph")

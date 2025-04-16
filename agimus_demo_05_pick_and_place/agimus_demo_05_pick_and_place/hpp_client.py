@@ -358,9 +358,9 @@ class HPPInterface:
         enable_collision_between_box_and_part: bool = True,
         q_above_source_bin: T.Optional[list[float]] = None,
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
         self.q_init = (
             q_init
@@ -563,7 +563,7 @@ class HPPInterface:
             [p for p in paths if p is not None], bp.c_robot()
         )
         self.ps.hppcorba.problem.addPath(global_path)
-        print(f"Added to path vector at index {self.ps.numberPaths()-1}")
+        print(f"Added to path vector at index {self.ps.numberPaths() - 1}")
 
         return paths
 
