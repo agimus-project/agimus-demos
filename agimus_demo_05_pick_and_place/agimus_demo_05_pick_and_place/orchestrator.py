@@ -39,6 +39,8 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
     frame = "panda/support_link"  # world frame
     if object_name == "obj_21":
         return frame, [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
+    if object_name == "obj_22":
+        return frame, [-0.1, -0.17, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
         return frame, [0.0, -0.23, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_25":
@@ -52,13 +54,15 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
 def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
     """Return desired object position in destination box frame."""
     if object_name == "obj_21":
-        return "dest_box/base_link", [-0.12, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [-0.15, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+    if object_name == "obj_22":
+        return "dest_box/base_link", [-0.05, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return "dest_box/base_link", [0.0, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.05, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_25":
-        return "dest_box/base_link", [0.0, -0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.15, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
-        return "dest_box/base_link", [0.15, 0.05, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [-0.15, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -81,6 +85,7 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
+        self.set_hardcoded_q0_start_and_above_source_bin()
 
         self.is_simulation = False
 
@@ -130,6 +135,41 @@ class Orchestrator(object):
                 pose.orientation.z,
                 pose.orientation.w,
             ],
+        ]
+
+    def set_hardcoded_q0_start_and_above_source_bin(self):
+        self.q0_start = [
+            -0.3619834760502907,
+            -1.3575006398318104,
+            0.969610481368033,
+            -2.6028532848927295,
+            0.2040785081450368,
+            1.9436352693107668,
+            0.6423896937386857,
+            0.0,
+            0.0,
+        ]
+        self.q0_2 = [
+            -0.21577519437512227,
+            -1.4657995535532633,
+            1.2589014408203547,
+            -2.8775367832740173,
+            0.3492806257531047,
+            1.9550859318043161,
+            0.7259552289752453,
+            0.03898531571030617,
+            0.03898531571030617,
+        ]
+        self.q_above_source_bin = [
+            -0.37749851551808805,
+            -0.24527851252273686,
+            0.37860498360790074,
+            -2.390846227478563,
+            0.07986644285218328,
+            2.1525887422066345,
+            0.6495647583792291,
+            0.03897743672132492,
+            0.03897743672132492,
         ]
 
     def set_temporary_hpp_q_init(self, pose):
@@ -228,7 +268,8 @@ class Orchestrator(object):
         self.hpp_client.set_goal_obj_pose(goal_obj_pose[0], goal_obj_pose[1][:3])
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
-            list(current_robot_state.position)
+            q_init=list(current_robot_state.position),
+            q_above_source_bin=self.q_above_source_bin,
         )
 
         if enable_visualization_in_gepetto_gui:
@@ -248,7 +289,6 @@ class Orchestrator(object):
         # Commented out since restart does not work properly (corba crashes)
         # self.hpp_client.restart()
         # del self.hpp_client
-
 
     def calibrate(
         self,
