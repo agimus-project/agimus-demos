@@ -6,4 +6,9 @@
   <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/support.urdf.xacro"/>
 
   <xacro:support/>
+
+  <joint name="attach_robot_joint" type="fixed">
+    <parent link="robot_attachment_link" />
+    <child link="base" />
+</joint>
 </robot>

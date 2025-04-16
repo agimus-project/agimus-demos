@@ -36,9 +36,10 @@ from hpp.corbaserver.manipulation import (
 
 
 class Factory(ConstraintGraphFactory):
-    def __init__(self, ps, graph):
+    def __init__(self, ps, graph, placement_clearance=0.3):
         self.ps = ps
         ConstraintGraphFactory.__init__(self, graph)
+        self._placement_clearance = placement_clearance
 
     def generate(self):
         part = self.objects[0]
@@ -59,7 +60,7 @@ class Factory(ConstraintGraphFactory):
             f"preplace_{part}",
             f"{box}/root_joint",
             f"{part}/root_joint",
-            [0, 0, 0.30, 0, 0, 0, 1],
+            [0, 0, self._placement_clearance, 0, 0, 0, 1],
             [False, False, True, False, False, False],
         )
         self.ps.createLockedJoint(
@@ -96,14 +97,16 @@ factory = None
 # Create a handle and a gripper for the goal position of the object
 # Create specific graph with vertical preplace motions
 # The last handle is the center of the part.
-def makeGraph(ps, robot, grippers, objects, handles, rules, possibleGrasps):
+def makeGraph(
+    ps, robot, grippers, objects, handles, rules, possibleGrasps, factory_kwargs=dict()
+):
     global factory
     graph = ConstraintGraph(robot, "graph")
 
-    factory = Factory(ps, graph)
+    factory = Factory(ps, graph, **factory_kwargs)
     factory.constraints.removeEmptyConstraints = False
     factory.setGrippers(grippers)
-    factory.setObjects(objects, handles, [[], []])
+    factory.setObjects(objects, handles, [[], [], []])
     factory.setRules(rules)
     factory.setPossibleGrasps(possibleGrasps)
     factory.generate()

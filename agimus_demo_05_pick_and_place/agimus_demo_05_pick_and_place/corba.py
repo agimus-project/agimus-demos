@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import subprocess
+from hpp.corbaserver.tools import Tools
 from hpp.corbaserver.manipulation import Client, loadServerPlugin
 from omniORB.CORBA import SystemException
 
@@ -58,9 +59,8 @@ class CorbaServer:
         return False
 
     def kill(self):
-        corba_command = "pkill hppcorbaserver"
-        p = subprocess.Popen(corba_command, shell=True)
-        p.wait()
+        tools = Tools()
+        tools.shutdown()
         self.process.wait()
 
     def __del__(self):
