@@ -21,6 +21,7 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
+from agimus_controller_ros.simple_trajectory_publisher import SimpleTrajectoryPublisher
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -89,7 +90,9 @@ class Orchestrator(object):
 
         self.is_simulation = False
 
-        self.trajectory_publisher = TrajectoryPublisher(self._node)
+        self.trajectory_publisher = (
+            SimpleTrajectoryPublisher()
+        )  # TrajectoryPublisher(self._node)
 
         self.state_client = AsyncSubscriber(
             self._node,
@@ -282,6 +285,10 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
+            while self.trajectory_publisher.trajectory.traj_idx < len(
+                self.trajectory_publisher.trajectory.trajectory
+            ):
+                time.sleep(0.01)
             self.close_gripper()
             self.publish(placing_path)
             self.open_gripper()
