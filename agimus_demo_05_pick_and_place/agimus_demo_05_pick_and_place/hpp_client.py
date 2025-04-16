@@ -356,6 +356,7 @@ class HPPInterface:
         self,
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
+        q_above_source_bin: T.Optional[list[float]] = None,
     ):
         assert (
             self._goal_obj_pose is not None
@@ -389,32 +390,55 @@ class HPPInterface:
         print("\nPose of the object : \n", q_init[r : r + 7], "\n")
 
         found, msg = self.robot.isConfigValid(q_init)
+        assert found, f"Init config not collision free: {msg}"
+
+        if q_above_source_bin is None:
+            q_start_solve = q_init
+            path_to_start = None
+        else:
+            self.q_above_source_bin = (
+                q_above_source_bin
+                + self.start_obj_pose
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
+            )
+
+            res, self.q_above_source_bin, err = (
+                self.binPicking.graph.applyNodeConstraints(
+                    "free", self.q_above_source_bin
+                )
+            )
+            assert res
+            found, msg = self.robot.isConfigValid(self.q_above_source_bin)
+            assert found, msg
+
+            q_start_solve = self.q_above_source_bin
+            path_to_start = self.binPicking.move_in_free(q_init, q_start_solve)
 
         # Resolving the path to the object
-        if found:
-            print("[INFO] Object found with no collision")
-            print("Solving ...")
-            res, p = self.binPicking.solve(q_init)
-            if res:
-                print("Pick and place path", p)
-                print(p.length())
-                grasp_path, placing_path, freefly_path = split_path(
-                    p, self.binPicking.c_robot()
-                )
-                self.ps.client.basic.problem.addPath(grasp_path)
-                self.ps.client.basic.problem.addPath(placing_path)
-                self.ps.client.basic.problem.addPath(freefly_path)
-                print("Path generated.")
-                return grasp_path, placing_path, freefly_path
-            else:
-                # In this case, p is a string containing the error message
-                print("No solution", p)
-                return None
-
+        print("[INFO] Object found with no collision")
+        print("Solving ...")
+        res, p = self.binPicking.solve(q_start_solve)
+        if res:
+            print("Pick and place path", p)
+            print(p.length())
+            grasp_path, placing_path, freefly_path = split_path(
+                p, self.binPicking.c_robot()
+            )
+            if path_to_start is not None:
+                p = path_to_start.asVector()
+                p.appendPath(grasp_path)
+                grasp_path = p
+                freefly_path.appendPath(path_to_start.reverse())
+            self.ps.client.basic.problem.addPath(grasp_path)
+            self.ps.client.basic.problem.addPath(placing_path)
+            self.ps.client.basic.problem.addPath(freefly_path)
+            print("Path generated.")
+            return grasp_path, placing_path, freefly_path
         else:
-            print("[INFO] Object found but not collision free")
-            print("Trying solving without playing path for simulation ...")
-            return
+            # In this case, p is a string containing the error message
+            print("No solution", p)
+            return None
 
     def plan_free_motion(
         self,
@@ -440,13 +464,13 @@ class HPPInterface:
             "free", self.q_init
         )
         assert res, f"Robot q_init isn't a valid configuration {err}"
-        q_init_ok, msg_init = self.robot.isConfigValid(q_init)
+        q_init_ok, msg_init = self.robot.isConfigValid(self.q_init)
 
         res, self.q_goal, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_goal
         )
         assert res, f"Robot q_goal isn't a valid configuration {err}"
-        q_goal_ok, msg_goal = self.robot.isConfigValid(q_goal)
+        q_goal_ok, msg_goal = self.robot.isConfigValid(self.q_goal)
 
         if not q_init_ok:
             print("q_init is not collision free", msg_init)
@@ -511,7 +535,9 @@ class HPPInterface:
                 edge_fmt.format(gripper=gripper, handle=handle, num="01"),
                 edge_fmt.format(gripper=gripper, handle=handle, num="12"),
             ]
-            path, report = bp.generateConsecutivePaths(edges, last_q, Nsamples=n_samples)
+            path, report = bp.generateConsecutivePaths(
+                edges, last_q, Nsamples=n_samples
+            )
 
             assert path is not None, f"Failed to generate path: {report}"
             bp.transitionPlanner.setEdge(bp.graph.edges[edges[0]])
