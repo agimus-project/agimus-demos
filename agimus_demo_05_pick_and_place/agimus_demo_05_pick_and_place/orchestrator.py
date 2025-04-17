@@ -11,7 +11,6 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
-from std_msgs.msg import Bool
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray, Detection2D
 

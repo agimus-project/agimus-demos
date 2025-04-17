@@ -43,7 +43,6 @@ from agimus_demo_05_pick_and_place.utils import (
     get_obj_goal_handles,
 )
 from hpp.rostools import process_xacro, retrieve_resource
-from agimus_controller.trajectory import TrajectoryPoint
 import pinocchio
 
 
@@ -358,9 +357,9 @@ class HPPInterface:
         enable_collision_between_box_and_part: bool = True,
         q_above_source_bin: T.Optional[list[float]] = None,
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
         self.q_init = (
             q_init
