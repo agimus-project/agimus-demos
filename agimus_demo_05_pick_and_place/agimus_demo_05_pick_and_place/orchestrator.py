@@ -7,9 +7,11 @@ import pinocchio as pin
 import time
 import typing as T
 
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
+from std_msgs.msg import Bool
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray, Detection2D
 
@@ -17,10 +19,9 @@ from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperCli
 
 from agimus_demo_05_pick_and_place.hpp_client import (
     HPPInterface,
-    get_traj_points_from_path,
+    get_q_dq_ddq_arrays_from_path,
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
-from agimus_demo_05_pick_and_place.trajectory_publisher import TrajectoryPublisher
 from agimus_controller_ros.simple_trajectory_publisher import SimpleTrajectoryPublisher
 
 
@@ -90,9 +91,7 @@ class Orchestrator(object):
 
         self.is_simulation = False
 
-        self.trajectory_publisher = (
-            SimpleTrajectoryPublisher()
-        )  # TrajectoryPublisher(self._node)
+        self.trajectory_publisher = SimpleTrajectoryPublisher()
 
         self.state_client = AsyncSubscriber(
             self._node,
@@ -113,6 +112,9 @@ class Orchestrator(object):
             qos_profile_system_default,
         )
         self.open_gripper()
+        rclpy.spin_until_future_complete(
+            self.trajectory_publisher, self.trajectory_publisher.future_init_done
+        )
 
     def get_most_confident_object_pose(
         self, detection_msg: Detection2DArray, object_name: str
@@ -226,10 +228,17 @@ class Orchestrator(object):
             time.sleep(1.0)
 
     def publish(self, path_vector):
-        traj = get_traj_points_from_path(path_vector)
+        q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(path_vector)
         # TODO: get this from OCP params somehow
-        traj += [traj[-1]] * 40  # OCP horizon
-        self.trajectory_publisher.publish(traj)
+        q_array += [q_array[-1]] * 40  # OCP horizon
+        dq_array += [dq_array[-1]] * 40  # OCP horizon
+        ddq_array += [ddq_array[-1]] * 40  # OCP horizon
+        trajectory = (
+            self.trajectory_publisher.trajectory.build_trajectory_from_q_dq_ddq_arrays(
+                q_array, dq_array, ddq_array
+            )
+        )
+        self.trajectory_publisher.add_trajectory(trajectory)
 
     def go_to(
         self,
@@ -282,17 +291,26 @@ class Orchestrator(object):
 
         self.open_gripper()
         self.open_gripper()
+
         self.publish(grasp_path)
+        rclpy.spin_until_future_complete(
+            self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
+        )
         if placing_path is not None:
             # TODO: check automatically
-            while self.trajectory_publisher.trajectory.traj_idx < len(
-                self.trajectory_publisher.trajectory.trajectory
-            ):
-                time.sleep(0.01)
             self.close_gripper()
             self.publish(placing_path)
+            rclpy.spin_until_future_complete(
+                self.trajectory_publisher,
+                self.trajectory_publisher.future_trajectory_done,
+            )
             self.open_gripper()
             self.publish(freefly_path)
+            rclpy.spin_until_future_complete(
+                self.trajectory_publisher,
+                self.trajectory_publisher.future_trajectory_done,
+            )
+
         # Commented out since restart does not work properly (corba crashes)
         # self.hpp_client.restart()
         # del self.hpp_client
