@@ -54,10 +54,9 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demo_05_pick_and_place"),
                         "urdf",
-                        "obstacles.xacro",
+                        "environment.urdf.xacro",
                     ]
                 ),
-                # Convert dict to list of parameters
             ]
         ),
         value_type=str,
@@ -71,8 +70,8 @@ def launch_setup(
         parameters=[{"robot_description": environment_description}],
     )
     tf_node = static_transform_publisher_node(
-        frame_id="fer_link0",
-        child_frame_id="obstacle1",
+        frame_id="robot_attachment_link",
+        child_frame_id="world",
     )
 
     pick_and_place_node = ExecuteProcess(
@@ -89,6 +88,7 @@ def launch_setup(
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
+        environment_publisher_node,
         tf_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
@@ -96,7 +96,6 @@ def launch_setup(
                 on_exit=[
                     agimus_controller_node,
                     pick_and_place_node,
-                    environment_publisher_node,
                 ],
             )
         ),

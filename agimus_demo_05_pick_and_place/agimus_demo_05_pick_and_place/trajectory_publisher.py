@@ -1,4 +1,3 @@
-
 from rclpy.node import Node
 from agimus_msgs.msg import MpcInput
 import numpy as np
@@ -15,9 +14,16 @@ class TrajectoryPublisher(object):
         self.pin_model = None
         self.pin_data = None
         self.ee_frame_id = None
-        self.ee_frame_name = "fer_joint7"
+        self.ee_frame_name = "fer_link8"
 
-        self._publisher = self._node.create_publisher(MpcInput, "/mpc_input", 10)
+        self._publisher = self._node.create_publisher(
+            MpcInput,
+            "/mpc_input",
+            qos_profile=QoSProfile(
+                depth=1000,
+                reliability=ReliabilityPolicy.BEST_EFFORT,
+            ),
+        )
         qos_profile = QoSProfile(
             depth=1,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -49,6 +55,7 @@ class TrajectoryPublisher(object):
 
         self._node.get_logger().warn(f"Publishing traj of len {len(trajectory)}")
         for point in trajectory:
+            start_publish_time = time.perf_counter()
             q = np.concatenate([point.robot_configuration, np.zeros(2)])
             pin.forwardKinematics(self.pin_model, self.pin_data, q)
             pin.updateFramePlacement(self.pin_model, self.pin_data, self.ee_frame_id)
@@ -84,5 +91,6 @@ class TrajectoryPublisher(object):
             msg.ee_frame_name = self.ee_frame_name
 
             self._publisher.publish(msg)
-            time.sleep(0.01)  # TODO how to do?
+            publish_time = time.perf_counter() - start_publish_time
+            time.sleep(0.01 - publish_time)  # TODO how to do?
             # self._node.get_logger().info(f'Published MpcInput: q={msg.q}, qdot={msg.qdot}, qddot={msg.qddot}, effort={msg.robot_effort}')
