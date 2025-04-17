@@ -54,15 +54,15 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
 def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
     """Return desired object position in destination box frame."""
     if object_name == "obj_21":
-        return "dest_box/base_link", [-0.15, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.15, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     if object_name == "obj_22":
-        return "dest_box/base_link", [-0.05, -0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [-0.05, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return "dest_box/base_link", [0.05, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.05, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_25":
-        return "dest_box/base_link", [0.15, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
-        return "dest_box/base_link", [-0.15, 0.03, 0.1, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [-0.15, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -150,15 +150,26 @@ class Orchestrator(object):
             0.0,
         ]
         self.q0_2 = [
-            -0.21577519437512227,
-            -1.4657995535532633,
-            1.2589014408203547,
-            -2.8775367832740173,
-            0.3492806257531047,
-            1.9550859318043161,
-            0.7259552289752453,
-            0.03898531571030617,
-            0.03898531571030617,
+            0.23478670612576777,
+            0.6708581179127536,
+            -0.24280409489251267,
+            -1.230202247770209,
+            0.16490062651369303,
+            1.3221025101878985,
+            0.8068517371820269,
+            0.03894394636154175,
+            0.03894394636154175,
+        ]
+        self.q0_3 = [
+            0.30284322343977793,
+            -0.17057967255660944,
+            -0.19719527408742066,
+            -2.146916439625255,
+            -0.12145666446852621,
+            1.8278849533134025,
+            0.9324160086682614,
+            0.038980063050985336,
+            0.038980063050985336,
         ]
         self.q_above_source_bin = [
             -0.37749851551808805,
