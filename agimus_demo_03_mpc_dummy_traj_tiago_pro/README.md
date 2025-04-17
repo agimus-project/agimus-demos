@@ -5,7 +5,7 @@ The purpose of this demo is to run the [linear_feedback_controller](https://gith
 The LFC input is coming from agimus_controller which is following a trajectory published by the node `simple_trajectory_publisher`. The controller is more specifically a Whole Body Model Predictive Controller and the trajectory is a small sinus signal at the joint level.
 Expected behavior: robot's joints are oscillating gently.
 
-The parameters for the motion is splitted in two location [agimus_demo_03_mpc_dummy_traj_tiago_pro/config/agimus_controller.yaml](config/agimus_controller.yaml) and [agimus_demo_03_mpc_dummy_traj_tiago_pro/config/ocp_definition_file.yaml](config/ocp_definition_file.yaml) .
+The parameters for the motion is split in two location [agimus_demo_03_mpc_dummy_traj_tiago_pro/config/agimus_controller.yaml](config/agimus_controller.yaml) and [agimus_demo_03_mpc_dummy_traj_tiago_pro/config/ocp_definition_file.yaml](config/ocp_definition_file.yaml) .
 
 ### Dependencies
 
