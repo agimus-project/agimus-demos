@@ -46,6 +46,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "tiago_pro",
                         "tiago_pro_hardware.launch.py",
                     ]
                 )
