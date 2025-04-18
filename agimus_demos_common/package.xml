@@ -22,6 +22,9 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <!-- External dependencies. -->
+  <exec_depend>python3-jinja2</exec_depend>
+
   <!-- Franka dependencies. -->
   <exec_depend condition="$PAL_DISTRO != alum">franka_description</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">franka_gripper</exec_depend>
@@ -34,14 +37,6 @@
   <exec_depend  condition="$PAL_DISTRO == alum">tiago_description</exec_depend>
   <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_gazebo</exec_depend>
 
-  <!-- Tiago-Pro dependencies. -->
-  <exec_depend>tiago_description</exec_depend>
-  <exec_depend>tiago_pro_gazebo</exec_depend>
-
-  <exec_depend>python3-jinja2</exec_depend>
-  <!-- ROS2 dependencies. -->
-  <exec_depend>controller_manager</exec_depend>
-  <exec_depend>python3-jinja2</exec_depend>
   <!-- ROS2 dependencies. -->
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
