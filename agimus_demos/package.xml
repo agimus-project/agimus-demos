@@ -11,15 +11,15 @@
   <exec_depend>agimus_demos_common</exec_depend>
 
   <!-- Franka -->
-  <exec_depend>agimus_demo_00_franka_controller</exec_depend>
-  <exec_depend>agimus_demo_01_lfc_alone</exec_depend>
-  <exec_depend>agimus_demo_02_simple_pd_plus</exec_depend>
-  <exec_depend>agimus_demo_03_mpc_dummy_traj</exec_depend>
-  <exec_depend>agimus_demo_05_pick_and_place</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_00_franka_controller</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_01_lfc_alone</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_02_simple_pd_plus</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_03_mpc_dummy_traj</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_05_pick_and_place</exec_depend>
 
   <!-- Tiago Pro -->
-  <exec_depend>agimus_demo_02_simple_pd_plus_tiago_pro</exec_depend>
-  <exec_depend>agimus_demo_03_mpc_dummy_traj_tiago_pro</exec_depend>
+  <exec_depend condition="$PAL_DISTRO == alum">agimus_demo_02_simple_pd_plus_tiago_pro</exec_depend>
+  <exec_depend condition="$PAL_DISTRO == alum">agimus_demo_03_mpc_dummy_traj_tiago_pro</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
