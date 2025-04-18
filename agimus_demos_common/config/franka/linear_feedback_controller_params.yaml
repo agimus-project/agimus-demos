@@ -59,7 +59,14 @@ linear_feedback_controller:
       p: 5.0
       d: 1.0
     chainable_controller:
-      command_prefix: ''
+      command_interfaces:
+      - fer_joint1/effort
+      - fer_joint2/effort
+      - fer_joint3/effort
+      - fer_joint4/effort
+      - fer_joint5/effort
+      - fer_joint6/effort
+      - fer_joint7/effort
       reference_prefix: ''
     joint_velocity_filter_coefficient: 0.9
     pd_to_lf_transition_duration: 0.1

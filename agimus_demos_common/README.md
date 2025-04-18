@@ -29,13 +29,13 @@ Launch arguments specific to this launch file:
 
 - **franka_controllers_params**:
 
-    Default: *agimus_demos_common/config/franka_controllers.yaml*
+    Default: *agimus_demos_common/config/franka/controllers.yaml*
 
     Path to the yaml file use to define controller parameters.
 
 - **rviz_config_path**:
 
-    Default: *agimus_demos_common/rviz/franka_preview.rviz*
+    Default: *agimus_demos_common/rviz/franka/preview.rviz*
 
     Path to RViz configuration file
 
@@ -189,13 +189,13 @@ Function `get_use_sim_time()` return dictionary with parameter **use_sim_time**,
 
 Utility ROS node, mean to delay launch of other nodes until Gazebo simulation starts publishing non-zero joint states. It will subscribe to the topic and exit with exist code `0` when sum of absolute values of joint positions will be greater than set threshold. Otherwise if threshold is not exceeded and timeout si reached the node return exit code `1`, indicating error.
 
-### Subscribers
+#### Subscribers
 
 - **/joint_states** [sensor_msgs/msg/JointState]
 
     Values of joint states of the robot.
 
-### Parameters
+#### Parameters
 
 - **timeout** [*double*]:
 
@@ -203,7 +203,7 @@ Utility ROS node, mean to delay launch of other nodes until Gazebo simulation st
 
     Time to wait for joint positions to be above threshold.
 
-- **timeout** [*double*]:
+- **joints_sum_threshold** [*double*]:
 
     Default: *1e-3*
 

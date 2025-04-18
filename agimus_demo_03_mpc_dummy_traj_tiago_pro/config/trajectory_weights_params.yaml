@@ -1,0 +1,27 @@
+---
+# simple_trajectory_publisher:
+#   ros__parameters:
+#     w_q: [0.001]
+#     w_qdot: [0.001]
+#     w_qddot: [0.000001]
+#     w_robot_effort: [1.0]
+#     w_pose: [1.0]
+#     ee_frame_name: arm_right_7_joint
+#     amplitude: [0.1, 0.1, 0.0]
+#     period: [4.0, 4.0, 4.0]
+#     moving_joint_names: [arm_right_1_joint, arm_right_2_joint, arm_right_3_joint, arm_right_4_joint,
+#       arm_right_5_joint, arm_right_6_joint, arm_right_7_joint]
+
+
+simple_cartesian_trajectory_publisher:
+  ros__parameters:
+    w_q: [0.00001]
+    w_qdot: [0.00001]
+    w_qddot: [0.000001]
+    w_robot_effort: [1.0]
+    w_pose: [10.0, 10.0, 10.0, 0.0, 0.0, 0.0]
+    ee_frame_name: arm_right_7_joint
+    amplitude: [0.2, 0.2, 0.0]
+    period: [4.0, 4.0, 4.0]
+    moving_joint_names: [arm_right_1_joint, arm_right_2_joint, arm_right_3_joint, arm_right_4_joint,
+      arm_right_5_joint, arm_right_6_joint, arm_right_7_joint]
