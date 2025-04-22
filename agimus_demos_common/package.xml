@@ -34,7 +34,7 @@
   <exec_depend condition="$PAL_DISTRO != alum">gripper_controllers</exec_depend>
 
   <!-- Tiago-Pro dependencies. -->
-  <exec_depend  condition="$PAL_DISTRO == alum">tiago_description</exec_depend>
+  <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_description</exec_depend>
   <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_gazebo</exec_depend>
 
   <!-- ROS2 dependencies. -->
