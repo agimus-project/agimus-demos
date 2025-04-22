@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
-import pinocchio as pin
 import time
 import typing as T
 
@@ -12,7 +11,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from vision_msgs.msg import Detection2DArray, Detection2D
+from vision_msgs.msg import Detection2DArray
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
@@ -21,18 +20,10 @@ from agimus_demo_05_pick_and_place.hpp_client import (
     get_q_dq_ddq_arrays_from_path,
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
-from agimus_controller_ros.simple_trajectory_publisher import SimpleTrajectoryPublisher
-
-
-def map_object_id(obj_id, dataset="tless"):
-    num_part = obj_id.split("_")[1]
-    return f"{dataset}-obj_{int(num_part):06d}"
-
-
-def multiply_poses(pose1: list[float], pose2: list[float]) -> list[float]:
-    p1 = pin.XYZQUATToSE3(pose1)
-    p2 = pin.XYZQUATToSE3(pose2)
-    return pin.SE3ToXYZQUAT(p1 * p2)
+from agimus_controller_ros.simple_trajectory_publisher import (
+    SimpleTrajectoryPublisher,
+    get_most_confident_object_pose,
+)
 
 
 def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[float]]:
@@ -88,7 +79,8 @@ class Orchestrator(object):
         self.default_object_name = "obj_23"
         self.set_hardcoded_q0_start_and_above_source_bin()
 
-        self.is_simulation = False
+        self.is_simulation = True
+        self.object_to_grasp_name = None
 
         self.trajectory_publisher = SimpleTrajectoryPublisher()
 
@@ -110,36 +102,11 @@ class Orchestrator(object):
             "/happypose/detections",
             qos_profile_system_default,
         )
+
         self.open_gripper()
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_init_done
         )
-
-    def get_most_confident_object_pose(
-        self, detection_msg: Detection2DArray, object_name: str
-    ) -> T.Tuple[str, list[float]]:
-        # TODO: change the map if we want to use YCBV
-        filtered_detections = [
-            (d, d.results[0].hypothesis.score)
-            for d in detection_msg.detections
-            if d.results[0].hypothesis.class_id == map_object_id(object_name)
-        ]
-        if len(filtered_detections) == 0:
-            return ["", None]
-        detection: Detection2D = max(filtered_detections, key=lambda pair: pair[1])[0]
-        pose: Pose = detection.results[0].pose.pose
-        return [
-            detection.header.frame_id,
-            [
-                pose.position.x,
-                pose.position.y,
-                pose.position.z,
-                pose.orientation.x,
-                pose.orientation.y,
-                pose.orientation.z,
-                pose.orientation.w,
-            ],
-        ]
 
     def set_hardcoded_q0_start_and_above_source_bin(self):
         self.q0_start = [
@@ -210,7 +177,7 @@ class Orchestrator(object):
             print("waiting for obj pose")
             object_detections = self.vision_client.wait_for_future()
             print("got obj pose")
-            obj_start_pose = self.get_most_confident_object_pose(
+            obj_start_pose = get_most_confident_object_pose(
                 object_detections, object_name
             )
             obj_start_pose[0] = "panda/" + obj_start_pose[0]
@@ -237,7 +204,7 @@ class Orchestrator(object):
             # TODO: change it to something normal
             time.sleep(1.0)
 
-    def publish(self, path_vector):
+    def publish(self, path_vector, use_visual_servoing=False, object_name=None):
         q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(path_vector)
         # TODO: get this from OCP params somehow
         q_array += [q_array[-1]] * 40  # OCP horizon
@@ -248,7 +215,15 @@ class Orchestrator(object):
                 q_array, dq_array, ddq_array
             )
         )
-        self.trajectory_publisher.add_trajectory(trajectory)
+        if self.trajectory_publisher.params.trajectory_name == "generic_trajectory":
+            self.trajectory_publisher.add_trajectory(trajectory)
+        elif (
+            self.trajectory_publisher.params.trajectory_name
+            == "generic_trajectory_visual_servoing"
+        ):
+            self.trajectory_publisher.add_trajectory(
+                trajectory, use_visual_servoing, object_name
+            )
 
     def go_to(
         self,
@@ -274,6 +249,7 @@ class Orchestrator(object):
         use_hardcoded_poses: bool = False,
         enable_visualization_in_gepetto_gui: bool = True,
     ):
+        self.object_to_grasp_name = object_name
         current_robot_state = self.state_client.wait_for_future()
         q_init = list(current_robot_state.position)
 
@@ -302,20 +278,20 @@ class Orchestrator(object):
         self.open_gripper()
         self.open_gripper()
 
-        self.publish(grasp_path)
+        self.publish(grasp_path, use_visual_servoing=True, object_name=object_name)
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
         if placing_path is not None:
             # TODO: check automatically
             self.close_gripper()
-            self.publish(placing_path)
+            self.publish(placing_path, use_visual_servoing=False)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
             self.open_gripper()
-            self.publish(freefly_path)
+            self.publish(freefly_path, use_visual_servoing=False)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
