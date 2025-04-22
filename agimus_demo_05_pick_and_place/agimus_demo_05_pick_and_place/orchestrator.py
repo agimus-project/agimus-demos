@@ -68,14 +68,14 @@ def get_goal_box_pose(obj_id: str) -> list[float]:
     # small objects
     if int(obj_id) in [1, 2, 3, 4, 11, 12, 13, 14, 15, 16]:
         print("Grasping a small object")
-        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+        return [0.0, 0.0, 0.15, 0.0, 0.0, 0.0, 1.0]
     # plugs and stuff
     elif int(obj_id) in [19, 20, 23, 24]:
         print("Grasping a plug")
-        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+        return [0.0, 0.0, 0.15, 0.0, 0.0, 0.0, 1.0]
     else:
         print("Grasping other stuff")
-        return [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+        return [0.0, 0.0, 0.15, 0.0, 0.0, 0.0, 1.0]
 
 
 @dataclass
@@ -307,11 +307,13 @@ class Orchestrator(object):
         # del self.hpp_client
 
     def pick_and_place(self, object_name: str):
+        source_bin_pose = [-0.3, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0]
+        destination_bin_pose = [-0.15, -0.1, 0.761, 0.0, 0.0, -0.7071068, 0.7071068]
         self.hpp_client = HPPInterface(
             object_name=object_name,
             use_spline_gradient_based_opt=False,
-            source_bin_pose=[-0.3, -0.99, 0.761, 0.0, 0.0, 0.0, 1.0],
-            destination_bin_pose=[0.3, 0.7, 0.761, 0.0, 0.0, 0.0, 1.0],
+            source_bin_pose=source_bin_pose,
+            destination_bin_pose=normalize_quaternion(destination_bin_pose),
         )
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name=object_name

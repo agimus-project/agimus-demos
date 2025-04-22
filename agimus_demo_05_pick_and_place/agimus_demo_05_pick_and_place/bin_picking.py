@@ -32,6 +32,7 @@ from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths, config_dist
 import typing as T
+import numpy as np
 
 
 def generateTargetConfig(
@@ -416,10 +417,10 @@ class BinPicking(object):
             raise RuntimeError("You need to call method generateGoalConfigs first.")
         for o in self.objects[1:]:
             r = self.robot.rankInConfiguration[f"{o}/root_joint"]
-            if q[r : r + 7] != self.q_goal[r : r + 7]:
+            if not np.isclose(q[r : r + 7], self.q_goal[r : r + 7]).all():
                 raise RuntimeError(
                     f"Object {o} is in pose {q[r : r + 7]} but "
-                    + "was in pose {self.q_goal[r:r+7]} when pre-computing"
+                    + f"was in pose {self.q_goal[r : r + 7]} when pre-computing"
                     + " goal configurations."
                 )
 
@@ -500,7 +501,9 @@ class BinPicking(object):
                             handle + "_rotated"
                         )
                         if rotated_placePath:
-                            rotated_pickPath = self.generateConsecutivePaths(edges, q)
+                            rotated_pickPath, msg = self.generateConsecutivePaths(
+                                edges, q
+                            )
                             if rotated_pickPath:
                                 q1 = pickPath.initial()
                                 q2 = rotated_pickPath.initial()

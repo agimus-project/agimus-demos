@@ -111,8 +111,8 @@ class HPPInterface:
             name="source_box",
         )
         self.obstacle2_object = BaseObject(
-            urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
-            srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
+            urdf_path=retrieve_resource(f"{package_location}/urdf/small_box.urdf"),
+            srdf_path=retrieve_resource(f"{package_location}/srdf/small_box.srdf"),
             name="dest_box",
         )
         # Init corbaserver programmatically
