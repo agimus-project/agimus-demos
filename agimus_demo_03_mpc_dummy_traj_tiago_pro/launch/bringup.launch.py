@@ -97,10 +97,10 @@ def launch_setup(
         output="screen",
         # remappings=[("robot_description", "robot_description_with_collision")],
     )
-    simple_cartesian_trajectory_publisher_node = Node(
+    simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
-        executable="simple_cartesian_trajectory_publisher",
-        name="simple_cartesian_trajectory_publisher",
+        executable="simple_trajectory_publisher",
+        name="simple_trajectory_publisher",
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
         output="screen",
     )
@@ -162,7 +162,7 @@ def launch_setup(
         tiago_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
-        simple_cartesian_trajectory_publisher_node,
+        simple_trajectory_publisher_node,
         plotjuggler_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(

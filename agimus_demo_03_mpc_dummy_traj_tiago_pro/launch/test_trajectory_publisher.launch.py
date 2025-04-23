@@ -75,10 +75,10 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    simple_cartesian_trajectory_publisher_node = Node(
+    simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
-        executable="simple_cartesian_trajectory_publisher",
-        name="simple_cartesian_trajectory_publisher",
+        executable="simple_trajectory_publisher",
+        name="simple_trajectory_publisher",
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
         output="screen",
     )
@@ -116,7 +116,7 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
-                on_exit=[simple_cartesian_trajectory_publisher_node],
+                on_exit=[simple_trajectory_publisher_node],
             )
         ),
     ]
