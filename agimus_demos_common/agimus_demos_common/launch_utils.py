@@ -217,7 +217,7 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             "laser_model",
             description="Base laser model.",
             choices=["no-laser", "sick-571"],
-            default_value="sick-571",
+            default_value="no-laser",
         ),
         DeclareLaunchArgument(
             "navigation",
