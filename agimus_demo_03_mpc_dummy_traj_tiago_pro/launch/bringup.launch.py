@@ -162,12 +162,15 @@ def launch_setup(
         tiago_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
-        simple_trajectory_publisher_node,
-        plotjuggler_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
-                on_exit=[agimus_controller_node, mpc_debugger_node],
+                on_exit=[
+                    agimus_controller_node,
+                    mpc_debugger_node,
+                    simple_trajectory_publisher_node,
+                    plotjuggler_node,
+                ],
             )
         ),
     ]
