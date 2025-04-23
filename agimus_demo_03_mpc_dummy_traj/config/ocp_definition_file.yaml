@@ -6,7 +6,8 @@ running_model:
     costs:
     - name: control_reg
       update: true
-      weight: 1.0
+      weight: 0.0008
+      active: true
       cost:
         class: CostModelResidual
         activation:
@@ -16,7 +17,7 @@ running_model:
           class: ResidualModelControl
     - name: state_reg
       update: true
-      weight: 1.0
+      weight: 12.0
       cost:
         class: CostModelResidual
         activation:
@@ -26,7 +27,7 @@ running_model:
           class: ResidualModelState
     - name: goal_tracking
       update: true
-      weight: 1.0
+      weight: 0.5
       cost:
         class: CostModelResidual
         activation:
@@ -37,12 +38,13 @@ running_model:
           id: 0
     - name: distance
       update: false
-      weight: 1.0
+      weight: 0.05
+      publish_residual: true
       cost:
         class: CostModelResidual
         activation:
           class: ActivationModelQuadExp
-          alpha: 1e-4 # 1cm squared
+          alpha: 1e-4   # 1cm squared
         residual:
           class: ResidualDistanceCollision
           collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
@@ -63,7 +65,7 @@ terminal_model:
     costs:
     - name: state_reg
       update: true
-      weight: 1.0
+      weight: 0.0
       cost:
         class: CostModelResidual
         activation:
@@ -73,7 +75,8 @@ terminal_model:
           class: ResidualModelState
     - name: goal_tracking
       update: true
-      weight: 1.0
+      weight: 0.0
+      active: false
       cost:
         class: CostModelResidual
         activation:
@@ -84,12 +87,12 @@ terminal_model:
           id: 0
     - name: distance
       update: false
-      weight: 1.0
+      weight: 0.0
       cost:
         class: CostModelResidual
         activation:
           class: ActivationModelQuadExp
-          alpha: 1e-4 # 1cm squared
+          alpha: 1e-4   # 1cm squared
         residual:
           class: ResidualDistanceCollision
           collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]

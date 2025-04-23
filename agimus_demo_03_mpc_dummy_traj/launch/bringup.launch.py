@@ -143,7 +143,7 @@ def launch_setup(
             event_handler=OnProcessStart(
                 target_action=agimus_controller_node,
                 on_start=TimerAction(
-                    period=7.0,
+                    period=2.0,
                     actions=[simple_trajectory_publisher_node],
                 ),
             )
@@ -154,7 +154,7 @@ def launch_setup(
 def generate_launch_description():
     ocp_choice = DeclareLaunchArgument(
         "ocp",
-        default_value="default_ocp",
+        default_value="custom_with_collision_avoidance",
         description="Select the ocp to use. Either the default one or the one from this package that does collision avoidance.",
         choices=["default_ocp", "custom_with_collision_avoidance"],
     )

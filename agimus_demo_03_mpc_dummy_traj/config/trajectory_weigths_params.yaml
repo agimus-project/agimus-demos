@@ -1,9 +1,14 @@
 ---
 simple_trajectory_publisher:
   ros__parameters:
-    w_q: [1.0]
-    w_qdot: [0.1]
-    w_qddot: [0.000001]
-    w_robot_effort: [0.0003]
-    w_pose: [0.1]
+    trajectory_name: sine_wave_cartesian_space
     ee_frame_name: fer_hand_tcp
+    w_q: [1.0]
+    w_qdot: [1.0]
+    w_qddot: [0.000001]
+    w_robot_effort: [1.0]
+    w_pose: [1.0]
+    sine_wave:
+      period: 4.0
+      scale_duration: 1.0
+      amplitude: 0.2
