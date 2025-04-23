@@ -11,7 +11,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
 from geometry_msgs.msg import Pose
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState, PointCloud2
 from vision_msgs.msg import Detection2DArray
 from contact_graspnet_msgs.srv import GetSceneGrasps
 
@@ -30,6 +30,7 @@ from agimus_demo_05_pick_and_place.utils import (
     inverse_pose,
     multiply_poses,
 )
+from agimus_demo_05_pick_and_place.poincloud_utils import read_points_xyz_rgb
 from hpp.corbaserver.manipulation import loadServerPlugin
 
 
@@ -119,6 +120,12 @@ class Orchestrator(object):
                 "/happypose/detections",
                 qos_profile_system_default,
             )
+        self.pointcloud_client = AsyncSubscriber(
+            self._node,
+            PointCloud2,
+            "/camera/depth/color/points",
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+        )
         self.grasps_client = self._node.create_client(
             GetSceneGrasps, "contact_graspnet/get_scene_grasps"
         )
@@ -267,6 +274,18 @@ class Orchestrator(object):
 
         return obj_in_world_start_pose, goal_obj_pose
 
+    def set_pointcloud(self):
+        pointcloud_msg = self.pointcloud_client.wait_for_future()
+        points, colors, depth_frame = read_points_xyz_rgb(pointcloud_msg, "panda/")
+        current_robot_state = self.state_client.wait_for_future()
+        q_robot = list(current_robot_state.position)
+        self.hpp_client.set_point_cloud(
+            q_robot=q_robot,
+            camera_frame_name=depth_frame,
+            points=points.tolist(),
+            colors=colors.tolist(),
+        )
+
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
         # TODO: change it to something normal
@@ -315,6 +334,7 @@ class Orchestrator(object):
             source_bin_pose=source_bin_pose,
             destination_bin_pose=normalize_quaternion(destination_bin_pose),
         )
+        self.set_pointcloud()
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name=object_name
         )
