@@ -16,7 +16,7 @@ repositories:
   vcs_agimus/linear_feedback_controller_msgs:
     type: git
     url: https://github.com/loco-3d/linear-feedback-controller-msgs
-    version: 1.0.0
+    version: v1.0.0
 
   vcs_agimus/agimus_controller:
     type: git
