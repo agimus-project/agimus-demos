@@ -43,7 +43,6 @@ from agimus_demo_05_pick_and_place.utils import (
     get_obj_goal_handles,
 )
 from hpp.rostools import process_xacro, retrieve_resource
-from agimus_controller.trajectory import TrajectoryPoint
 import pinocchio
 
 
@@ -569,22 +568,16 @@ class HPPInterface:
 
 
 # ____________________________________________________________________________
-def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
+def get_q_dq_ddq_arrays_from_path(hpp_path, robot_ndof=7, dt=0.01):
     total_time = hpp_path.length()
     print(total_time)
     T = int(total_time / dt)
-    traj_point_list = []
+    q_array = []
+    dq_array = []
+    ddq_array = []
     for iter in range(T):
-        iter_time = total_time * iter / (T - 1)  # iter * dt
-
-        traj_point_list.append(
-            TrajectoryPoint(
-                robot_configuration=np.array(hpp_path.call(iter_time)[0][:robot_ndof]),
-                robot_velocity=np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]),
-                robot_acceleration=np.array(
-                    hpp_path.derivative(iter_time, 2)[:robot_ndof]
-                ),
-                end_effector_poses={"link0": np.eye(4)},
-            )
-        )
-    return traj_point_list
+        iter_time = total_time * iter / (T - 1)
+        q_array.append(np.array(hpp_path.call(iter_time)[0][:robot_ndof]))
+        dq_array.append(np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]))
+        ddq_array.append(np.array(hpp_path.derivative(iter_time, 2)[:robot_ndof]))
+    return q_array, dq_array, ddq_array
