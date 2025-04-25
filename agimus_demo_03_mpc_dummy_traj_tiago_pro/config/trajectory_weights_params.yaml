@@ -1,8 +1,8 @@
 ---
 simple_trajectory_publisher:
   ros__parameters:
-    trajectory_name: sine_wave_cartesian_space
-    # trajectory_name: sine_wave_configuration_space
+    # trajectory_name: sine_wave_cartesian_space # Oscillates the end-effector.
+    trajectory_name: sine_wave_configuration_space # Oscillates the joints.
     ee_frame_name: arm_right_7_joint
     w_q: [0.001]
     w_qdot: [0.001]
