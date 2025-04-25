@@ -3,7 +3,7 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable
@@ -91,14 +91,15 @@ def launch_setup(
     trajectory_weights_yaml = str(
         trajectory_weights_yaml / "config" / "trajectory_weigths_params.yaml"
     )
-
+    use_gazebo = LaunchConfiguration("use_gazebo")
+    use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
     pick_and_place_node = ExecuteProcess(
         cmd=[
             "xterm",
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args --params-file {trajectory_weights_yaml}"',
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
         ],
         output="screen",
     )

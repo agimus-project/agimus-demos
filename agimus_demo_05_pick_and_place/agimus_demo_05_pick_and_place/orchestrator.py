@@ -20,8 +20,8 @@ from agimus_demo_05_pick_and_place.hpp_client import (
     get_q_dq_ddq_arrays_from_path,
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
-from agimus_controller_ros.simple_trajectory_publisher import (
-    SimpleTrajectoryPublisher,
+from agimus_controller_ros.trajectory_publisher_with_visual_servoing import (
+    TrajectoryPublisherWithVisualServoing,
     get_most_confident_object_pose,
 )
 
@@ -78,11 +78,15 @@ class Orchestrator(object):
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
         self.set_hardcoded_q0_start_and_above_source_bin()
+        self.is_simulation = (
+            self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
+        )
+        print("IS SIM ", self.is_simulation)
 
-        self.is_simulation = True
         self.object_to_grasp_name = None
 
-        self.trajectory_publisher = SimpleTrajectoryPublisher()
+        self.trajectory_publisher = TrajectoryPublisherWithVisualServoing()
+        # self.is_simulation = self.trajectory_publisher.params.use_sim_time
 
         self.state_client = AsyncSubscriber(
             self._node,
