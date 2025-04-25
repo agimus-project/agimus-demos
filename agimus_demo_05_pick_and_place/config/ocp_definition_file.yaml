@@ -1,0 +1,66 @@
+---
+running_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+      - name: control_reg
+        update: true
+        weight: 0.0008
+        active: true
+        cost:
+          class: CostModelResidual
+          activation:
+            class: ActivationModelWeightedQuad
+            weights: 1.0
+          residual:
+            class: ResidualModelControl
+      - name: state_reg
+        update: true
+        weight: 12.0
+        cost:
+          class: CostModelResidual
+          activation:
+            class: ActivationModelWeightedQuad
+            weights: 1.0
+          residual:
+            class: ResidualModelState
+      - name: goal_tracking
+        update: true
+        weight: 0.5
+        cost:
+          class: CostModelResidual
+          activation:
+            class: ActivationModelWeightedQuad
+            weights: 1.0
+          residual:
+            class: ResidualModelFramePlacement
+            id: 0
+
+terminal_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+      - name: state_reg
+        update: true
+        weight: 0.0
+        cost:
+          class: CostModelResidual
+          activation:
+            class: ActivationModelWeightedQuad
+            weights: 1.0
+          residual:
+            class: ResidualModelState
+      - name: goal_tracking
+        update: true
+        weight: 0.0
+        active: false
+        cost:
+          class: CostModelResidual
+          activation:
+            class: ActivationModelWeightedQuad
+            weights: 1.0
+          residual:
+            class: ResidualModelFramePlacement
+            id: 0

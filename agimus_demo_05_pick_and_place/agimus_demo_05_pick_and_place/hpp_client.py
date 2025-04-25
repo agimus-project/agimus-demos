@@ -85,8 +85,8 @@ class HPPInterface:
         self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
 
-        self._goal_gripper_clearance = 0.3
-        self._after_picking_clearance = 0.3
+        self._goal_gripper_clearance = 0.4
+        self._after_picking_clearance = 0.4
         self._point_cloud_res = 0.001
 
         self.default_obstacle_pose = source_bin_pose
@@ -134,6 +134,7 @@ class HPPInterface:
         frame_pose = pinocchio.XYZQUATToSE3(
             self.get_robot_link_position(q_robot, frame_name)
         )
+        print("FRAME POSE ", frame_pose)
         pose = pinocchio.SE3ToXYZQUAT(
             frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
         )

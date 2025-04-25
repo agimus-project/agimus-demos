@@ -39,10 +39,20 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
+    ocp_definition_file = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_05_pick_and_place"),
+            "config",
+            "ocp_definition_file.yaml",
+        ]
+    )
+    extra_params = {
+        "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
+    }
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml],
+        parameters=[get_use_sim_time(), agimus_controller_yaml, extra_params],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -81,6 +91,12 @@ def launch_setup(
         frame_id="robot_attachment_link",
         child_frame_id="world",
     )
+    tf_node_support_link = static_transform_publisher_node(
+        frame_id="support_link",
+        child_frame_id="base",
+        xyz=["0.563", "-0.166", "0.780"],
+        rot_xyzw=["0.000", "0.000", "1.000", "0.000"],
+    )
 
     trajectory_weights_yaml = Path(
         FindPackageShare("agimus_demo_05_pick_and_place").find(
@@ -108,7 +124,8 @@ def launch_setup(
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
-        tf_node,
+        # tf_node,
+        tf_node_support_link,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,

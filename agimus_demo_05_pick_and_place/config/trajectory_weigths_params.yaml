@@ -2,15 +2,15 @@
 simple_trajectory_publisher:
   ros__parameters:
     w_q: [1.0]
-    w_qdot: [0.1]
+    w_qdot: [1.0]
     w_qddot: [0.000001]
-    w_robot_effort: [0.0003]
-    w_pose: [0.1]
+    w_robot_effort: [1.0]
+    w_pose: [1.0]
     ee_frame_name: fer_hand_tcp
     trajectory_name: generic_trajectory_visual_servoing
     generic_trajectory_visual_servoing:
       start_visual_servoing_distance_threshold: 0.1
-      simulate_happypose: false
+      simulate_happypose: true
       increasing_weights:
         max_weight: 100.0
         percent: 0.9

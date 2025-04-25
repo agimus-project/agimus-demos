@@ -59,16 +59,16 @@ linear_feedback_controller:
     - fer_joint6
     - fer_joint7
     fer_joint1:
-      p: 60.0
+      p: 1000.0
       d: 5.0
     fer_joint2:
-      p: 60.0
+      p: 1000.0
       d: 5.0
     fer_joint3:
-      p: 60.0
+      p: 1000.0
       d: 5.0
     fer_joint4:
-      p: 60.0
+      p: 1000.0
       d: 2.0
     fer_joint5:
       p: 20.0

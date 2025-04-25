@@ -145,6 +145,7 @@ class Orchestrator(object):
             0.9324160086682614,
             0.038980063050985336,
             0.038980063050985336,
+            0.008928003512008873,
         ]
         self.q_above_source_bin = [
             -0.37749851551808805,
@@ -246,6 +247,9 @@ class Orchestrator(object):
             self.v(self.hpp_client.q_init)
             input("Trajectory computed. Ready to move. Press Enter to start motion...")
         self.publish(traj)
+        rclpy.spin_until_future_complete(
+            self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
+        )
 
     def pick_and_place(
         self,
@@ -339,6 +343,10 @@ class Orchestrator(object):
                 self.open_gripper()
             else:
                 self.publish(path)
+                rclpy.spin_until_future_complete(
+                    self.trajectory_publisher,
+                    self.trajectory_publisher.future_trajectory_done,
+                )
 
     # def go_to_ee(self, target_ee):
     #     current_robot_state = self.state_client.wait_for_new_state()
