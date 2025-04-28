@@ -498,15 +498,7 @@ class HPPInterface:
             "locked_object", f"{self.manip_object.name}/root_joint", self.start_obj_pose
         )
         self.ps.setConstantRightHandSide("locked_object", True)
-        self.ps.addPathOptimizer("EnforceTransitionSemantic")
-        self.ps.addPathOptimizer("SimpleTimeParameterization")
-        self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.4)
-        self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
 
-        # Add path projector to avoid discontinuities
-        self.ps.selectPathProjector("Progressive", 0.05)
-        self.ps.selectPathValidation("Graph-Progressive", 0.01)
         bp = self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
         bp.objects = [
             self.manip_object.name,
