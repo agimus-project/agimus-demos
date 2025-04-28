@@ -2,7 +2,7 @@
 joint_state_estimator:
   ros__parameters:
     type: linear_feedback_controller/JointStateEstimator
-    interfaces:
+    state_interfaces:
     - fer_joint1/position
     - fer_joint2/position
     - fer_joint3/position
@@ -24,7 +24,28 @@ joint_state_estimator:
     - fer_joint5/effort
     - fer_joint6/effort
     - fer_joint7/effort
-    command_prefix: linear_feedback_controller
+    command_interfaces:
+    - linear_feedback_controller/fer_joint1/position
+    - linear_feedback_controller/fer_joint2/position
+    - linear_feedback_controller/fer_joint3/position
+    - linear_feedback_controller/fer_joint4/position
+    - linear_feedback_controller/fer_joint5/position
+    - linear_feedback_controller/fer_joint6/position
+    - linear_feedback_controller/fer_joint7/position
+    - linear_feedback_controller/fer_joint1/velocity
+    - linear_feedback_controller/fer_joint2/velocity
+    - linear_feedback_controller/fer_joint3/velocity
+    - linear_feedback_controller/fer_joint4/velocity
+    - linear_feedback_controller/fer_joint5/velocity
+    - linear_feedback_controller/fer_joint6/velocity
+    - linear_feedback_controller/fer_joint7/velocity
+    - linear_feedback_controller/fer_joint1/effort
+    - linear_feedback_controller/fer_joint2/effort
+    - linear_feedback_controller/fer_joint3/effort
+    - linear_feedback_controller/fer_joint4/effort
+    - linear_feedback_controller/fer_joint5/effort
+    - linear_feedback_controller/fer_joint6/effort
+    - linear_feedback_controller/fer_joint7/effort
 
 linear_feedback_controller:
   ros__parameters:
