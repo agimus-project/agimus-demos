@@ -11,7 +11,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    generate_include_franka_launch,
+    generate_include_launch,
     get_use_sim_time,
 )
 
@@ -23,7 +23,7 @@ from agimus_demos_common.static_transform_publisher_node import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
+    franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
