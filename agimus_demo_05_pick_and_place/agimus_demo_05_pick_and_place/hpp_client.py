@@ -128,6 +128,9 @@ class HPPInterface:
             corba.restart()
         self.setup_problem()
 
+    def get_relative_start_obj_pose(self):
+        return self.start_obj_pose
+
     def set_relative_start_obj_pose(
         self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
     ):

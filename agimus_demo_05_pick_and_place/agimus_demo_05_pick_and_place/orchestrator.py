@@ -1,17 +1,19 @@
 """Implement the agimus_demo_05_pick_and_place Orchestrator"""
 
+from typing import Tuple
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 import time
 import typing as T
 
+from tf2_ros import TransformBroadcaster
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, TransformStamped
 from sensor_msgs.msg import JointState
-from vision_msgs.msg import Detection2DArray
+from vision_msgs.msg import Detection2DArray, Detection2D
 
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
@@ -22,8 +24,39 @@ from agimus_demo_05_pick_and_place.hpp_client import (
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_controller_ros.trajectory_publisher_with_visual_servoing import (
     TrajectoryPublisherWithVisualServoing,
-    get_most_confident_object_pose,
 )
+
+
+def map_object_id(obj_id, dataset="tless"):
+    num_part = obj_id.split("_")[1]
+    return f"{dataset}-obj_{int(num_part):06d}"
+
+
+def get_most_confident_object_pose(
+    detection_msg: Detection2DArray, object_name: str
+) -> Tuple[str, list[float]]:
+    # TODO: change the map if we want to use YCBV
+    filtered_detections = [
+        (d, d.results[0].hypothesis.score)
+        for d in detection_msg.detections
+        if d.results[0].hypothesis.class_id == map_object_id(object_name)
+    ]
+    if len(filtered_detections) == 0:
+        return ["", None]
+    detection: Detection2D = max(filtered_detections, key=lambda pair: pair[1])[0]
+    pose: Pose = detection.results[0].pose.pose
+    return [
+        detection.header.frame_id,
+        [
+            pose.position.x,
+            pose.position.y,
+            pose.position.z,
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w,
+        ],
+    ]
 
 
 def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[float]]:
@@ -81,9 +114,10 @@ class Orchestrator(object):
         self.is_simulation = (
             self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
         )
-        print("IS SIM ", self.is_simulation)
 
         self.object_to_grasp_name = None
+        self.start_obj_pose = None
+        self.goal_obj_pose = None
 
         self.trajectory_publisher = TrajectoryPublisherWithVisualServoing()
         # self.is_simulation = self.trajectory_publisher.params.use_sim_time
@@ -100,12 +134,19 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        self.vision_client = AsyncSubscriber(
-            self._node,
+        # self.vision_client = AsyncSubscriber(
+        #    self._node,
+        #    Detection2DArray,
+        #    "/happypose/detections",
+        #    qos_profile_system_default,
+        # )
+        self.vision_client = self.create_subscription(
             Detection2DArray,
             "/happypose/detections",
-            qos_profile_system_default,
+            self.vision_callback,
+            qos_profile=qos_profile_system_default,
         )
+        self.tf_broadcaster = TransformBroadcaster(self)
 
         self.open_gripper()
         rclpy.spin_until_future_complete(
@@ -159,6 +200,39 @@ class Orchestrator(object):
             0.03897743672132492,
         ]
 
+    def vision_callback(self, vision_msg: Detection2DArray):
+        if vision_msg.detections == [] or self.object_to_grasp_name is None:
+            return
+        frame, in_camera_pose_object = get_most_confident_object_pose(
+            vision_msg, self.object_to_grasp_name
+        )
+        if in_camera_pose_object[1] is None:
+            raise ValueError(f"No {self.object_to_grasp_name} object detected")
+        frame = "panda/" + frame
+        current_robot_state = self.state_client.wait_for_future()
+        q_init = list(current_robot_state.position)
+        self.hpp_client.set_relative_start_obj_pose(
+            in_camera_pose_object, q_init, frame
+        )
+        self.start_obj_pose = self.hpp_client.get_relative_start_obj_pose()
+        t = TransformStamped()
+
+        # Read message content and assign it to
+        # corresponding tf variables
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = "support_link"
+        t.child_frame_id = "current_object"
+        t.transform.translation.x = self.start_obj_pose[0]
+        t.transform.translation.y = self.start_obj_pose[1]
+        t.transform.translation.z = self.start_obj_pose[2]
+        t.transform.rotation.x = self.start_obj_pose[3]
+        t.transform.rotation.y = self.start_obj_pose[4]
+        t.transform.rotation.z = self.start_obj_pose[5]
+        t.transform.rotation.w = self.start_obj_pose[6]
+
+        # Send the transformation
+        self.tf_broadcaster.sendTransform(t)
+
     def set_temporary_hpp_q_init(self, pose):
         """Useful to get correct transformation between robot's frames."""
         q_tmp = (
@@ -169,28 +243,23 @@ class Orchestrator(object):
         )
         self.hpp_client.robot.setCurrentConfig(q_tmp)
 
-    def get_object_start_and_goal_pose(
+    def set_object_start_and_goal_pose(
         self, object_name: str, use_hardcoded_poses: bool
     ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
         obj_start_pose = None
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
-            obj_start_pose = get_hardcoded_initial_object_pose(object_name)
+            self.start_obj_pose = get_hardcoded_initial_object_pose(object_name)
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
-            object_detections = self.vision_client.wait_for_future()
-            print("got obj pose")
-            obj_start_pose = get_most_confident_object_pose(
-                object_detections, object_name
-            )
-            obj_start_pose[0] = "panda/" + obj_start_pose[0]
+            while self.start_obj_pose is None:
+                pass
 
         if obj_start_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
-        obj_goal_pose = get_hardcoded_final_object_pose(object_name=object_name)
-        return obj_start_pose, obj_goal_pose
+        self.goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
@@ -257,21 +326,19 @@ class Orchestrator(object):
         use_hardcoded_poses: bool = False,
         enable_visualization_in_gepetto_gui: bool = True,
     ):
-        self.object_to_grasp_name = object_name
         current_robot_state = self.state_client.wait_for_future()
-        q_init = list(current_robot_state.position)
 
         self.hpp_client = HPPInterface(
             object_name=object_name,
             use_spline_gradient_based_opt=False,
         )
-        start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
+        self.object_to_grasp_name = object_name
+        self.set_object_start_and_goal_pose(
             object_name, use_hardcoded_poses=use_hardcoded_poses
         )
-        self.hpp_client.set_relative_start_obj_pose(
-            start_obj_pose[1], q_init, start_obj_pose[0]
+        self.hpp_client.set_goal_obj_pose(
+            self.goal_obj_pose[0], self.goal_obj_pose[1][:3]
         )
-        self.hpp_client.set_goal_obj_pose(goal_obj_pose[0], goal_obj_pose[1][:3])
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             q_init=list(current_robot_state.position),
