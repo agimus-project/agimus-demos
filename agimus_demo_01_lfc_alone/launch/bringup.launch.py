@@ -4,14 +4,14 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    generate_include_franka_launch,
+    generate_include_launch,
 )
 
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    return [generate_include_franka_launch("franka_common_lfc.launch.py")]
+    return [generate_include_launch("franka_common_lfc.launch.py")]
 
 
 def generate_launch_description():
