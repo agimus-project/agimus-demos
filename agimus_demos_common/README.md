@@ -128,7 +128,7 @@ This package provides utility functions to ease up creation of new launch files.
 ```python
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    generate_include_franka_launch,
+    generate_include_launch,
     get_use_sim_time,
 )
 
@@ -137,7 +137,7 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     # Helper function that includes `franka_common_lfc.launch.py`.
-    franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
+    franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
 
     # Utility ROS node, delaying stat of other nodes until
     # robot's position was initialized in the simulation.
@@ -177,7 +177,7 @@ def generate_launch_description():
     )
 ```
 
-Function `generate_default_franka_args()` ensures all launch arguments used by `franka_common.launch.py` are exposed by launch file, while `generate_include_franka_launch()` includes that file and uses those declared parameters.
+Function `generate_default_franka_args()` ensures all launch arguments used by `franka_common.launch.py` are exposed by launch file, while `generate_include_launch()` includes that file and uses those declared parameters.
 
 Function `generate_default_franka_args()` is directly used by `franka_common.launch.py`, so all arguments exposed by it are described in the documentation above.
 

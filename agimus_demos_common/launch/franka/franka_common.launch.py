@@ -1,7 +1,9 @@
 import ast
+from copy import deepcopy
 
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
+    ExecuteProcess,
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
@@ -128,18 +130,55 @@ def launch_setup(
     )
 
     spawn_external_controllers = generate_controllers_spawner_launch_description(
-        external_controllers_names_list,
+        deepcopy(external_controllers_names_list),
         controller_params_files=(
             [external_controllers_params_str]
             if external_controllers_params_str != ""
             else None
         ),
+        extra_spawner_args=[
+            "--inactive",
+            "--controller-manager-timeout",
+            "10000000",
+        ],
+    )
+
+    print("external_controllers_names_list = ", external_controllers_names_list)
+    activate_external_controllers = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "control",
+            "switch_controllers",
+            "--activate",
+        ]
+        + deepcopy(external_controllers_names_list),
+        output="screen",
     )
 
     spawn_external_controllers_on_exit_event = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=wait_for_non_zero_joints_node,
             on_exit=[spawn_external_controllers],
+        ),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    use_gazebo,
+                    "' == 'true' or '",
+                    aux_computer_ip,
+                    "' == '') and ",
+                    external_controllers_names,
+                    " != ['']",
+                ]
+            )
+        ),
+    )
+
+    activate_external_controllers_on_exit_event = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_external_controllers.entities[2],
+            on_exit=[activate_external_controllers],
         ),
         condition=IfCondition(
             PythonExpression(
@@ -189,6 +228,7 @@ def launch_setup(
             franka_hardware_launch,
             wait_for_non_zero_joints_node,
             spawn_external_controllers_on_exit_event,
+            activate_external_controllers_on_exit_event,
         ]
 
     franka_remote_hardware_launch = IncludeLaunchDescription(
@@ -367,6 +407,7 @@ def launch_setup(
         franka_simulation_launch,
         wait_for_non_zero_joints_node,
         spawn_external_controllers_on_exit_event,
+        activate_external_controllers_on_exit_event,
         robot_state_publisher_node,
         robot_collision_publisher_node,
         robot_srdf_publisher_node,
