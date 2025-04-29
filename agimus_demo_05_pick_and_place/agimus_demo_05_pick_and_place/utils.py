@@ -59,12 +59,17 @@ def path_move_object(path):
 
 
 class BaseObject(object):
-    rootJointType = "freeflyer"
-
-    def __init__(self, urdf_path: str, srdf_path: str, name: str):
+    def __init__(
+        self,
+        urdf_path: str,
+        srdf_path: str,
+        name: str,
+        rootJointType: str = "freeflyer",
+    ):
         self.urdfFilename = urdf_path
         self.srdfFilename = srdf_path
         self.name = name
+        self.rootJointType = rootJointType
 
 
 def get_obj_goal_handles(prefix: str, srdf_path: str) -> (list[str], list[str]):

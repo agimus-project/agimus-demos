@@ -192,12 +192,7 @@ class Orchestrator(object):
         """
         This function iterates over grasps detected with ContactGraspNet and adds corresponding handles
         """
-        grasp_hpp_q = (
-            self.grasp_q
-            + self.hpp_client.start_obj_pose
-            + self.hpp_client.default_obstacle_pose
-            + self.hpp_client.default_obstacle2_pose
-        )
+        grasp_hpp_q = self.grasp_q + self.hpp_client.start_obj_pose
         self.hpp_client.robot.setCurrentConfig(grasp_hpp_q)
         # TODO: change from hardcoded robot name
         cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
@@ -343,12 +338,7 @@ class Orchestrator(object):
         self.v = self.hpp_client.vf.createViewer()
         current_robot_state = self.state_client.wait_for_future()
 
-        hpp_q_init = (
-            list(current_robot_state.position)
-            + self.hpp_client.start_obj_pose
-            + self.hpp_client.default_obstacle_pose
-            + self.hpp_client.default_obstacle2_pose
-        )
+        hpp_q_init = list(current_robot_state.position) + self.hpp_client.start_obj_pose
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
         input("Look on the robot in gepetto-viewer")
 

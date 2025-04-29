@@ -109,12 +109,15 @@ class HPPInterface:
             urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
             srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
             name="source_box",
+            rootJointType="anchor",
         )
         self.obstacle2_object = BaseObject(
             urdf_path=retrieve_resource(f"{package_location}/urdf/small_box.urdf"),
             srdf_path=retrieve_resource(f"{package_location}/srdf/small_box.srdf"),
             name="dest_box",
+            rootJointType="anchor",
         )
+
         # Init corbaserver programmatically
         # self.corba = CorbaServer()
         # if hppcorbaserver runs already
@@ -183,12 +186,8 @@ class HPPInterface:
         # load moving obstacle
         self.vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
         self.vf.loadObjectModel(self.obstacle2_object, self.obstacle2_object.name)
-        self.robot.setJointBounds(
-            f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
-        )
-        self.robot.setJointBounds(
-            f"{self.obstacle2_object.name}/root_joint", self.default_object_bounds
-        )
+        self.robot.setRootJointPosition("source_box", self.default_obstacle_pose)
+        self.robot.setRootJointPosition("dest_box", self.default_obstacle2_pose)
         print("Part and box loaded")
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
             "panda",
@@ -199,7 +198,6 @@ class HPPInterface:
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
             srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
-        srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += "</robot>"
         self.robot.client.manipulation.robot.insertRobotSRDFModelFromString(
             "panda", srdfString
@@ -220,13 +218,14 @@ class HPPInterface:
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
 
-        for name, position in (
-            ("source_box", self.default_obstacle_pose),
-            ("dest_box", self.default_obstacle2_pose),
-        ):
-            lj_name = f"locked_{name}"
-            self.ps.createLockedJoint(lj_name, f"{name}/root_joint", position)
-            self.ps.setConstantRightHandSide(lj_name, True)
+        # for name, position in (
+        #     ("source_box", self.default_obstacle_pose),
+        #     ("dest_box", self.default_obstacle2_pose),
+        # ):
+        #     lj_name = f"locked_{name}"
+        #     self.ps.createLockedJoint(lj_name, f"{name}/root_joint", position)
+        #     self.ps.setConstantRightHandSide(lj_name, True)
+
         # Add handle of the objects
         self.handles, self.goal_handles = get_obj_goal_handles(
             prefix=self.manip_object.name + "/",
@@ -314,21 +313,12 @@ class HPPInterface:
         config_box_poses=None,
     ):
         self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
-        self.binPicking.objects = [
-            self.manip_object.name,
-            self.obstacle_object.name,
-            self.obstacle2_object.name,
-        ]
+        self.binPicking.objects = [self.manip_object.name]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
         self.binPicking.goalGrippers = ["goal/gripper"]
         self.binPicking.goalHandles = self.goal_handles
         self.binPicking.handles = self.handles
-        self.binPicking.graphConstraints = [
-            "locked_finger_1",
-            "locked_finger_2",
-            "locked_source_box",
-            "locked_dest_box",
-        ]
+        self.binPicking.graphConstraints = ["locked_finger_1", "locked_finger_2"]
 
         # TODO: restructure this
         def disable_collision():
@@ -376,12 +366,7 @@ class HPPInterface:
             "Goal object pose should have been set before."
         )
 
-        self.q_init = (
-            q_init
-            + self.start_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
+        self.q_init = q_init + self.start_obj_pose
 
         self._build_bin_picking(
             enable_collision_between_box_and_part,
@@ -389,8 +374,6 @@ class HPPInterface:
             config_box_poses=(
                 q_init  # Not important
                 + self.start_obj_pose  # Not important
-                + self.default_obstacle_pose
-                + self.default_obstacle2_pose
             ),
         )
 
@@ -440,20 +423,10 @@ class HPPInterface:
         )
 
         # object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
-        self.q_init = (
-            q_init
-            + self.start_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
+        self.q_init = q_init + self.start_obj_pose
         if q_goal is None:
             q_goal = q_init.copy()
-        self.q_goal = (
-            q_goal
-            + self.goal_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
+        self.q_goal = q_goal + self.goal_obj_pose
 
         self._build_bin_picking(True, build_effector=False)
 

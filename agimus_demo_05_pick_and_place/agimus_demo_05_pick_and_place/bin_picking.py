@@ -224,7 +224,7 @@ class BinPicking(object):
             self.robot,
             self.robotGrippers + self.goalGrippers,
             self.objects,
-            [handles, [], []],
+            [handles],
             self._rules(),
             self._possibleGrasps(),
             factory_kwargs=dict(
