@@ -185,6 +185,7 @@ class HPPInterface:
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
         self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
+        self.ps.setParameter("BiRRT*/maxStepLength", 0.5 * float(np.sqrt(7)))
 
         # Add path projector to avoid discontinuities
         self.ps.selectPathProjector("Progressive", 0.05)
@@ -496,6 +497,7 @@ class HPPInterface:
             "locked_object", f"{self.manip_object.name}/root_joint", self.start_obj_pose
         )
         self.ps.setConstantRightHandSide("locked_object", True)
+
         bp = self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
         bp.objects = [
             self.manip_object.name,
@@ -544,6 +546,10 @@ class HPPInterface:
                 last_q, path.initial(), True
             )
             assert res, f"Failed to generate path: {msg}"
+            p_to_start = bp.wd(p_to_start)
+            p_to_start = bp.wd(
+                bp.transitionPlanner.timeParameterization(p_to_start.asVector())
+            )
 
             last_q = path.initial()
             paths.append(p_to_start)
