@@ -124,7 +124,7 @@ def launch_setup(
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
-        # tf_node,
+        tf_node,
         tf_node_support_link,
         RegisterEventHandler(
             event_handler=OnProcessExit(
