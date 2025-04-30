@@ -38,7 +38,6 @@ from hpp_idl.hpp.core_idl import Path as HPPPath
 import time
 
 from agimus_demo_05_pick_and_place.utils import (
-    split_path,
     BaseObject,
     get_obj_goal_handles,
 )
@@ -362,9 +361,9 @@ class HPPInterface:
         enable_collision_between_box_and_part: bool = True,
         q_above_source_bin: T.Optional[list[float]] = None,
     ):
-        assert (
-            self._goal_obj_pose is not None
-        ), "Goal object pose should have been set before."
+        assert self._goal_obj_pose is not None, (
+            "Goal object pose should have been set before."
+        )
 
         self.q_init = (
             q_init

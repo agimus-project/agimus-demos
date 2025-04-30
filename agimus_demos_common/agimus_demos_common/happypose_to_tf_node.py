@@ -6,7 +6,7 @@ from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
-from geometry_msgs.msg import TransformStamped, Pose
+from geometry_msgs.msg import TransformStamped
 from vision_msgs.msg import Detection2DArray
 from agimus_controller_ros.ros_utils import (
     transform_to_se3,
