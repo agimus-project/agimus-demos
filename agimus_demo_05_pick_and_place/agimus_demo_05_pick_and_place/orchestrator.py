@@ -140,13 +140,13 @@ class Orchestrator(object):
         #    "/happypose/detections",
         #    qos_profile_system_default,
         # )
-        self.vision_client = self.create_subscription(
+        self.vision_client = self._node.create_subscription(
             Detection2DArray,
             "/happypose/detections",
             self.vision_callback,
             qos_profile=qos_profile_system_default,
         )
-        self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_broadcaster = TransformBroadcaster(self._node)
 
         self.open_gripper()
         rclpy.spin_until_future_complete(
@@ -247,17 +247,20 @@ class Orchestrator(object):
         self, object_name: str, use_hardcoded_poses: bool
     ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
-        obj_start_pose = None
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
             self.start_obj_pose = get_hardcoded_initial_object_pose(object_name)
+            # we assume that start_object_pose is a static frame
+            self.hpp_client.set_relative_start_obj_pose(
+                self.start_obj_pose[1], [0.0] * 9, self.start_obj_pose[0]
+            )
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
             while self.start_obj_pose is None:
                 pass
 
-        if obj_start_pose[1] is None:
+        if self.start_obj_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
         self.goal_obj_pose = get_hardcoded_final_object_pose(object_name=object_name)
 
@@ -296,7 +299,10 @@ class Orchestrator(object):
             == "generic_trajectory_visual_servoing"
         ):
             self.trajectory_publisher.add_trajectory(
-                trajectory, use_visual_servoing, object_name
+                trajectory,
+                use_visual_servoing,
+                object_name,
+                self.hpp_client.start_obj_pose,
             )
 
     def go_to(

@@ -5,13 +5,13 @@ simple_trajectory_publisher:
     w_qdot: [1.0]
     w_qddot: [0.000001]
     w_robot_effort: [1.0]
-    w_pose: [1.0]
+    w_pose: [0.0]
     ee_frame_name: fer_hand_tcp
     trajectory_name: generic_trajectory_visual_servoing
     generic_trajectory_visual_servoing:
       start_visual_servoing_distance_threshold: 0.1
       simulate_happypose: true
       increasing_weights:
-        max_weight: 100.0
+        max_weight: 1000.0
         percent: 0.9
         time_reach_percent: 6.0
