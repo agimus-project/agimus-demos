@@ -362,9 +362,9 @@ class HPPInterface:
         enable_collision_between_box_and_part: bool = True,
         q_above_source_bin: T.Optional[list[float]] = None,
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
-        )
+        assert (
+            self._goal_obj_pose is not None
+        ), "Goal object pose should have been set before."
 
         self.q_init = (
             q_init
@@ -422,23 +422,25 @@ class HPPInterface:
         # Resolving the path to the object
         print("[INFO] Object found with no collision")
         print("Solving ...")
-        res, p = self.binPicking.solve(q_start_solve)
+        res, paths = self.binPicking.solve(q_start_solve)
         if res:
-            print("Pick and place path", p)
-            print(p.length())
-            grasp_path, placing_path, freefly_path = split_path(
-                p, self.binPicking.c_robot()
-            )
+            # print("Pick and place path", p)
+            # print(p.length())
+            # grasp_path, placing_path, freefly_path = split_path(
+            #     p, self.binPicking.c_robot()
+            # )
             if path_to_start is not None:
                 p = path_to_start.asVector()
-                p.appendPath(grasp_path)
-                grasp_path = p
-                freefly_path.appendPath(path_to_start.reverse())
-            self.ps.client.basic.problem.addPath(grasp_path)
-            self.ps.client.basic.problem.addPath(placing_path)
-            self.ps.client.basic.problem.addPath(freefly_path)
+                p.appendPath(paths[0])
+                paths[0] = p
+                paths[-1].appendPath(path_to_start.reverse())
+            for p in paths:
+                self.ps.client.basic.problem.addPath(p)
+            # self.ps.client.basic.problem.addPath(grasp_path)
+            # self.ps.client.basic.problem.addPath(placing_path)
+            # self.ps.client.basic.problem.addPath(freefly_path)
             print("Path generated.")
-            return grasp_path, placing_path, freefly_path
+            return paths
         else:
             # In this case, p is a string containing the error message
             print("No solution", p)
