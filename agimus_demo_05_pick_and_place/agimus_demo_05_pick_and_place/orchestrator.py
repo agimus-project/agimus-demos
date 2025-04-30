@@ -134,12 +134,12 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        # self.vision_client = AsyncSubscriber(
-        #    self._node,
-        #    Detection2DArray,
-        #    "/happypose/detections",
-        #    qos_profile_system_default,
-        # )
+        self.vision_client = AsyncSubscriber(
+            self._node,
+            Detection2DArray,
+            "/happypose/detections",
+            qos_profile_system_default,
+        )
         self.vision_client = self._node.create_subscription(
             Detection2DArray,
             "/happypose/detections",
@@ -257,8 +257,17 @@ class Orchestrator(object):
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
-            while self.start_obj_pose is None:
-                pass
+            object_detections = self.vision_client.wait_for_future()
+            print("got obj pose")
+            obj_start_pose = self.get_most_confident_object_pose(
+                object_detections, object_name
+            )
+            obj_start_pose[0] = "panda/" + obj_start_pose[0]
+            # we assume that start_object_pose is a static frame
+            self.hpp_client.set_relative_start_obj_pose(
+                obj_start_pose[1], [0.0] * 9, obj_start_pose[0]
+            )
+            self.start_obj_pose = self.hpp_client.get_relative_start_obj_pose()
 
         if self.start_obj_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
@@ -338,6 +347,24 @@ class Orchestrator(object):
             object_name=object_name,
             use_spline_gradient_based_opt=False,
         )
+        t = TransformStamped()
+
+        # Read message content and assign it to
+        # corresponding tf variables
+        t.header.stamp = self.get_clock().now().to_msg()
+        object_name_num_part = object_name.split("_")[1]
+        t.header.frame_id = f"obj_{int(object_name_num_part):06d}"
+        t.child_frame_id = "current_object"
+        t.transform.translation.x = 0.0
+        t.transform.translation.y = 0.0
+        t.transform.translation.z = 0.0
+        t.transform.rotation.x = 0.0
+        t.transform.rotation.y = 0.0
+        t.transform.rotation.z = 0.0
+        t.transform.rotation.w = 1.0
+
+        # Send the transformation
+        self.tf_broadcaster.sendTransform(t)
         self.object_to_grasp_name = object_name
         self.set_object_start_and_goal_pose(
             object_name, use_hardcoded_poses=use_hardcoded_poses
