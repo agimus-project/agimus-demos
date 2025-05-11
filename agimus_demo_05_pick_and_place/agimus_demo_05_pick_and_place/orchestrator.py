@@ -9,7 +9,7 @@ from typing import Tuple
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState, PointCloud2
 from vision_msgs.msg import Detection2DArray
@@ -29,6 +29,7 @@ from agimus_demo_05_pick_and_place.utils import (
     graspnet_to_handle,
     inverse_pose,
     multiply_poses,
+    XYZQuatType,
 )
 from agimus_demo_05_pick_and_place.poincloud_utils import read_points_xyz_rgb
 from hpp.corbaserver.manipulation import loadServerPlugin
@@ -55,14 +56,15 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
 
 def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
     """Return desired object position in world frame."""
-    if object_name == "obj_21":
-        return [0.38, 0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_23":
-        return [0.5, 0.17, 0.85, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_26":
-        return [0.65, 0.25, 0.85, 0.0, 0.0, 0.0, 1.0]
+    obj_id = int(object_name[-2:])
+    if int(obj_id) in [1, 2, 3, 4, 11, 12, 13, 14, 15, 16]:
+        return [-0.15, 0.0, 0.2, 0.0, 0.0, 0.0, 1.0]
+    elif int(obj_id) in [19, 20, 23, 24]:
+        return [0.25, 0.0, 0.18, 0.0, 0.0, 0.0, 1.0]
     else:
-        raise ValueError(f"Object {object_name} not found")
+        return [0.0, 0.0, 0.18, 0.0, 0.0, 0.0, 1.0]
+    # else:
+    #     raise ValueError(f"Object {object_name} not found")
 
 
 def get_goal_box_pose(obj_id: str) -> list[float]:
@@ -98,6 +100,8 @@ class Orchestrator(object):
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "cont_grasp_net_obj"
         self.use_hardcoded_poses = False
+        self.use_contact_graspnet = False
+        self.use_pointcloud = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -118,25 +122,28 @@ class Orchestrator(object):
                 self._node,
                 Detection2DArray,
                 "/happypose/detections",
-                qos_profile_system_default,
+                QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
             )
-        self.pointcloud_client = AsyncSubscriber(
-            self._node,
-            PointCloud2,
-            "/camera/depth/color/points",
-            QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
-        )
-        self.grasps_client = self._node.create_client(
-            GetSceneGrasps, "contact_graspnet/get_scene_grasps"
-        )
+        if self.use_pointcloud:
+            self.pointcloud_client = AsyncSubscriber(
+                self._node,
+                PointCloud2,
+                "/camera/depth/color/points",
+                QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
+            )
+        if self.use_contact_graspnet:
+            self.grasps_client = self._node.create_client(
+                GetSceneGrasps, "contact_graspnet/get_scene_grasps"
+            )
         self.open_gripper()
         # if hppcorbaserver is running in a separate script
         loadServerPlugin("corbaserver", "manipulation-corba.so")
         loadServerPlugin("corbaserver", "bin_picking.so")
 
-        self.detected_grasps = self.get_all_grasps()
-        current_robot_state = self.state_client.wait_for_future()
-        self.grasp_q = list(current_robot_state.position)
+        if self.use_contact_graspnet:
+            self.detected_grasps = self.get_all_grasps()
+            current_robot_state = self.state_client.wait_for_future()
+            self.grasp_q = list(current_robot_state.position)
 
     def get_all_grasps(self) -> dict[list[tuple[np.array, float]]]:
         """Get all grasps from the graspnet service"""
@@ -165,18 +172,28 @@ class Orchestrator(object):
 
         return all_grasps
 
-    def get_most_confident_object_pose(
-        self, detection_msg: Detection2DArray, object_name: str
+    def get_best_object_pose(
+        self,
+        detection_msg: Detection2DArray,
+        object_name: str,
+        metric: str = "confidence",  # 'confidence', 'closeness'
     ) -> list[float]:
         # TODO: change the map if we want to use YCBV
         filtered_detections = [
-            (d, d.results[0].hypothesis.score)
+            (d, d.results[0].hypothesis.score, d.results[0].pose.pose.position.z)
             for d in detection_msg.detections
             if d.results[0].hypothesis.class_id == map_object_id(object_name)
         ]
         if len(filtered_detections) == 0:
-            return
-        detection = max(filtered_detections, key=lambda pair: pair[1])[0]
+            raise ValueError(
+                f"in get best pose No object with id {object_name}, all present ids: {[d.results[0].hypothesis.class_id for d in detection_msg.detections]}"
+            )
+        if metric == "confidence":
+            detection = max(filtered_detections, key=lambda pair: pair[1])[0]
+        elif metric == "closeness":
+            detection = min(filtered_detections, key=lambda pair: pair[2])[0]
+        else:
+            raise ValueError(f"Unknown metric for best object pose {metric}")
         pose: Pose = detection.results[0].pose.pose
         return [
             pose.position.x,
@@ -235,7 +252,9 @@ class Orchestrator(object):
         print("Picking up object", object_to_pick, "with distance", closest_dist)
         return object_to_pick
 
-    def get_object_start_and_goal_pose(self, object_name: str) -> Tuple[float, float]:
+    def get_object_start_and_goal_pose(
+        self, object_name: str, q: XYZQuatType
+    ) -> Tuple[float, float]:
         """Return start and goal pose of the object in world frame."""
         obj_in_world_start_pose = None
         if self.use_hardcoded_poses:
@@ -251,10 +270,13 @@ class Orchestrator(object):
                 )
             else:
                 # REAL setup
+                print("waiting for vision")
                 object_detections = self.vision_client.wait_for_future()
-                obj_in_cam_start_pose = self.get_most_confident_object_pose(
-                    object_detections, object_name
+                print("Got vision")
+                obj_in_cam_start_pose = self.get_best_object_pose(
+                    object_detections, object_name, metric="closeness"
                 )
+                self.hpp_client.robot.setCurrentConfig(q)
                 # TODO: change from hardcoded robot name
                 cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
                     linkName="panda/camera_color_optical_frame"
@@ -329,18 +351,20 @@ class Orchestrator(object):
             source_bin_pose=source_bin_pose,
             destination_bin_pose=normalize_quaternion(destination_bin_pose),
         )
-        self.set_pointcloud()
+        if self.use_pointcloud:
+            self.set_pointcloud()
+        current_robot_state = self.state_client.wait_for_future()
+        hpp_q_init = list(current_robot_state.position) + self.hpp_client.start_obj_pose
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
-            object_name=object_name
+            object_name=object_name, q=hpp_q_init
         )
         self.hpp_client.start_obj_pose = start_obj_pose
         self.hpp_client.goal_obj_pose = goal_obj_pose
         self.v = self.hpp_client.vf.createViewer()
-        current_robot_state = self.state_client.wait_for_future()
 
         hpp_q_init = list(current_robot_state.position) + self.hpp_client.start_obj_pose
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
-        input("Look on the robot in gepetto-viewer")
+        # input("Look on the robot in gepetto-viewer")
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position)

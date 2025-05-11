@@ -139,7 +139,7 @@ class BinPicking(object):
     This configuration defines the poses of objects other than the part.
     """
     timeParamDict = {
-        "freefly": {"order": 2, "maxAcc": 1.0, "safety": 0.95},
+        "freefly": {"order": 2, "maxAcc": 2.0, "safety": 0.95},
         "grasping": {"order": 2, "maxAcc": 0.1, "safety": 0.95},
         "approach": {"order": 2, "maxAcc": 0.5, "safety": 0.95},
     }
@@ -157,6 +157,7 @@ class BinPicking(object):
         self.bpc = BpClient()
         # Store place paths where the object is released
         self.placePaths = dict()
+        self.placePaths_debug_msg = dict()
         self._freeGrasps = dict()
 
     def c_robot(self):
@@ -311,6 +312,7 @@ class BinPicking(object):
         for irg in robotGrippers:
             robotGripper = self.factory.grippers[irg]
             self.placePaths[robotGripper] = dict()
+            self.placePaths_debug_msg[robotGripper] = dict()
 
             for ih in regularHandles:
                 handle = self.factory.handles[ih]
@@ -330,6 +332,8 @@ class BinPicking(object):
                             self.placePaths[robotGripper][handle] = p
                             found = True
                             break
+                        else:
+                            self.placePaths_debug_msg[robotGripper][handle] = msg
                     if found:
                         break
 
@@ -444,7 +448,13 @@ class BinPicking(object):
             self._freeGrasps[gripper] = list()
             for handle in self.handles:
                 if self.placePaths[gripper].get(handle) is None:
-                    failure_reports.append((gripper, handle, "no place path"))
+                    failure_reports.append(
+                        (
+                            gripper,
+                            handle,
+                            f"no place path with msg: {self.placePaths_debug_msg[gripper].get(handle)}",
+                        )
+                    )
                     continue
                 col, msg, gripperAxis = self.bpc.bin_picking.collisionTest(
                     gripper, handle, q
@@ -477,7 +487,11 @@ class BinPicking(object):
                 placePath = self.placePaths[gripper].get(handle)
                 if not placePath:
                     failure_reports.append(
-                        (gripper, handle, f"No place path for {gripper} / {handle}")
+                        (
+                            gripper,
+                            handle,
+                            f"No place path for {gripper} / {handle} with msg: {self.placePaths_debug_msg[gripper].get(handle)}",
+                        )
                     )
                     break
                 # generate pregrasp, grasp and preplace configuration to
@@ -543,7 +557,7 @@ class BinPicking(object):
         q = q_start
         edge = "Loop | f"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
-        self.setParam("approach")
+        self.setParam("freefly")
         # TODO when the direct path succeeds, it is not time parameterized.
         # I (Joseph Mirabel) don't thing we actually need the explicit call
         # to directPath because I expect `planPath` to try it first.
@@ -570,7 +584,7 @@ class BinPicking(object):
         return True, p_direct
 
     def move_in_free(self, q_start, q_goal):
-        self.setParam("approach")
+        self.setParam("freefly")
         edge = "Loop | f"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p = self.wd(
