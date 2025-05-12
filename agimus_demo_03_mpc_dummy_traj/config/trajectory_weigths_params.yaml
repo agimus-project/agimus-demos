@@ -3,18 +3,22 @@ simple_trajectory_publisher:
   ros__parameters:
     ee_frame_name: fer_hand_tcp
     w_q: [1.0]
-    w_qdot: [1.0]
+    w_qdot: [0.04]
     w_qddot: [0.000001]
-    w_robot_effort: [1.0]
+    w_robot_effort: [0.0008]
     w_pose: [1.0]
 
     mask: [true, true, true, false, false, false]
     # mask: [True, True, True, True, True, True]
-    trajectory_name: sine_wave_cartesian_space
+    w_increasing:
+      max_weight: 150.0
+      percent: 0.9
+      time_reach_percent: 4.0
+    trajectory_name: sine_wave_cartesian_space_weight_increasing
     sine_wave:
-      period: [4.0, 4.0, 0.0]
+      period: [4.0, 4.0, 4.0]
       scale_duration: [2.0, 2.0, 2.0]
-      amplitude: [0.1, 0.1, 0.1]
+      amplitude: [0.05, 0.05, 0.02]
 
     # trajectory_name: sine_wave_configuration_space
     # sine_wave:
