@@ -3,62 +3,62 @@
  <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="Right Arm">
    <Container>
-    <DockSplitter sizes="1" orientation="-" count="1">
-     <DockSplitter sizes="0.5;0.5" orientation="|" count="2">
-      <DockSplitter sizes="0.333712;0.332577;0.333712" orientation="-" count="3">
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.333333;0.333333;0.333333" count="3">
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-14.360985" top="-0.020871" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.697665" top="-0.036805" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[0]" color="#1f77b4"/>
          <curve name="/joint_states/arm_right_1_joint/position" color="#17becf"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-148.210142" top="1.750702" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-2.137730" top="-1.534539" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[1]" color="#d62728"/>
          <curve name="/joint_states/arm_right_2_joint/position" color="#bcbd22"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-0.499186" top="0.314054" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.669025" top="-0.336516" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[2]" color="#1ac938"/>
          <curve name="/joint_states/arm_right_3_joint/position" color="#1f77b4"/>
         </plot>
        </DockArea>
       </DockSplitter>
-      <DockSplitter sizes="0.25;0.25;0.25;0.25" orientation="-" count="4">
+      <DockSplitter orientation="-" sizes="0.250562;0.249438;0.250562;0.249438" count="4">
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-298.427124" top="4.896518" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-2.420716" top="-2.109277" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[3]" color="#ff7f0e"/>
          <curve name="/joint_states/arm_right_4_joint/position" color="#d62728"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-0.018609" top="1.272220" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.188770" top="0.281552" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[4]" color="#f14cc1"/>
          <curve name="/joint_states/arm_right_5_joint/position" color="#1ac938"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-1.300182" top="2.198606" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-1.561440" top="-1.010955" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[5]" color="#17becf"/>
          <curve name="/joint_states/arm_right_6_joint/position" color="#ff7f0e"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-         <range bottom="-3.530741" top="140.790411" right="2846.877815" left="2567.262157"/>
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-1.856910" top="0.160642" right="62.446658"/>
          <limitY/>
          <curve name="/mpc_input/q[6]" color="#9467bd"/>
          <curve name="/joint_states/arm_right_7_joint/position" color="#f14cc1"/>
@@ -71,20 +71,91 @@
   </Tab>
   <Tab containers="1" tab_name="Desired EE position">
    <Container>
-    <DockSplitter sizes="1" orientation="-" count="1">
+    <DockSplitter orientation="-" sizes="1" count="1">
      <DockArea name="...">
-      <plot flip_y="false" mode="TimeSeries" style="Lines" flip_x="false">
-       <range bottom="-0.787540" top="1.186091" right="2572.262124" left="2567.262157"/>
+      <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+       <range left="57.457246" bottom="-0.327039" top="0.458989" right="62.447251"/>
        <limitY/>
        <curve name="/mpc_input/pose/position/x" color="#9467bd"/>
        <curve name="/mpc_input/pose/position/y" color="#17becf"/>
        <curve name="/mpc_input/pose/position/z" color="#bcbd22"/>
+       <curve name="/mpc_debug/references[2]/data/data[0]" color="#1f77b4"/>
+       <curve name="/mpc_debug/references[2]/data/data[1]" color="#d62728"/>
+       <curve name="/mpc_debug/references[2]/data/data[2]" color="#1ac938"/>
       </plot>
      </DockArea>
     </DockSplitter>
    </Container>
   </Tab>
-  <currentTabIndex index="0"/>
+  <Tab containers="1" tab_name="tab2">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.250562;0.249438;0.250562;0.249438" count="4">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.697667" top="-0.036740" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[0]" color="#17becf"/>
+         <curve name="/mpc_debug/references[1]/data/data[0]" color="#1ac938"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-2.137761" top="-1.534589" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[1]" color="#bcbd22"/>
+         <curve name="/mpc_debug/references[1]/data/data[1]" color="#ff7f0e"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.673766" top="-0.336271" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[2]" color="#1f77b4"/>
+         <curve name="/mpc_debug/references[1]/data/data[2]" color="#f14cc1"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-2.420770" top="-2.109284" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[3]" color="#d62728"/>
+         <curve name="/mpc_debug/references[1]/data/data[3]" color="#9467bd"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter orientation="-" sizes="0.333333;0.333333;0.333333" count="3">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.188867" top="0.281554" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[4]" color="#1ac938"/>
+         <curve name="/mpc_debug/references[1]/data/data[4]" color="#9467bd"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-1.561440" top="-1.010966" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[5]" color="#ff7f0e"/>
+         <curve name="/mpc_debug/references[1]/data/data[5]" color="#17becf"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-1.982522" top="0.163822" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[6]" color="#f14cc1"/>
+         <curve name="/mpc_debug/references[1]/data/data[6]" color="#bcbd22"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="2"/>
  </tabbed_widget>
  <use_relative_time_offset enabled="1"/>
  <!-- - - - - - - - - - - - - - - -->
@@ -109,7 +180,7 @@
    <max_array_size value="100"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="true"/>
-   <selected_topics value="/mpc_input;/joint_states"/>
+   <selected_topics value="/joint_states;/mpc_input;/mpc_debug"/>
   </plugin>
   <plugin ID="UDP Server"/>
   <plugin ID="WebSocket Server"/>
