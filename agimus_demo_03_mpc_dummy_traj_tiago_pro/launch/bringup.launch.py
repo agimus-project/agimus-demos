@@ -23,7 +23,10 @@ def launch_setup(
     #
     # Robot
     #
-    tiago_robot_launch = generate_include_launch("tiago_pro_common.launch.py")
+    tiago_robot_launch = generate_include_launch(
+        "tiago_pro_common.launch.py",
+        extra_launch_arguments={"tuck_arm": "False"},
+    )
 
     #
     # Parameters
@@ -80,6 +83,12 @@ def launch_setup(
     #
     # Nodes
     #
+    tuck_arm = Node(
+        package="agimus_demo_03_mpc_dummy_traj_tiago_pro",
+        executable="tuck_arm.py",
+        parameters=[get_use_sim_time()],
+        output="screen",
+    )
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -162,6 +171,7 @@ def launch_setup(
         tiago_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
+        tuck_arm,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
