@@ -1,6 +1,11 @@
 from pathlib import Path
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
+from launch.actions import (
+    OpaqueFunction,
+    RegisterEventHandler,
+    ExecuteProcess,
+    DeclareLaunchArgument,
+)
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
@@ -25,6 +30,10 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
+    simulate_happypose_arg = LaunchConfiguration("simulate_happypose")
+    simulate_happypose = (
+        context.perform_substitution(simulate_happypose_arg).lower() == "true"
+    )
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -62,6 +71,13 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
+    if simulate_happypose:
+        happypose_simulation_node = Node(
+            package="agimus_demos_common",
+            executable="happypose_simulation",
+            parameters=[get_use_sim_time()],
+            output="screen",
+        )
 
     environment_description = ParameterValue(
         Command(
@@ -120,7 +136,7 @@ def launch_setup(
         output="screen",
     )
 
-    return [
+    nodes_to_launch = [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
@@ -137,9 +153,19 @@ def launch_setup(
             )
         ),
     ]
+    if simulate_happypose:
+        nodes_to_launch.append(happypose_simulation_node)
+    return nodes_to_launch
 
 
 def generate_launch_description():
+    simulate_happypose = DeclareLaunchArgument(
+        "simulate_happypose",
+        default_value="false",
+        description="Launch happypose simulation node if set to true.",
+    )
     return LaunchDescription(
-        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+        [simulate_happypose]
+        + generate_default_franka_args()
+        + [OpaqueFunction(function=launch_setup)]
     )

@@ -10,7 +10,6 @@ simple_trajectory_publisher:
     trajectory_name: generic_trajectory_visual_servoing
     generic_trajectory_visual_servoing:
       start_visual_servoing_distance_threshold: 0.1
-      simulate_happypose: true
       increasing_weights:
         max_weight: 1000.0
         percent: 0.9
