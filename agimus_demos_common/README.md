@@ -208,3 +208,11 @@ Utility ROS node, mean to delay launch of other nodes until Gazebo simulation st
     Default: *1e-3*
 
     Threshold for sum of absolute values of joint positions used to determine success.
+
+## Tips and tricks.
+
+In order to kill all simulation ghost processes:
+```bash
+alias kr2='pkill -9 -f '\''.*(gzclient|gzserver).*'\'''
+kr2
+```
