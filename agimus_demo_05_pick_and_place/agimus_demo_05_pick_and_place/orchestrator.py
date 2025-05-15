@@ -120,7 +120,7 @@ class Orchestrator(object):
         self.goal_obj_pose = None
 
         self.trajectory_publisher = TrajectoryPublisherWithVisualServoing()
-        # self.is_simulation = self.trajectory_publisher.params.use_sim_time
+        self.dt = self.trajectory_publisher.params.dt
 
         self.state_client = AsyncSubscriber(
             self._node,
@@ -226,7 +226,6 @@ class Orchestrator(object):
                 object_detections, object_name
             )
             obj_start_pose[0] = "panda/" + obj_start_pose[0]
-
         if obj_start_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
         obj_goal_pose = get_hardcoded_final_object_pose(object_name=object_name)
@@ -250,7 +249,9 @@ class Orchestrator(object):
             time.sleep(1.0)
 
     def publish(self, path_vector, use_visual_servoing=False, object_name=None):
-        q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(path_vector)
+        q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(
+            path_vector, dt=self.dt
+        )
         # TODO: get this from OCP params somehow
         q_array += [q_array[-1]] * 40  # OCP horizon
         dq_array += [dq_array[-1]] * 40  # OCP horizon
@@ -363,6 +364,7 @@ class Orchestrator(object):
                 self.trajectory_publisher.future_trajectory_done,
             )
         return
+        """
         if placing_path is not None:
             # TODO: check automatically
             self.close_gripper()
@@ -377,7 +379,7 @@ class Orchestrator(object):
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
-
+        """
         # Commented out since restart does not work properly (corba crashes)
         # self.hpp_client.restart()
         # del self.hpp_client

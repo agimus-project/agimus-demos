@@ -7,6 +7,7 @@ simple_trajectory_publisher:
     w_robot_effort: [1.0]
     w_pose: [0.0]
     ee_frame_name: fer_hand_tcp
+    dt: 0.01
     trajectory_name: generic_trajectory_visual_servoing
     generic_trajectory_visual_servoing:
       start_visual_servoing_distance_threshold: 0.1
