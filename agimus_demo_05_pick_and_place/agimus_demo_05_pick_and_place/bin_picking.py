@@ -651,8 +651,8 @@ class BinPicking(object):
         except Exception as exc:
             raise RuntimeError(f"Failed to connect {q6} and {q7}: {exc}")
         print("Move to end:", p7.length())
-        # return True, concatenatePaths([p1, pickPath, p4, placePath, p7], self.c_robot())
-        return True, [p1, pickPath, p4, placePath, p7]
+        return True, concatenatePaths([p1, pickPath, p4, placePath, p7], self.c_robot())
+        # return True, [p1, pickPath, p4, placePath, p7]
 
 
 if __name__ == "__main__":

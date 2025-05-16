@@ -31,7 +31,7 @@ from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-from agimus_demo_05_pick_and_place.utils import concatenatePaths
+from agimus_demo_05_pick_and_place.utils import concatenatePaths, split_path
 import numpy as np
 from hpp_idl.hpp.core_idl import Path as HPPPath
 
@@ -425,24 +425,29 @@ class HPPInterface:
         if res:
             # print("Pick and place path", p)
             # print(p.length())
-            # grasp_path, placing_path, freefly_path = split_path(
-            #     p, self.binPicking.c_robot()
-            # )
+            print("paths ", paths)
+            grasp_path, placing_path, freefly_path = split_path(
+                paths, self.binPicking.c_robot()
+            )
             if path_to_start is not None:
-                p = path_to_start.asVector()
-                p.appendPath(paths[0])
-                paths[0] = p
-                paths[-1].appendPath(path_to_start.reverse())
-            for p in paths:
-                self.ps.client.basic.problem.addPath(p)
-            # self.ps.client.basic.problem.addPath(grasp_path)
-            # self.ps.client.basic.problem.addPath(placing_path)
-            # self.ps.client.basic.problem.addPath(freefly_path)
+                grasp_path = concatenatePaths(
+                    [path_to_start, grasp_path], self.binPicking.c_robot()
+                )
+            #    p = path_to_start.asVector()
+            #    p.appendPath(paths[0])
+            #    paths[0] = p
+            #    paths[-1].appendPath(path_to_start.reverse())
+            # for p in paths:
+            #    self.ps.client.basic.problem.addPath(p)
+            self.ps.client.basic.problem.addPath(grasp_path)
+            self.ps.client.basic.problem.addPath(placing_path)
+            self.ps.client.basic.problem.addPath(freefly_path)
             print("Path generated.")
-            return paths
+            return grasp_path, placing_path, freefly_path
+            # return paths
         else:
             # In this case, p is a string containing the error message
-            print("No solution", p)
+            print("No solution", paths)
             return None
 
     def plan_free_motion(

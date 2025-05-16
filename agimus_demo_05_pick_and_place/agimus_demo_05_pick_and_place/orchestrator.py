@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import time
 import typing as T
+import pinocchio as pin
 
 from tf2_ros import StaticTransformBroadcaster
 import rclpy
@@ -214,6 +215,7 @@ class Orchestrator(object):
         self, object_name: str, use_hardcoded_poses: bool
     ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
+
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
             obj_start_pose = get_hardcoded_initial_object_pose(object_name)
@@ -261,17 +263,33 @@ class Orchestrator(object):
                 q_array, dq_array, ddq_array
             )
         )
+        null_speed_idxs = [
+            idx for idx, val in enumerate(dq_array) if np.linalg.norm(val) < 1e-5
+        ]
+        pre_grasp_null_speed_idx = null_speed_idxs[2]
         if self.trajectory_publisher.params.trajectory_name == "generic_trajectory":
             self.trajectory_publisher.add_trajectory(trajectory)
         elif (
             self.trajectory_publisher.params.trajectory_name
             == "generic_trajectory_visual_servoing"
         ):
+            in_support_link_M_object = pin.XYZQUATToSE3(
+                self.hpp_client.start_obj_pose.copy()
+            )
+            in_fer_link0_M_support_link = pin.SE3.Identity()
+            in_fer_link0_M_support_link.translation = np.array([0.563, -0.165, -0.780])
+            in_fer_link0_M_support_link.rotation[0, 0] = -1.0
+            in_fer_link0_M_support_link.rotation[1, 1] = -1.0
+            in_fer_link0_M_object = (
+                in_fer_link0_M_support_link * in_support_link_M_object
+            )
+
             self.trajectory_publisher.add_trajectory(
                 trajectory,
                 use_visual_servoing,
                 object_name,
-                self.hpp_client.start_obj_pose,
+                pin.SE3ToXYZQUAT(in_fer_link0_M_object),
+                pre_grasp_null_speed_idx,
             )
 
     def go_to(
@@ -329,16 +347,21 @@ class Orchestrator(object):
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name, use_hardcoded_poses=use_hardcoded_poses
         )
+
         self.hpp_client.set_relative_start_obj_pose(
             start_obj_pose[1], q_init, start_obj_pose[0]
         )
         self.hpp_client.set_goal_obj_pose(goal_obj_pose[0], goal_obj_pose[1][:3])
 
-        # grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
-        paths = self.hpp_client.plan_pick_and_place(
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             q_init=list(current_robot_state.position),
             q_above_source_bin=self.q_above_source_bin,
         )
+        """
+        paths = self.hpp_client.plan_pick_and_place(
+            q_init=list(current_robot_state.position),
+            q_above_source_bin=self.q_above_source_bin,
+        )"""
 
         if enable_visualization_in_gepetto_gui:
             self.v = self.hpp_client.vf.createViewer()
@@ -348,23 +371,23 @@ class Orchestrator(object):
         self.open_gripper()
         self.open_gripper()
 
-        self.publish(paths[0], use_visual_servoing=False, object_name=object_name)
+        self.publish(grasp_path, use_visual_servoing=True, object_name=object_name)
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
-        input("Press Enter to continue...")
-        self.publish(paths[1], use_visual_servoing=True, object_name=object_name)
-        rclpy.spin_until_future_complete(
-            self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
-        )
-        for i in range(2, 5):
-            self.publish(paths[i], use_visual_servoing=False, object_name=object_name)
-            rclpy.spin_until_future_complete(
-                self.trajectory_publisher,
-                self.trajectory_publisher.future_trajectory_done,
-            )
-        return
-        """
+        # input("Press Enter to continue...")
+        # self.publish(paths[1], use_visual_servoing=True, object_name=object_name)
+        # rclpy.spin_until_future_complete(
+        #    self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
+        # )
+        # for i in range(2, 5):
+        #    self.publish(paths[i], use_visual_servoing=False, object_name=object_name)
+        #    rclpy.spin_until_future_complete(
+        #        self.trajectory_publisher,
+        #        self.trajectory_publisher.future_trajectory_done,
+        #    )
+        # return
+
         if placing_path is not None:
             # TODO: check automatically
             self.close_gripper()
@@ -379,7 +402,7 @@ class Orchestrator(object):
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
-        """
+
         # Commented out since restart does not work properly (corba crashes)
         # self.hpp_client.restart()
         # del self.hpp_client
