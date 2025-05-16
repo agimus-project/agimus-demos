@@ -6,7 +6,7 @@ running_model:
     costs:
     - name: control_reg
       update: true
-      weight: 0.0008
+      weight: 1.0
       active: true
       cost:
         class: CostModelResidual
@@ -17,7 +17,7 @@ running_model:
           class: ResidualModelControl
     - name: state_reg
       update: true
-      weight: 12.0
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
@@ -27,7 +27,7 @@ running_model:
           class: ResidualModelState
     - name: goal_tracking
       update: true
-      weight: 0.5
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
@@ -35,7 +35,7 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelVisualServoing
-          world_frame: support_link
+          world_frame: fer_link0
           robot_frame: fer_hand_tcp
           object_frame: current_object
 
