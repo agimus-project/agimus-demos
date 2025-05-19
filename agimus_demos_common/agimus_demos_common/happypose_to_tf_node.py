@@ -8,9 +8,9 @@ from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import TransformStamped
 from vision_msgs.msg import Detection2DArray
 from agimus_controller_ros.ros_utils import (
-    transform_to_se3,
-    se3_to_transform,
-    pose_to_se3,
+    transform_msg_to_se3,
+    se3_to_transform_msg,
+    pose_msg_to_se3,
 )
 
 
@@ -47,7 +47,7 @@ class HappyposeToTf(Node):
         camera_name = vision_msg.detections[0].header.frame_id
         base_frame = self._base_frame
         try:
-            wMc = transform_to_se3(
+            wMc = transform_msg_to_se3(
                 self.tf_buffer.lookup_transform(
                     base_frame, camera_name, image_stamp
                 ).transform
@@ -57,7 +57,7 @@ class HappyposeToTf(Node):
             return
         ts = list()
         for pose_detection in vision_msg.detections:
-            cMo = pose_to_se3(pose_detection.results[0].pose.pose)
+            cMo = pose_msg_to_se3(pose_detection.results[0].pose.pose)
             wMo = wMc * cMo
             t = TransformStamped()
             object_name = pose_detection.results[0].hypothesis.class_id
@@ -67,7 +67,7 @@ class HappyposeToTf(Node):
             t.header.stamp = image_stamp
             t.header.frame_id = base_frame
             t.child_frame_id = object_name
-            t.transform = se3_to_transform(wMo)
+            t.transform = se3_to_transform_msg(wMo)
             ts.append(t)
 
         # Send the transformations

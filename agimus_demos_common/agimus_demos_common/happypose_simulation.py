@@ -15,21 +15,10 @@ import pinocchio
 import eigenpy
 import numpy as np
 
-from agimus_controller_ros.ros_utils import transform_to_se3
-
-
-def se3_to_pose(M: pinocchio.SE3) -> geometry_msgs.msg.Pose:
-    t = geometry_msgs.msg.Pose()
-    t.position.x = M.translation[0]
-    t.position.y = M.translation[1]
-    t.position.z = M.translation[2]
-
-    q = eigenpy.Quaternion(M.rotation)
-    t.orientation.w = q.w
-    t.orientation.x = q.x
-    t.orientation.y = q.y
-    t.orientation.z = q.z
-    return t
+from agimus_controller_ros.ros_utils import (
+    transform_msg_to_se3,
+    se3_to_pose_msg,
+)
 
 
 class HappyposeSimulation(rclpy.node.Node):
@@ -98,7 +87,7 @@ class HappyposeSimulation(rclpy.node.Node):
     ):
         hypothesis = ObjectHypothesisWithPose()
         hypothesis.hypothesis.class_id = self._object_id
-        hypothesis.pose.pose = se3_to_pose(cMo)
+        hypothesis.pose.pose = se3_to_pose_msg(cMo)
 
         detection = Detection2D(results=[hypothesis])
         detection.header.stamp = stamp
@@ -110,7 +99,7 @@ class HappyposeSimulation(rclpy.node.Node):
     def publish(self):
         # at T + DT, publish cMo(T) = cMb(T) * bMo with the expected time stamp.
         if self._bMc_tf is not None:
-            bMc = transform_to_se3(self._bMc_tf.transform)
+            bMc = transform_msg_to_se3(self._bMc_tf.transform)
             self._publish_detection(
                 bMc.inverse() * self._bMo, self._bMc_tf.header.stamp
             )
