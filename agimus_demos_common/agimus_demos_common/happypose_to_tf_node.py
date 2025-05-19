@@ -57,7 +57,7 @@ class HappyposeToTf(Node):
             object_name = f"obj_{int(pose_detection.id):06d}"
             # Read message content and assign it to
             # corresponding tf variables
-            t.header.stamp = self.get_clock().now().to_msg()
+            t.header.stamp = image_stamp
             t.header.frame_id = base_frame
             t.child_frame_id = object_name
             t.transform = se3_to_transform(wMo)
