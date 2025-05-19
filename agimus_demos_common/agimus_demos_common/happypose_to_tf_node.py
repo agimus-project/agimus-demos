@@ -1,10 +1,17 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
-from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformBroadcaster, TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 from geometry_msgs.msg import TransformStamped
 from vision_msgs.msg import Detection2DArray
+from agimus_controller_ros.ros_utils import (
+    transform_to_se3,
+    se3_to_transform,
+    pose_to_se3,
+)
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -17,8 +24,10 @@ class HappyposeToTf(Node):
     to parameter of a node."""
 
     def __init__(self):
-        super().__init__("wait_for_non_zero_joints_node")
+        super().__init__("happypose_to_tf_node")
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.vision_client = self.create_subscription(
             Detection2DArray,
             "/happypose/detections",
@@ -26,9 +35,6 @@ class HappyposeToTf(Node):
             qos_profile=qos_profile_system_default,
         )
         self.declare_parameter("base_name", "support_link")
-        self.get_logger().info(
-            "Node initialized, waiting for '/joint_states' to be published..."
-        )
 
     @property
     def _base_frame(self) -> str:
@@ -54,7 +60,8 @@ class HappyposeToTf(Node):
             cMo = pose_to_se3(pose_detection.results[0].pose.pose)
             wMo = wMc * cMo
             t = TransformStamped()
-            object_name = f"obj_{int(pose_detection.id):06d}"
+            object_name = pose_detection.results[0].hypothesis.class_id
+
             # Read message content and assign it to
             # corresponding tf variables
             t.header.stamp = image_stamp
