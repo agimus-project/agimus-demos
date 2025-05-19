@@ -22,6 +22,7 @@ def launch_setup(
             "-o",
             str(folder_path),
             "mpc_debug",
+            "mpc_input",
             "ocp_solve_time",
             "ocp_x0",
         ],

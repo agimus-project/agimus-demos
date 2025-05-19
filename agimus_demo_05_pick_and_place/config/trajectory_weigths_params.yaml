@@ -9,9 +9,9 @@ simple_trajectory_publisher:
     ee_frame_name: fer_hand_tcp
     dt: 0.01
     w_increasing:
-      max_weight: 1000.0
+      max_weight: 100.0
       percent: 0.9
-      time_reach_percent: 0.5
-    trajectory_name: generic_trajectory_visual_servoing
+      time_reach_percent: 5.0
+    trajectory_name: generic_visual_servoing_trajectory
     generic_trajectory_visual_servoing:
-      start_visual_servoing_time_threshold: 2.0
+      start_visual_servoing_time_threshold: 1.0

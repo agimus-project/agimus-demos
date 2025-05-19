@@ -23,8 +23,8 @@ from agimus_demo_05_pick_and_place.hpp_client import (
     get_q_dq_ddq_arrays_from_path,
 )
 from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
-from agimus_controller_ros.trajectory_publisher_with_visual_servoing import (
-    TrajectoryPublisherWithVisualServoing,
+from agimus_controller_ros.simple_trajectory_publisher import (
+    SimpleTrajectoryPublisher,
 )
 
 
@@ -120,7 +120,7 @@ class Orchestrator(object):
         self.start_obj_pose = None
         self.goal_obj_pose = None
 
-        self.trajectory_publisher = TrajectoryPublisherWithVisualServoing()
+        self.trajectory_publisher = SimpleTrajectoryPublisher()
         self.dt = self.trajectory_publisher.params.dt
 
         self.state_client = AsyncSubscriber(
@@ -216,6 +216,8 @@ class Orchestrator(object):
     ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
 
+        # obj_start_pose = get_hardcoded_initial_object_pose(object_name)
+
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
             obj_start_pose = get_hardcoded_initial_object_pose(object_name)
@@ -271,7 +273,7 @@ class Orchestrator(object):
             self.trajectory_publisher.add_trajectory(trajectory)
         elif (
             self.trajectory_publisher.params.trajectory_name
-            == "generic_trajectory_visual_servoing"
+            == "generic_visual_servoing_trajectory"
         ):
             in_support_link_M_object = pin.XYZQUATToSE3(
                 self.hpp_client.start_obj_pose.copy()
@@ -284,12 +286,12 @@ class Orchestrator(object):
                 in_fer_link0_M_support_link * in_support_link_M_object
             )
 
-            self.trajectory_publisher.add_trajectory(
+            self.trajectory_publisher.add_visual_servoing_trajectory(
                 trajectory,
                 use_visual_servoing,
                 object_name,
                 pin.SE3ToXYZQUAT(in_fer_link0_M_object),
-                pre_grasp_null_speed_idx,
+                # pre_grasp_null_speed_idx,
             )
 
     def go_to(
