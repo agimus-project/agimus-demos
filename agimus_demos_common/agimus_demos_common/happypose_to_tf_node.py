@@ -20,11 +20,24 @@ def map_object_id(obj_id, dataset="tless"):
 
 
 class HappyposeToTf(Node):
-    """Main class implementing ROS node redirecting /robot_description topic
-    to parameter of a node."""
+    """
+    Broadcast the result of happypose into TF.
+    """
+
+    PARAMETERS = (
+        (
+            "base_name",
+            "support_link",
+            "Name of the frame wrt which the detection poses are expressed.",
+        ),
+    )
 
     def __init__(self):
         super().__init__("happypose_to_tf_node")
+
+        for name, value, _ in self.PARAMETERS:
+            self.declare_parameter(name, value)
+
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -34,7 +47,6 @@ class HappyposeToTf(Node):
             self.vision_callback,
             qos_profile=qos_profile_system_default,
         )
-        self.declare_parameter("base_name", "support_link")
 
     @property
     def _base_frame(self) -> str:
@@ -75,6 +87,14 @@ class HappyposeToTf(Node):
 
 
 def main(args=None) -> int:
+    help = "--help" in args or "-h" in args
+    if help:
+        print(HappyposeToTf.__doc__)
+        print("This node can be configured with the following ROS node parameters:")
+        for name, value, doc in HappyposeToTf.PARAMETERS:
+            print(f"- {name} [{value}]\n  {doc}")
+        return
+
     rclpy.init(args=args)
     happypose_to_tf = HappyposeToTf()
     try:
@@ -86,4 +106,6 @@ def main(args=None) -> int:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv)

@@ -1,18 +1,15 @@
 import rclpy
-import rclpy.parameter
 import rclpy.time
 import builtin_interfaces
 from rclpy.qos import qos_profile_system_default
 from rclpy.executors import ExternalShutdownException
 from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
-import geometry_msgs.msg
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
 import pinocchio
-import eigenpy
 import numpy as np
 
 from agimus_controller_ros.ros_utils import (
@@ -22,6 +19,13 @@ from agimus_controller_ros.ros_utils import (
 
 
 class HappyposeSimulation(rclpy.node.Node):
+    """
+    This node simulates happypose detection topic.
+
+    It publishes a single detection result of the object defined as param at a pose
+    in the camera frame such that it corresponds to the frame passed as param in base frame.
+    """
+
     PARAMETERS = (
         ("camera_name", "camera", "Name of camera in TF"),
         (
@@ -78,6 +82,7 @@ class HappyposeSimulation(rclpy.node.Node):
 
     @property
     def _bMo(self) -> pinocchio.SE3:
+        """Pose of the object wrt base"""
         xyz = self.get_parameter("object_pose_in_base_txyz").value
         q = self.get_parameter("object_pose_in_base_qxyzw").value
         return pinocchio.XYZQUATToSE3(np.array(xyz + q))
@@ -85,6 +90,9 @@ class HappyposeSimulation(rclpy.node.Node):
     def _publish_detection(
         self, cMo: pinocchio.SE3, stamp: builtin_interfaces.msg.Time
     ):
+        """
+        - cMo: pose of the object wrt camera
+        """
         hypothesis = ObjectHypothesisWithPose()
         hypothesis.hypothesis.class_id = self._object_id
         hypothesis.pose.pose = se3_to_pose_msg(cMo)
@@ -117,17 +125,21 @@ def main():
     import sys
 
     help = "--help" in sys.argv or "-h" in sys.argv
+    if help:
+        print(HappyposeSimulation.__doc__)
+        print("This node can be configured with the following ROS node parameters:")
+        for name, value, doc in HappyposeSimulation.PARAMETERS:
+            print(f"- {name} [{value}]\n  {doc}")
+        return
+
+    rclpy.init()
+    node = HappyposeSimulation()
     try:
-        rclpy.init()
-        node = HappyposeSimulation()
-        if help:
-            print("This node can be configured with the following ROS node parameters:")
-            for name, value, doc in HappyposeSimulation.PARAMETERS:
-                print(f"- {name} [{value}]\n  {doc}")
-        else:
-            rclpy.spin(node)
+        rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
+    node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":
