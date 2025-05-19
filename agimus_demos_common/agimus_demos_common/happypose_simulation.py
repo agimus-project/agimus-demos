@@ -35,11 +35,23 @@ def se3_to_pose(M: pinocchio.SE3) -> geometry_msgs.msg.Pose:
 class HappyposeSimulation(rclpy.node.Node):
     PARAMETERS = (
         ("camera_name", "camera", "Name of camera in TF"),
-        ("base_name", "base", "Name of the frame wrt which the object pose is expressed."),
+        (
+            "base_name",
+            "base",
+            "Name of the frame wrt which the object pose is expressed.",
+        ),
         ("object_pose_in_base_txyz", [0.0, 0.0, 0.0], "Translation of the object"),
-        ("object_pose_in_base_qxyzw", [0.0, 0.0, 0.0, 1.0], "Orientation of the object as a quaternion"),
+        (
+            "object_pose_in_base_qxyzw",
+            [0.0, 0.0, 0.0, 1.0],
+            "Orientation of the object as a quaternion",
+        ),
         ("object_id", "tless-obj_000021", "Object ID as published by Happypose."),
-        ("happypose_time", 0.2, "Computation time of happypose. Used both as publication delay and rate"),
+        (
+            "happypose_time",
+            0.2,
+            "Computation time of happypose. Used both as publication delay and rate",
+        ),
     )
 
     def __init__(self):

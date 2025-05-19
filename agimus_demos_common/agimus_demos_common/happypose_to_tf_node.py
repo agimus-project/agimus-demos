@@ -25,32 +25,46 @@ class HappyposeToTf(Node):
             self.vision_callback,
             qos_profile=qos_profile_system_default,
         )
-        self.base_frame = "support_link"
+        self.declare_parameter("base_name", "support_link")
         self.get_logger().info(
             "Node initialized, waiting for '/joint_states' to be published..."
         )
 
+    @property
+    def _base_frame(self) -> str:
+        return self.get_parameter("base_name").value
+
     def vision_callback(self, vision_msg: Detection2DArray) -> None:
         if vision_msg.detections == []:
             return
-        for pose_detection in vision_msg.detections.results:
+        image_stamp = vision_msg.detections[0].header.stamp
+        camera_name = vision_msg.detections[0].header.frame_id
+        base_frame = self._base_frame
+        try:
+            wMc = transform_to_se3(
+                self.tf_buffer.lookup_transform(
+                    base_frame, camera_name, image_stamp
+                ).transform
+            )
+        except TransformException as ex:
+            self.get_logger().info(f"Could not get camera pose: {ex}")
+            return
+        ts = list()
+        for pose_detection in vision_msg.detections:
+            cMo = pose_to_se3(pose_detection.results[0].pose.pose)
+            wMo = wMc * cMo
             t = TransformStamped()
             object_name = f"obj_{int(pose_detection.id):06d}"
             # Read message content and assign it to
             # corresponding tf variables
             t.header.stamp = self.get_clock().now().to_msg()
-            t.header.frame_id = self.base_frame
+            t.header.frame_id = base_frame
             t.child_frame_id = object_name
-            t.transform.translation.x = self.start_obj_pose[0]
-            t.transform.translation.y = self.start_obj_pose[1]
-            t.transform.translation.z = self.start_obj_pose[2]
-            t.transform.rotation.x = self.start_obj_pose[3]
-            t.transform.rotation.y = self.start_obj_pose[4]
-            t.transform.rotation.z = self.start_obj_pose[5]
-            t.transform.rotation.w = self.start_obj_pose[6]
+            t.transform = se3_to_transform(wMo)
+            ts.append(t)
 
-            # Send the transformation
-            self.tf_broadcaster.sendTransform(t)
+        # Send the transformations
+        self.tf_broadcaster.sendTransform(ts)
 
 
 def main(args=None) -> int:
