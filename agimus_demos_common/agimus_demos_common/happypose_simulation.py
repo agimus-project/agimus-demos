@@ -4,6 +4,8 @@ import builtin_interfaces
 from rclpy.qos import qos_profile_system_default
 from rclpy.executors import ExternalShutdownException
 from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
+from rcl_interfaces.srv import SetParameters
+from rclpy.parameter import Parameter
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -11,11 +13,85 @@ from tf2_ros.transform_listener import TransformListener
 
 import pinocchio
 import numpy as np
+import typing as T
 
 from agimus_controller_ros.ros_utils import (
     transform_msg_to_se3,
     se3_to_pose_msg,
 )
+
+
+def set_transform(
+    node: rclpy.node.Node,
+    object_id: str,
+    camera_name: str,
+    base_name: str,
+    object_pose: T.Union[
+        pinocchio.SE3, tuple[float, float, float, float, float, float, float]
+    ],
+) -> bool:
+    """
+    Set the transform published by the Happypose simulation node. This is the client-side function.
+
+    Args:
+    - node: a ROS node used for ROS communication.
+    - object_pose: desired pose of the object with respect to base_name
+    - camera_name: camera frame name
+    - object_id: name of the object as published by happypose. E.g. tless-obj_000021
+
+    Return:
+    - a boolean that is true if everything in the operation was successful.
+    """
+    if isinstance(object_pose, pinocchio.SE3):
+        object_pose = pinocchio.SE3ToXYZQUAT(object_pose).tolist()
+
+    assert isinstance(object_pose, (list, tuple)) and len(object_pose) == 7
+
+    set_param = node.create_client(
+        SetParameters, "/happypose_simulation/set_parameters"
+    )
+    if not set_param.wait_for_service(timeout_sec=1.0):
+        node.get_logger().warn(f"Service {set_param.srv_name} not available.")
+        return False
+
+    request = SetParameters.Request(
+        parameters=[
+            Parameter(
+                name="camera_name",
+                type_=Parameter.Type.STRING,
+                value=camera_name,
+            ).to_parameter_msg(),
+            Parameter(
+                name="base_name",
+                type_=Parameter.Type.STRING,
+                value=base_name,
+            ).to_parameter_msg(),
+            Parameter(
+                name="object_pose_in_base_txyz",
+                type_=Parameter.Type.DOUBLE_ARRAY,
+                value=object_pose[:3],
+            ).to_parameter_msg(),
+            Parameter(
+                name="object_pose_in_base_qxyzw",
+                type_=Parameter.Type.DOUBLE_ARRAY,
+                value=object_pose[3:],
+            ).to_parameter_msg(),
+            Parameter(
+                name="object_id",
+                type_=Parameter.Type.STRING,
+                value=object_id,
+            ).to_parameter_msg(),
+        ]
+    )
+    future = set_param.call_async(request)
+    rclpy.spin_until_future_complete(node, future, timeout_sec=1.0)
+    result: SetParameters.Response = future.result()
+    ret_val = True
+    for req, resp in zip(request.parameters, result.results):
+        if not resp.successful:
+            node.get_logger().warn(f"Failed to set param {req.name}: {resp.reason}")
+            ret_val = False
+    return ret_val
 
 
 class HappyposeSimulation(rclpy.node.Node):
