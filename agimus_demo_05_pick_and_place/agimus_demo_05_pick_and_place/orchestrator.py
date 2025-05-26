@@ -12,7 +12,7 @@ from tf2_ros import StaticTransformBroadcaster
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
-from geometry_msgs.msg import Pose, TransformStamped
+from geometry_msgs.msg import Pose, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray, Detection2D
 
@@ -26,6 +26,7 @@ from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_controller_ros.simple_trajectory_publisher import (
     SimpleTrajectoryPublisher,
 )
+from agimus_controller_ros.ros_utils import pose_msg_to_se3
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -89,6 +90,8 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         return "dest_box/base_link", [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return "dest_box/base_link", [-0.15, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_31":
+        return "dest_box/base_link", [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -135,20 +138,19 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        self.vision_client = AsyncSubscriber(
-            self._node,
-            Detection2DArray,
-            "/happypose/detections",
-            qos_profile_system_default,
-        )
-        # self.vision_client = self._node.create_subscription(
+        # self.vision_client = AsyncSubscriber(
+        #    self._node,
         #    Detection2DArray,
         #    "/happypose/detections",
-        #    self.vision_callback,
-        #    qos_profile=qos_profile_system_default,
+        #    qos_profile_system_default,
         # )
+        self.vision_client = AsyncSubscriber(
+            self._node,
+            PoseStamped,
+            "/object/detections",
+            qos_profile_system_default,
+        )
         self.tf_broadcaster = StaticTransformBroadcaster(self._node)
-
         self.open_gripper()
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_init_done
@@ -224,11 +226,20 @@ class Orchestrator(object):
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
-            object_detections = self.vision_client.wait_for_future()
+            # with happypose
+            # object_detections = self.vision_client.wait_for_future()
+            # obj_start_pose = get_most_confident_object_pose(
+            #    object_detections, object_name
+            # )
+
+            # with apriltags
+            apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
+            obj_start_pose = [
+                apriltag_detections.header.frame_id,
+                pin.SE3ToXYZQUAT(pose_msg_to_se3(apriltag_detections.pose)),
+            ]
             print("got obj pose")
-            obj_start_pose = get_most_confident_object_pose(
-                object_detections, object_name
-            )
+
             obj_start_pose[0] = "panda/" + obj_start_pose[0]
         if obj_start_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
@@ -291,7 +302,7 @@ class Orchestrator(object):
                 use_visual_servoing,
                 object_name,
                 pin.SE3ToXYZQUAT(in_fer_link0_M_object),
-                # pre_grasp_null_speed_idx,
+                pre_grasp_null_speed_idx,
             )
 
     def go_to(

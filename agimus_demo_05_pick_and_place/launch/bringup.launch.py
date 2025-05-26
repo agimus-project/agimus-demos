@@ -73,9 +73,11 @@ def launch_setup(
     )
     if simulate_happypose:
         happypose_simulation_params = {
+            "object_id": "tless-obj_000031",
             "base_name": "support_link",
             "camera_name": "camera_color_optical_frame",
-            "object_pose_in_base_txyz": [-0.17, -0.25, 0.85],
+            # "object_pose_in_base_txyz": [-0.17, -0.25, 0.85],
+            "object_pose_in_base_txyz": [0.0, -0.25, 1.25],
             "object_pose_in_base_qxyzw": [0.0, 0.0, 0.0, 1.0],
         }
         happypose_simulation_node = Node(
