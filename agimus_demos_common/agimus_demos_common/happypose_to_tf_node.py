@@ -1,3 +1,4 @@
+import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
@@ -87,6 +88,8 @@ class HappyposeToTf(Node):
 
 
 def main(args=None) -> int:
+    if args is None:
+        args = sys.argv
     help = "--help" in args or "-h" in args
     if help:
         print(HappyposeToTf.__doc__)
@@ -106,6 +109,4 @@ def main(args=None) -> int:
 
 
 if __name__ == "__main__":
-    import sys
-
-    main(sys.argv)
+    main()
