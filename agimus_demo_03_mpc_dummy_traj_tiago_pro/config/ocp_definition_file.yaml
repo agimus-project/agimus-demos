@@ -6,7 +6,7 @@ running_model:
     costs:
     - name: control_reg
       update: true
-      weight: 0.0008
+      weight: 1.0
       active: true
       cost:
         class: CostModelResidual
@@ -17,7 +17,7 @@ running_model:
           class: ResidualModelControl
     - name: state_reg
       update: true
-      weight: 12.0
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
@@ -27,7 +27,7 @@ running_model:
           class: ResidualModelState
     - name: goal_tracking
       update: true
-      weight: 0.5
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
@@ -36,27 +36,27 @@ running_model:
         residual:
           class: ResidualModelFramePlacement
           id: 0
-    # - name: distance
-    #   update: false
-    #   weight: 0.05
-    #   publish_residual: true
-    #   cost:
-    #     class: CostModelResidual
-    #     activation:
-    #       class: ActivationModelQuadExp
-    #       alpha: 1e-4   # 1cm squared
-    #     residual:
-    #       class: ResidualDistanceCollision
-    #       collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
-    # constraints:
-    # - name: collision
-    #   constraint:
-    #     class: ConstraintModelResidual
-    #     lower: 0.01   # cm
-    #     upper: inf
-    #     residual:
-    #       class: ResidualDistanceCollision
-    #       collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
+    #- name: distance
+    #  update: false
+    #  weight: 0.05
+    #  publish_residual: true
+    #  cost:
+    #    class: CostModelResidual
+    #    activation:
+    #      class: ActivationModelQuadExp
+    #      alpha: 1e-4   # 1cm squared
+    #    residual:
+    #      class: ResidualDistanceCollision
+    #      collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
+    #constraints:
+    #- name: collision
+    #  constraint:
+    #    class: ConstraintModelResidual
+    #    lower: 0.01   # cm
+    #    upper: inf
+    #    residual:
+    #      class: ResidualDistanceCollision
+    #      collision_pair: [fer_hand_sc_capsule_0, obstacle1_capsule_0]
 
 terminal_model:
   class: IntegratedActionModelEuler
