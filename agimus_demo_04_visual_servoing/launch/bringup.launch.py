@@ -1,0 +1,144 @@
+from pathlib import Path
+from launch import LaunchContext, LaunchDescription
+from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
+from launch.event_handlers import OnProcessExit
+from launch.launch_description_entity import LaunchDescriptionEntity
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import Command, FindExecutable
+from launch_ros.parameter_descriptions import ParameterValue
+from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
+
+
+from agimus_demos_common.launch_utils import (
+    generate_default_franka_args,
+    generate_include_launch,
+    get_use_sim_time,
+)
+
+from agimus_demos_common.static_transform_publisher_node import (
+    static_transform_publisher_node,
+)
+
+
+def launch_setup(
+    context: LaunchContext, *args, **kwargs
+) -> list[LaunchDescriptionEntity]:
+    franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
+
+    agimus_controller_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_04_visual_servoing"),
+            "config",
+            "agimus_controller_params.yaml",
+        ]
+    )
+    ocp_definition_file = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_04_visual_servoing"),
+            "config",
+            "ocp_definition_file.yaml",
+        ]
+    )
+    extra_params = {
+        "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
+    }
+    wait_for_non_zero_joints_node = Node(
+        package="agimus_demos_common",
+        executable="wait_for_non_zero_joints_node",
+        parameters=[get_use_sim_time()],
+        output="screen",
+    )
+    agimus_controller_node = Node(
+        package="agimus_controller_ros",
+        executable="agimus_controller_node",
+        parameters=[get_use_sim_time(), agimus_controller_yaml, extra_params],
+        output="screen",
+        remappings=[("robot_description", "robot_description_with_collision")],
+    )
+    use_happypose = False
+    vision_nodes: list(Node) = []
+    if use_happypose:
+        happypose_to_tf_node = Node(
+            package="agimus_demos_common",
+            executable="happypose_to_tf_node",
+            parameters=[get_use_sim_time()],
+            output="screen",
+        )
+        vision_nodes.append(happypose_to_tf_node)
+    else:
+        pass
+
+    # environment_description = ParameterValue(
+    #     Command(
+    #         [
+    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
+    #             " ",
+    #             PathJoinSubstitution(
+    #                 [
+    #                     FindPackageShare("agimus_demo_04_visual_servoing"),
+    #                     "urdf",
+    #                     "environment.urdf.xacro",
+    #                 ]
+    #             ),
+    #         ]
+    #     ),
+    #     value_type=str,
+    # )
+    environment_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="environment_publisher",
+        parameters=[
+            {
+                "topic_name": "environment_description",
+                "string_value": "<robot name='empty'><link name='env'/></robot>",
+            }
+        ],
+    )
+    # tf_node = static_transform_publisher_node(
+    #     frame_id="robot_attachment_link",
+    #     child_frame_id="world",
+    # )
+
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_04_visual_servoing"),
+            "config",
+            "trajectory_weigths_params.yaml",
+        ]
+    )
+
+    reference_publisher_node = Node(
+        package="agimus_demo_04_visual_servoing",
+        executable="reference_publisher",
+        name="reference_publisher",
+        output="screen",
+        remappings=[("robot_description", "robot_description_with_collision")],
+        parameters=[get_use_sim_time(), trajectory_weights_yaml],
+    )
+
+    return [
+        franka_robot_launch,
+        wait_for_non_zero_joints_node,
+        environment_publisher_node,
+        mpc_debugger_node("fer_hand_tcp", parent_frame="fer_link0"),
+        # tf_node,
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=wait_for_non_zero_joints_node,
+                on_exit=[
+                    agimus_controller_node,
+                    reference_publisher_node,
+                ]
+                + vision_nodes,
+            )
+        ),
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+    )

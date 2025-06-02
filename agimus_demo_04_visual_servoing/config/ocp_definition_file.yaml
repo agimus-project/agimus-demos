@@ -1,0 +1,65 @@
+running_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: control_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelControl
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: goal_tracking
+      update: true
+      weight: 10.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelVisualServoing
+          world_frame: fer_link0
+          robot_frame: camera_color_optical_frame
+          object_frame: current_object
+
+terminal_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    # - name: goal_tracking
+    #   update: true
+    #   weight: 1.0
+    #   cost:
+    #     class: CostModelResidual
+    #     activation:
+    #       class: ActivationModelWeightedQuad
+    #       weights: 1.0
+    #     residual:
+    #       class: ResidualModelFramePlacement
+    #       id: 0
