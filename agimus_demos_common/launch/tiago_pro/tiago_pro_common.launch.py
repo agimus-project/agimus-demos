@@ -30,15 +30,6 @@ def launch_setup(
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
 
-    robot_ip_empty = context.perform_substitution(robot_ip) == ""
-    use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
-
-    if not robot_ip_empty and use_gazebo_bool:
-        raise RuntimeError(
-            "Incorrect launch configuration! Can not launch demo with both "
-            "`use_gazebo:=true` and non-empty `robot_ip`."
-        )
-
     tiago_pro_hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
