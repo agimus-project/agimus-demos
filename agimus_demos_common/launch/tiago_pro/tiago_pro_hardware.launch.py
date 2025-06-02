@@ -4,6 +4,7 @@ from launch.actions import (
 )
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from controller_manager.launch_utils import (
     generate_controllers_spawner_launch_description,  # noqa: I001
@@ -49,27 +50,14 @@ def launch_setup(
         ],
     )
 
-    # activate_controllers = ExecuteProcess(
-    #     cmd=[
-    #         "ros2",
-    #         "control",
-    #         "switch_controllers",
-    #         "--deactivate",
-    #         "arm_right_controller",
-    #         "--activate",
-    #         "joint_state_estimator",
-    #         "linear_feedback_controller",
-    #         "arm_right_1_joint_inertia_shaping_controller",
-    #         "arm_right_2_joint_inertia_shaping_controller",
-    #         "arm_right_3_joint_inertia_shaping_controller",
-    #         "arm_right_4_joint_inertia_shaping_controller",
-    #         "arm_right_5_joint_inertia_shaping_controller",
-    #         "arm_right_6_joint_inertia_shaping_controller",
-    #         "arm_right_7_joint_inertia_shaping_controller",
-    #     ],
-    #     output="screen",
-    # )
-    return [spawn_lfc_controllers]
+    activate_controllers = Node(
+        package="agimus_demos_common",
+        executable="switch_controllers_trigger_node",
+        name="switch_controllers_trigger_node",
+        output="screen",
+        prefix="xterm -e",
+    )
+    return [spawn_lfc_controllers, activate_controllers]
 
 
 def generate_launch_description():
