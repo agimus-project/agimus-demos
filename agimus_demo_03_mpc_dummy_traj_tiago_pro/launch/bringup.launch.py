@@ -3,9 +3,16 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
+from launch.conditions import UnlessCondition
+
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution, Command, FindExecutable
+from launch.substitutions import (
+    PathJoinSubstitution,
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
@@ -20,6 +27,8 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    use_gazebo = LaunchConfiguration("use_gazebo")
+
     #
     # Robot
     #
@@ -147,6 +156,7 @@ def launch_setup(
             "ros2",  # Automatically start the ROS 2 streamer
         ],
         output="screen",
+        condition=UnlessCondition(use_gazebo),
     )
 
     environment_description = ParameterValue(
