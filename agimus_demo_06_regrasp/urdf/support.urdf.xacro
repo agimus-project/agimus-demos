@@ -131,6 +131,50 @@
         </geometry>
       </collision>
     </link>
+    <!-- <link name="obj_pedestal">
+      <inertial>
+        <mass value="1." />
+        <origin xyz="1.05 0.45 0.4625" />
+        <inertia ixx=".01" iyy=".01" izz=".1" ixy="0" ixz="0" iyz="0" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0.1" />
+        <geometry>
+          <box size="0.2 0.05 0.2" />
+        </geometry>
+        <material name="transp_blue">
+          <color rgba="0 0.3 0.9 0.5" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.1" />
+        <geometry>
+          <box size="0.2 0.05 0.2" />
+        </geometry>
+      </collision>
+    </link> -->
+    <!-- <link name="obj_pedestal2">
+      <inertial>
+        <mass value="1." />
+        <origin xyz="1.05 0.45 0.4625" />
+        <inertia ixx=".01" iyy=".01" izz=".1" ixy="0" ixz="0" iyz="0" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0.02" />
+        <geometry>
+          <box size="0.05 0.05 0.03" />
+        </geometry>
+        <material name="transp_blue2">
+          <color rgba="0 0.3 0.9 0.2" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.1" />
+        <geometry>
+          <box size="0.05 0.05 0.02" />
+        </geometry>
+      </collision>
+    </link> -->
     <!-- Wrap panda1 robot into a box shaped obstacle -->
     <link name="panda1_box">
       <inertial>
@@ -181,6 +225,16 @@
       <parent link="support_link" />
       <child link="pedestal" />
     </joint>
+    <!-- <joint name="obj_pedestal_joint" type="fixed">
+      <origin xyz="0.08 -0.08 0.77" />
+      <parent link="support_link" />
+      <child link="obj_pedestal" />
+    </joint> -->
+    <!-- <joint name="obj_pedestal2_joint" type="fixed">
+      <origin xyz="0 0 0.2" />
+      <parent link="obj_pedestal" />
+      <child link="obj_pedestal2" />
+    </joint> -->
     <joint name="panda1_box_joint" type="fixed">
       <origin xyz="-0.6315 0 1.17" />
       <parent link="support_link" />

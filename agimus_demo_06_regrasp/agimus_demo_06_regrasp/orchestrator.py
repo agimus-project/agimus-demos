@@ -42,6 +42,8 @@ def map_object_id(obj_id, dataset="tless"):
 
 def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
     """Return initial object position in world frame."""
+    if object_name == "obj_20":
+        return [-0.12, -0.2, 0.95, -np.sqrt(2) / 2, 0.0, np.sqrt(2) / 2, 0.0]
     if object_name == "obj_21":
         return [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
@@ -278,13 +280,20 @@ class Orchestrator(object):
             )
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
+        # obj_23
+        # rotated90 = multiply_poses(
+        #     obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
+        # )
+        # rotated180 = multiply_poses(
+        #     rotated90, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
+        # )
+
         rotated90 = multiply_poses(
-            obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
+            obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
         )
         rotated180 = multiply_poses(
-            rotated90, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
+            rotated90, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
         )
-
         return obj_in_world_start_pose, rotated90, rotated180
 
     def set_pointcloud(self):
@@ -359,23 +368,29 @@ class Orchestrator(object):
             0.0,
             1.0,
         ]
+        self.hpp_client = HPPInterface(
+            object_name=object_name, use_spline_gradient_based_opt=False
+        )
         start_obj_pose, rotated_90, rotate_180 = self.get_object_start_and_goal_pose(
             object_name=object_name, q=hpp_q_init
         )
+        print(start_obj_pose)
+        print(rotated_90)
+        print(rotate_180)
 
         # first pick_and_place, rotated by 90 degreed around x axis
         self.pick_and_place(
             object_name,
             start_obj_pose,
             rotated_90,
-            goal_handles=["part/goal_handle_side_top"],
+            goal_handles=["part/goal_handle_first"],
         )
         # first pick_and_place, rotated by 180 degreed around x axis
         self.pick_and_place(
             object_name,
             rotated_90,
             rotate_180,
-            goal_handles=["part/goal_handle_side_right"],
+            goal_handles=["part/goal_handle_second"],
         )
 
     def pick_and_place(
@@ -386,25 +401,28 @@ class Orchestrator(object):
         goal_handles: list[str],
     ):
         current_robot_state = self.state_client.wait_for_future()
+
+        if self.use_pointcloud:
+            self.set_pointcloud()
         self.hpp_client = HPPInterface(
             object_name=object_name, use_spline_gradient_based_opt=False
         )
-        if self.use_pointcloud:
-            self.set_pointcloud()
-
         self.hpp_client.start_obj_pose = start_obj_pose
         self.hpp_client.goal_obj_pose = goal_obj_pose
         self.v = self.hpp_client.vf.createViewer()
-
-        hpp_q_init = list(current_robot_state.position) + self.hpp_client.goal_obj_pose
-        self.hpp_client.robot.setCurrentConfig(hpp_q_init)
-        input("Look on the robot in gepetto-viewer (goal config)")
 
         hpp_q_init = list(current_robot_state.position) + self.hpp_client.start_obj_pose
         self.hpp_client.robot.setCurrentConfig(hpp_q_init)
         input("Look on the robot in gepetto-viewer (start config)")
 
-        grasp_path, placing_path, _ = self.hpp_client.plan_pick_and_place(
+        hpp_q_init = list(current_robot_state.position) + goal_obj_pose
+        self.hpp_client.robot.setCurrentConfig(hpp_q_init)
+        input("Look on the robot in gepetto-viewer (goal config)")
+
+        hpp_q_init = list(current_robot_state.position) + self.hpp_client.start_obj_pose
+        self.hpp_client.robot.setCurrentConfig(hpp_q_init)
+
+        grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             list(current_robot_state.position), goal_handles=goal_handles
         )
 
@@ -413,8 +431,8 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
-            self.close_gripper()  # for simulation
-            # self.grasp()  # for hardware robot
+            # self.close_gripper()  # for simulation
+            self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
-            # self.publish(freefly_path)  #
+            self.publish(freefly_path)  #

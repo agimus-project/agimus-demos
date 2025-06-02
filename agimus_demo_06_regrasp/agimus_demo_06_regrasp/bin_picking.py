@@ -369,8 +369,6 @@ class BinPicking(object):
             waypoints = list()
             success = True
             for ie, edge in enumerate(edges):
-                qrand = self.robot.shootRandomConfig()
-                qrand[-7:] = q[-7:]
                 q1, constraint_ok, msg, bad_q1 = generateTargetConfig(
                     self.robot, self.graph, edge, q, qrand
                 )
@@ -385,7 +383,7 @@ class BinPicking(object):
                 waypoints.append(q1)
                 # q_to_check.append(q1)
                 q = q1[:]
-                # qrand = q1[:]
+                qrand = q1[:]
             # If the waypoints have been successfully generated, we
             # plan paths between them
             paths = list()

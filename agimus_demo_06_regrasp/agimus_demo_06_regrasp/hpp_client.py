@@ -79,7 +79,7 @@ class HPPInterface:
         self.gripper_open_value = gripper_open_value
 
         self._goal_gripper_clearance = 0.05
-        self._after_picking_clearance = 0.9
+        self._after_picking_clearance = 1.05
         self._point_cloud_res = 0.001
 
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]

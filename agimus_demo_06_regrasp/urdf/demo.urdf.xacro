@@ -3,7 +3,7 @@
   <xacro:include filename="$(find franka_description)/robots/fer/fer.urdf.xacro">
     <!-- <xacro:arg name="with_sc" value="True" /> -->
   </xacro:include>
-  <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/support.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_06_regrasp)/urdf/support.urdf.xacro"/>
 
   <xacro:support/>
 
