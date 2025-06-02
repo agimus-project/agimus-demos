@@ -1,18 +1,14 @@
-import math
 import numpy as np
 import pinocchio
 
 from geometry_msgs.msg import TransformStamped
 
 import rclpy
-from rclpy.node import Node
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
-
-from turtlesim.srv import Spawn
 
 
 from agimus_controller_ros.ros_utils import (
@@ -34,7 +30,6 @@ from agimus_controller_ros.simple_trajectory_publisher import TrajectoryPublishe
 
 
 class ReferencePublisher(TrajectoryPublisherBase):
-
     def __init__(self):
         super().__init__("reference_publisher")
 
@@ -74,7 +69,7 @@ class ReferencePublisher(TrajectoryPublisherBase):
                 throttle_duration_sec=2.0,
             )
             return
-        
+
         # Send the reference used by vision to TF so that it can be visualized in RViz.
         # This transform isn't used by agimus_controller_node.
         t = TransformStamped()
