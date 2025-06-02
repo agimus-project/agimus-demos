@@ -21,6 +21,8 @@ from agimus_demo_06_regrasp.hpp_client import (
     HPPInterface,
     get_traj_points_from_path,
 )
+
+# from agimus_demo_06_regrasp.manipulation_rrt_planner import ManipulationPlanner
 from agimus_demo_06_regrasp.async_subscriber import AsyncSubscriber
 from agimus_demo_06_regrasp.trajectory_publisher import TrajectoryPublisher
 from agimus_demo_06_regrasp.utils import (
@@ -281,19 +283,19 @@ class Orchestrator(object):
         if obj_in_world_start_pose is None:
             raise ValueError(f"No {object_name} object detected")
         # obj_23
-        # rotated90 = multiply_poses(
-        #     obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
-        # )
-        # rotated180 = multiply_poses(
-        #     rotated90, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
-        # )
-
         rotated90 = multiply_poses(
-            obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
+            obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
         )
         rotated180 = multiply_poses(
-            rotated90, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
+            rotated90, [0.0, 0.0, 0.0, 0.7071068, 0.0, 0.0, 0.7071068]
         )
+        # obj_20
+        # rotated90 = multiply_poses(
+        #     obj_in_world_start_pose, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
+        # )
+        # rotated180 = multiply_poses(
+        #     rotated90, [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071068, 0.7071068]
+        # )
         return obj_in_world_start_pose, rotated90, rotated180
 
     def set_pointcloud(self):
@@ -347,6 +349,17 @@ class Orchestrator(object):
         self.hpp_client.goal_obj_pose = backup_goal_pose.copy()
         # del self.hpp_client
 
+    def test_manip_plan(self, object_name: str):
+        current_robot_state = self.state_client.wait_for_future()
+        start_pose = get_hardcoded_initial_object_pose(object_name)
+        goal_pose = start_pose.copy()
+        goal_pose[1] += 0.05
+        # self.planner = ManipulationPlanner(object_name)
+        hpp_q_init = list(current_robot_state.position) + start_pose
+        hpp_q_goal = list(current_robot_state.position) + goal_pose
+        full_path = self.planner.solve(hpp_q_init, hpp_q_goal)
+        self.publish(full_path)
+
     def regrasp(self, object_name: str):
         """Main function that is called in the orchestrator
         Object start pose comes either from happypose or hardcoded value
@@ -383,14 +396,16 @@ class Orchestrator(object):
             object_name,
             start_obj_pose,
             rotated_90,
-            goal_handles=["part/goal_handle_first"],
+            goal_handles=["part/goal_handle_side_top"],
+            # goal_handles=["part/goal_handle_first"],  # obj_20
         )
         # first pick_and_place, rotated by 180 degreed around x axis
         self.pick_and_place(
             object_name,
             rotated_90,
             rotate_180,
-            goal_handles=["part/goal_handle_second"],
+            goal_handles=["part/goal_handle_side_right"],
+            # goal_handles=["part/goal_handle_second"],  # obj_20
         )
 
     def pick_and_place(
@@ -431,8 +446,8 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
-            # self.close_gripper()  # for simulation
-            self.grasp()  # for hardware robot
+            self.close_gripper()  # for simulation
+            # self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)  #
