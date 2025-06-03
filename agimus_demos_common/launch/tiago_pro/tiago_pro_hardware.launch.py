@@ -36,8 +36,8 @@ def launch_setup(
         ),
     ]
     lfc_controllers = [
-        "joint_state_estimator",
         "linear_feedback_controller",
+        "joint_state_estimator",
     ]
     # Spawn external controllers, namely the lfc.
     spawn_lfc_controllers = generate_controllers_spawner_launch_description(

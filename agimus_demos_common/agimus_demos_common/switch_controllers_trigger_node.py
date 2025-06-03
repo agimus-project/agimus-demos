@@ -23,8 +23,6 @@ class SwitchControllersTriggerNode(Node):
                     "--deactivate",
                     "arm_right_controller",
                     "--activate",
-                    "joint_state_estimator",
-                    "linear_feedback_controller",
                     "arm_right_1_joint_inertia_shaping_controller",
                     "arm_right_2_joint_inertia_shaping_controller",
                     "arm_right_3_joint_inertia_shaping_controller",
@@ -32,6 +30,8 @@ class SwitchControllersTriggerNode(Node):
                     "arm_right_5_joint_inertia_shaping_controller",
                     "arm_right_6_joint_inertia_shaping_controller",
                     "arm_right_7_joint_inertia_shaping_controller",
+                    "linear_feedback_controller",
+                    "joint_state_estimator",
                 ],
                 check=True,
             )
