@@ -24,8 +24,6 @@ include(CTest)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_auto_find_test_dependencies()
-  # Integration test of the roscontrol controller with simulation on Talos.
-  # add_rostest(tests/test_integration.py)
 endif()
 
 #

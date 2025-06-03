@@ -59,10 +59,10 @@ class ReferencePublisher(TrajectoryPublisherBase):
         # Timer callback for initialization
         # It waits until a transform in TF is found.
         try:
-            t = self.tf_buffer.lookup_transform(
+            cMo_msg = self.tf_buffer.lookup_transform(
                 self.camera_frame, self.object_frame, rclpy.time.Time()
             )
-            self._cMo = transform_msg_to_se3(t.transform)
+            self._cMo = transform_msg_to_se3(cMo_msg.transform)
         except TransformException as ex:
             self.get_logger().warn(
                 f"Could not transform {self.camera_frame} to {self.object_frame}: {ex}",
@@ -72,12 +72,12 @@ class ReferencePublisher(TrajectoryPublisherBase):
 
         # Send the reference used by vision to TF so that it can be visualized in RViz.
         # This transform isn't used by agimus_controller_node.
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = self.object_frame
-        t.child_frame_id = self.camera_frame + "_reference"
-        t.transform = se3_to_transform_msg(self._cMo.inverse())
-        self.tf_static_broadcaster.sendTransform(t)
+        cMo_msg = TransformStamped()
+        cMo_msg.header.stamp = self.get_clock().now().to_msg()
+        cMo_msg.header.frame_id = self.object_frame
+        cMo_msg.child_frame_id = self.camera_frame + "_reference"
+        cMo_msg.transform = se3_to_transform_msg(self._cMo.inverse())
+        self.tf_static_broadcaster.sendTransform(cMo_msg)
 
         model = self.robot_models.robot_model
         data = model.createData()

@@ -63,22 +63,7 @@ def launch_setup(
     else:
         pass
 
-    # environment_description = ParameterValue(
-    #     Command(
-    #         [
-    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
-    #             " ",
-    #             PathJoinSubstitution(
-    #                 [
-    #                     FindPackageShare("agimus_demo_04_visual_servoing"),
-    #                     "urdf",
-    #                     "environment.urdf.xacro",
-    #                 ]
-    #             ),
-    #         ]
-    #     ),
-    #     value_type=str,
-    # )
+
     environment_publisher_node = Node(
         package="agimus_demos_common",
         executable="string_publisher",
@@ -90,10 +75,6 @@ def launch_setup(
             }
         ],
     )
-    # tf_node = static_transform_publisher_node(
-    #     frame_id="robot_attachment_link",
-    #     child_frame_id="world",
-    # )
 
     trajectory_weights_yaml = PathJoinSubstitution(
         [
@@ -117,7 +98,6 @@ def launch_setup(
         wait_for_non_zero_joints_node,
         environment_publisher_node,
         mpc_debugger_node("fer_hand_tcp", parent_frame="fer_link0"),
-        # tf_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
