@@ -6,6 +6,9 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
+from agimus_demos_common.static_transform_publisher_node import (
+    static_transform_publisher_node,
+)
 
 
 from agimus_demos_common.launch_utils import (
@@ -63,17 +66,46 @@ def launch_setup(
     else:
         pass
 
-    environment_publisher_node = Node(
-        package="agimus_demos_common",
-        executable="string_publisher",
-        name="environment_publisher",
-        parameters=[
-            {
-                "topic_name": "environment_description",
-                "string_value": "<robot name='empty'><link name='env'/></robot>",
-            }
-        ],
-    )
+    env_nodes: list[Node]
+    if False:
+        # No collision avoidance case
+        environment_publisher_node = Node(
+            package="agimus_demos_common",
+            executable="string_publisher",
+            name="environment_publisher",
+            parameters=[
+                {
+                    "topic_name": "environment_description",
+                    "string_value": "<robot name='empty'><link name='env'/></robot>",
+                }
+            ],
+        )
+        env_nodes = [environment_publisher_node]
+    else:
+        # With collision avoidance case.
+        env_desc_file_sub = PathJoinSubstitution(
+            [
+                FindPackageShare("agimus_demo_04_visual_servoing"),
+                "urdf",
+                "big_box.urdf",
+            ]
+        )
+        env_desc_file = env_desc_file_sub.perform(context)
+        with open(env_desc_file, "r") as f:
+            environment_description = f.read()
+        environment_publisher_node = Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            name="environment_publisher",
+            output="screen",
+            remappings=[("robot_description", "environment_description")],
+            parameters=[{"robot_description": environment_description}],
+        )
+        tf_node = static_transform_publisher_node(
+            frame_id="world",
+            child_frame_id="big_box_root",
+        )
+        env_nodes = [environment_publisher_node, tf_node]
 
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
@@ -95,9 +127,15 @@ def launch_setup(
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
-        environment_publisher_node,
+        *env_nodes,
         apriltag_tf_to_world_pose_pub,
-        mpc_debugger_node("fer_hand_tcp", parent_frame="fer_link0"),
+        mpc_debugger_node(
+            "fer_hand_tcp",
+            parent_frame="fer_link0",
+            node_kwargs=dict(
+                remappings=[("robot_description", "robot_description_with_collision")]
+            ),
+        ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
