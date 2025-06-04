@@ -1,5 +1,0 @@
-#!/usr/bin/env python3
-
-from agimus_demo_04_visual_servoing.reference_publisher import main
-
-main()

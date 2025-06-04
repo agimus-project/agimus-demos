@@ -14,8 +14,8 @@ ament_auto_find_build_dependencies()
 #
 # Build Python package.
 #
-ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS scripts/reference_publisher DESTINATION lib/${PROJECT_NAME})
+ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
+                             lib/${PROJECT_NAME})
 
 #
 # Unit tests

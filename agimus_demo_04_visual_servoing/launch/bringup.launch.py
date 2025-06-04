@@ -63,7 +63,6 @@ def launch_setup(
     else:
         pass
 
-
     environment_publisher_node = Node(
         package="agimus_demos_common",
         executable="string_publisher",
