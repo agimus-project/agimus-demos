@@ -38,6 +38,9 @@
   <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_gazebo</exec_depend>
 
   <!-- ROS2 dependencies. -->
+  <build_depend>generate_parameter_library</build_depend>
+  <build_depend>generate_parameter_library_py</build_depend>
+
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>

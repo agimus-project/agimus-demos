@@ -44,6 +44,7 @@ def launch_setup(
             "aux_computer_user": LaunchConfiguration("aux_computer_user"),
             "on_aux_computer": LaunchConfiguration("on_aux_computer"),
             "robot_ip": LaunchConfiguration("robot_ip"),
+            "disable_collision_safety": LaunchConfiguration("disable_collision_safety"),
             "external_controllers_params": LaunchConfiguration(
                 "linear_feedback_controller_params"
             ),

@@ -54,8 +54,14 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
         DeclareLaunchArgument(
             "arm_id",
             default_value="fer",
-            description="ID of the type of arm used. Supported values: fer, fr3, fp3",
+            description="ID of the type of arm used. Supported values: fer, fr3, fp3.",
             choices=["fer", "fr3", "fp3"],
+        ),
+        DeclareLaunchArgument(
+            "disable_collision_safety",
+            default_value="false",
+            description="Whether to disable safety limits for franka robot.",
+            choices=["true", "false"],
         ),
         DeclareLaunchArgument(
             "use_gazebo",

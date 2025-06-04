@@ -44,6 +44,7 @@ def launch_setup(
     aux_computer_user = LaunchConfiguration("aux_computer_user")
     on_aux_computer = LaunchConfiguration("on_aux_computer")
     use_gazebo = LaunchConfiguration("use_gazebo")
+    disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     external_controllers_params = LaunchConfiguration("external_controllers_params")
     external_controllers_names = LaunchConfiguration("external_controllers_names")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
@@ -56,6 +57,9 @@ def launch_setup(
     aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
     aux_computer_user_empty = context.perform_substitution(aux_computer_user) == ""
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
+    disable_collision_safety_bool = (
+        context.perform_substitution(disable_collision_safety).lower() == "true"
+    )
     use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
     on_aux_computer_bool = (
         context.perform_substitution(on_aux_computer).lower() == "true"
@@ -77,6 +81,13 @@ def launch_setup(
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
             "`use_gazebo:=true` and non-empty `robot_ip`."
+        )
+
+    if robot_ip_empty and disable_collision_safety_bool:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with both "
+            "`disable_collision_safety:=true` and empty `robot_ip`. "
+            "Disabling collision safety is only supported on the real robot."
         )
 
     if robot_ip_empty and not aux_computer_ip_empty:
@@ -211,6 +222,7 @@ def launch_setup(
         launch_arguments={
             "robot_ip": robot_ip,
             "arm_id": arm_id,
+            "disable_collision_safety": disable_collision_safety,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
