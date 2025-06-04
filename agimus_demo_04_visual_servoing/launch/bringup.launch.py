@@ -54,7 +54,7 @@ def launch_setup(
         remappings=[("robot_description", "robot_description_with_collision")],
     )
     use_happypose = False
-    vision_nodes: list(Node) = []
+    vision_nodes: list[Node] = []
     if use_happypose:
         happypose_to_tf_node = Node(
             package="agimus_demos_common",
@@ -107,13 +107,21 @@ def launch_setup(
         )
         env_nodes = [environment_publisher_node, tf_node]
 
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_04_visual_servoing"),
+            "config",
+            "trajectory_weight_params.yaml",
+        ]
+    )
+
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
         executable="reference_publisher",
         name="reference_publisher",
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
-        parameters=[get_use_sim_time()],
+        parameters=[get_use_sim_time(), trajectory_weights_yaml],
     )
 
     apriltag_tf_to_world_pose_pub = Node(
@@ -132,6 +140,7 @@ def launch_setup(
         mpc_debugger_node(
             "fer_hand_tcp",
             parent_frame="fer_link0",
+            cost_plot=True,
             node_kwargs=dict(
                 remappings=[("robot_description", "robot_description_with_collision")]
             ),

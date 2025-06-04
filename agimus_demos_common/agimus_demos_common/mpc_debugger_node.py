@@ -6,6 +6,7 @@ def mpc_debugger_node(
     frame: str,
     parent_frame: None | str = None,
     marker_size: None | float = None,
+    cost_plot: bool = False,
     node_kwargs={},
 ) -> Node:
     args = [
@@ -19,6 +20,8 @@ def mpc_debugger_node(
         ]
     if marker_size is not None:
         args.extend(["--marker-size", str(marker_size)])
+    if cost_plot:
+        args.append("--cost-plot")
     node = Node(
         package="agimus_controller_ros",
         executable="mpc_debugger_node",

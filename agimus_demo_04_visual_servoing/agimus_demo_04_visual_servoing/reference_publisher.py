@@ -23,6 +23,17 @@ from agimus_controller.trajectory import (
     WeightedTrajectoryPoint,
 )
 from agimus_controller_ros.simple_trajectory_publisher import TrajectoryPublisherBase
+from agimus_controller_ros.trajectory_weights_parameters import (
+    trajectory_weights_params,
+)
+
+
+def _as_list_of_size(v: list[float], size: int) -> list[float]:
+    assert isinstance(v, list)
+    if len(v) == 1:
+        return v * size
+    else:
+        return v
 
 # Split SimpleTrajectoryPublisher so that the initialization is in base class while the handling of trajectory is in child class.
 # Implement a child class of the above base class that merely publishes a constant point.
@@ -31,6 +42,9 @@ from agimus_controller_ros.simple_trajectory_publisher import TrajectoryPublishe
 class ReferencePublisher(TrajectoryPublisherBase):
     def __init__(self):
         super().__init__("reference_publisher")
+
+        self._traj_weight_param_listener = trajectory_weights_params.ParamListener(self)
+        self._traj_weight_params = self._traj_weight_param_listener.get_params()
 
         params = get_params_from_node(
             self,
@@ -51,8 +65,11 @@ class ReferencePublisher(TrajectoryPublisherBase):
         # This frame should be the same as the one used in agimus_controller
         # visual servoing residual
         self.world_frame = "fer_link0"
-        self.end_effector_frame = "fer_hand_tcp"
         self.object_frame = "current_object"
+
+    @property
+    def end_effector_frame(self) -> str:
+        return self._traj_weight_params.ee_frame_name
 
     def apriltag_callback(self, pose_msg):
         self.wMo_msg = pose_msg
@@ -99,7 +116,7 @@ class ReferencePublisher(TrajectoryPublisherBase):
         oMee_msg.header.stamp = self.get_clock().now().to_msg()
         oMee_msg.header.frame_id = self.object_frame
         oMee_msg.child_frame_id = self.end_effector_frame + "_reference"
-        oMee_msg.transform = se3_to_transform_msg(self._cMo.inverse())
+        oMee_msg.transform = se3_to_transform_msg(self._oMee)
         self.tf_static_broadcaster.sendTransform(oMee_msg)
 
         model = self.robot_models.robot_model
@@ -109,11 +126,11 @@ class ReferencePublisher(TrajectoryPublisherBase):
         a = np.zeros(model.nv)
         tau = pinocchio.rnea(model, data, q, v, a)
 
-        w_q = 0.01 * np.ones(model.nv)
-        w_v = 0.01 * np.ones(model.nv)
-        w_a = 0.01 * np.ones(model.nv)
-        w_tau = 0.000001 * np.ones(model.nv)
-        w_pose = 1.0 * np.ones(6)
+        w_q = _as_list_of_size(self._traj_weight_params.w_q, model.nv)
+        w_v = _as_list_of_size(self._traj_weight_params.w_qdot, model.nv)
+        w_a = _as_list_of_size(self._traj_weight_params.w_qddot, model.nv)
+        w_tau = _as_list_of_size(self._traj_weight_params.w_robot_effort, model.nv)
+        w_pose = _as_list_of_size(self._traj_weight_params.w_pose, 6)
 
         self._point = WeightedTrajectoryPoint(
             point=TrajectoryPoint(
@@ -142,8 +159,6 @@ class ReferencePublisher(TrajectoryPublisherBase):
 
     def publish_reference(self):
         msg = weighted_traj_point_to_mpc_msg(self._point)
-        if self._point.point.id < 50:
-            msg.w_pose = [0.0] * 6
         self.publisher_.publish(msg)
         self._point.point.id += 1
 
