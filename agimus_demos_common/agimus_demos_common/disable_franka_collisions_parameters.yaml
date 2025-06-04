@@ -1,4 +1,6 @@
 ---
+# Values for collision and acceleration thresholds are based on examples provided by Franka Emika Exact values are based on:
+# https://github.com/agimus-project/franka_ros2/blob/humble/franka_example_controllers/include/franka_example_controllers/default_robot_behavior_utils.hpp
 disable_franka_collisions:
   lower_torque_thresholds_acceleration:
     type: double_array
@@ -6,6 +8,9 @@ disable_franka_collisions:
     description: Contact torque thresholds during acceleration/deceleration for each joint
       in [Nm].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   upper_torque_thresholds_acceleration:
     type: double_array
@@ -13,6 +18,9 @@ disable_franka_collisions:
     description: Collision torque thresholds during acceleration/deceleration for each joint
       in [Nm].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   lower_torque_thresholds_nominal:
     type: double_array
@@ -25,6 +33,9 @@ disable_franka_collisions:
     default_value: [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0]
     description: Collision torque thresholds for each joint in [Nm].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   lower_force_thresholds_acceleration:
     type: double_array
@@ -32,6 +43,9 @@ disable_franka_collisions:
     description: Contact force thresholds during acceleration/deceleration for (x,y,z,R,P,Y)
       in [N].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   upper_force_thresholds_acceleration:
     type: double_array
@@ -39,15 +53,24 @@ disable_franka_collisions:
     description: Collision force thresholds during acceleration/deceleration for (x,y,z,R,P,Y)
       in [N].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   lower_force_thresholds_nominal:
     type: double_array
     default_value: [30.0, 30.0, 30.0, 25.0, 25.0, 25.0]
     description: Contact force thresholds for (x,y,z,R,P,Y) in [N].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]
 
   upper_force_thresholds_nominal:
     type: double_array
     default_value: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0]
     description: Collision force thresholds for (x,y,z,R,P,Y) in [N].
     read_only: true
+    validation:
+      fixed_size<>: [7]
+      lower_element_bounds<>: [0.0]

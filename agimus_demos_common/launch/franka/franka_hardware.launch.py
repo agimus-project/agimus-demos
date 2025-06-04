@@ -68,25 +68,29 @@ def launch_setup(
         }.items(),
     )
 
+    franka_safety_params_file = (
+        "franka_collisions_unsafe.yaml"
+        if disable_collision_safety_bool
+        else "franka_collisions_default.yaml"
+    )
+
     disable_franka_collisions_node = Node(
         package="agimus_demos_common",
         executable="disable_franka_collisions",
         name="disable_franka_collisions",
         output="screen",
         # If set to `true`, change values to custom ones. If `false` use default.
-        # Robot remembers previous parameters, so we need to change them every time.
+        # Robot remembers previous parameters, so we need to change values every time.
         parameters=(
             [
                 PathJoinSubstitution(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "config",
-                        "franka_collisions_unsafe.yaml",
+                        franka_safety_params_file,
                     ]
                 )
             ]
-            if disable_collision_safety_bool
-            else []
         ),
     )
 
