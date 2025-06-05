@@ -75,21 +75,13 @@ def launch_setup(
         ],
     )
 
-    trajectory_weights_yaml = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_04_visual_servoing"),
-            "config",
-            "trajectory_weigths_params.yaml",
-        ]
-    )
-
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
         executable="reference_publisher",
         name="reference_publisher",
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
-        parameters=[get_use_sim_time(), trajectory_weights_yaml],
+        parameters=[get_use_sim_time()],
     )
 
     apriltag_tf_to_world_pose_pub = Node(
