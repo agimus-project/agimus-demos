@@ -41,6 +41,7 @@ def _as_list_of_size(v: list[float], size: int) -> list[float]:
 
 class ReferencePublisher(TrajectoryPublisherBase):
     def __init__(self):
+        self._dt = None
         super().__init__("reference_publisher")
 
         self._traj_weight_param_listener = trajectory_weights_params.ParamListener(self)
@@ -76,7 +77,11 @@ class ReferencePublisher(TrajectoryPublisherBase):
         self.wMo = pose_msg_to_se3(pose_msg.pose)
 
     def ready_callback(self):
-        # Call on_timer function every second
+        # Although unlikely, it is possible that `ready_callback` is called
+        # before self._dt has been set. This happened to me (Joseph) once.
+        while self._dt is None:
+            self.get_logger().info("Waiting for agimus controller node params.")
+            rclpy.spin_once(timeout_sec=1.0)
         self.timer = self.create_timer(self._dt, self.initialize_transform)
 
     def get_transform(self, parent_frame, child_frame, stamp):
