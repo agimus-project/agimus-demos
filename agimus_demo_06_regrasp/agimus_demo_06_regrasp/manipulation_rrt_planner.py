@@ -15,6 +15,7 @@ from hpp.rostools import process_xacro, retrieve_resource
 from agimus_demo_06_regrasp.utils import (
     BaseObject,
     get_obj_goal_handles,
+    hack_for_ros2_support_in_hpp,
 )
 
 
@@ -27,32 +28,48 @@ class ManipulationPlanner:
 
     """
 
-    def __init__(self, object_name: str, object_handles: list[str]):
-        self.object_handles = object_handles
-        self.robot_grippers = ["panda/panda_gripper"]
-        Client().problem.resetProblem()
-        # create problem
-        newProblem()
+    def __init__(
+        self,
+        object_name: str,
+        robot_grippers: list[str] = ["panda/panda_gripper"],
+        default_object_bounds: list[float] = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2],
+        gripper_open_value: float = 0.04,
+        package_location: str = "package://agimus_demo_06_regrasp",
+        verbose: bool = True,
+    ):
+        """
+        :param object_name: Name of the object to manipulate (e.g., "tless_20")
+        :param robot_grippers: List of gripper names to use for manipulation
+        :param default_object_bounds: Default bounds for the manipulated object
+        :param gripper_open_value: Value to set the gripper in open position
+        :param verbose: If True, print additional information during execution
+        """
+        # Ensure compatibility with ROS2
+        hack_for_ros2_support_in_hpp()
+        self.object_name = object_name
+        self.robot_grippers = robot_grippers
+        self.default_object_bounds = default_object_bounds
+        self.gripper_open_value = gripper_open_value
+        self.package_location = package_location
+        self.verbose = verbose
 
+        self.create_problem()
+        self.create_graph()
+
+    def create_problem(self):
+        """Create a new problem in HPP"""
+        Client().problem.resetProblem()
+        newProblem()
         # Load robot
-        package_location = "package://agimus_demo_06_regrasp"
-        Robot.urdfString = process_xacro(package_location + "/urdf/demo.urdf.xacro")
+        Robot.urdfString = process_xacro(
+            self.package_location + "/urdf/demo.urdf.xacro"
+        )
         Robot.srdfString = ""
         self.robot = Robot("robot", "panda", rootJointType="anchor")
         shrinkJointRange(self.robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
-        # Load manipulated object
-        self.manip_object = BaseObject(
-            urdf_path=retrieve_resource(
-                f"{package_location}/urdf/tless/{object_name}.urdf"
-            ),
-            srdf_path=retrieve_resource(
-                f"{package_location}/srdf/tless/{object_name}.srdf"
-            ),
-            name="part",
-        )
-
         # set problem
         self.ps = ProblemSolver(self.robot)
+        self.ps.selectPathPlanner("M-RRT")
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
         # add time parametrization for smooth velocities
         self.ps.addPathOptimizer("SimpleTimeParameterization")
@@ -67,8 +84,18 @@ class ManipulationPlanner:
         # create viewer factory to debug with gepetto-gui
         self.vf = ViewerFactory(self.ps)
 
-        # load the object
+        # Load manipulated object
+        self.manip_object = BaseObject(
+            urdf_path=retrieve_resource(
+                f"{self.package_location}/urdf/tless/{self.object_name}.urdf"
+            ),
+            srdf_path=retrieve_resource(
+                f"{self.package_location}/srdf/tless/{self.object_name}.srdf"
+            ),
+            name="tless_20",
+        )
         self.vf.loadObjectModel(self.manip_object, self.manip_object.name)
+
         self.robot.setJointBounds(
             f"{self.manip_object.name}/root_joint", self.default_object_bounds
         )
@@ -88,34 +115,34 @@ class ManipulationPlanner:
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
 
-        # Add handle of the objects
-        self.handles, self.goal_handles = get_obj_goal_handles(
+    def create_graph(self):
+        """Create the constraint graph for manipulation"""
+        # Get handle of the objects
+        self.object_handles, self.goal_handles = get_obj_goal_handles(
             prefix=self.manip_object.name + "/",
             srdf_path=self.manip_object.srdfFilename,
         )
 
         # create constraint graph
-
         rules = [
             Rule([".*"], [".*"], True),
         ]
-        self.cg = ConstraintGraph(self.robot, graphName=self.graph_name)
+        self.cg = ConstraintGraph(self.robot, graphName="constraint_graph")
         self.factory = ConstraintGraphFactory(self.cg)
         self.factory.setGrippers(self.robot_grippers)
-        self.factory.environmentContacts(["panda/foam_block_contact"])
+        self.factory.environmentContacts(
+            [
+                "panda/foam_block_contact",
+            ]
+        )
         self.factory.setObjects(
             [self.manip_object.name],
-            self.object_handles,
-            [f"{self.manip_object.name}/{self.manip_object.name}_surface"],
+            [self.object_handles],
+            [["tless_20/lower_upper_z", "tless_20/lower_y"]],
         )
         self.factory.setRules(rules)
         self.factory.generate()
         self.cg.initialize()
-
-        # validate graph
-        cproblem = self.ps.hppcorba.problem.getProblem()
-        cgraph = cproblem.getConstraintGraph()
-        cgraph.initialize()
 
     def clear_roadmap(self):
         """Clear problem solver roadmap and erase all paths"""
@@ -126,15 +153,30 @@ class ManipulationPlanner:
 
     def solve(self, q_start, q_goal) -> bool:
         """Solve planning problem with classical hpp"""
-        q_start, q_goal = self.get_start_goal()
+        self.vf.createViewer()  # Create gepetto-gui viewer
+        # self.robot.setCurrentConfig(q_start)
+        # input("Press Enter to continue (q_init before projection) ...")
+        res, q_start, err = self.cg.applyNodeConstraints("free", q_start)
+        assert res, f"Failed to apply node constraints on start configuration: {err}"
+        # self.robot.setCurrentConfig(q_start)
+        # input("Press Enter to continue (q_init after projection) ...")
+        # self.robot.setCurrentConfig(q_goal)
+        # input("Press Enter to continue (q_goal before projection) ...")
+        res, q_goal, err = self.cg.applyNodeConstraints("free", q_goal)
+        assert res, f"Failed to apply node constraints on goal configuration: {err}"
+        # self.robot.setCurrentConfig(q_goal)
+        # input("Press Enter to continue (q_goal after projection) ...")
+
+        self.robot.setCurrentConfig(q_start)
         self.clear_roadmap()
         self.ps.setInitialConfig(q_start)
         self.ps.addGoalConfig(q_goal)
         try:
             self.ps.addPathOptimizer("RandomShortcut")
             self.ps.solve()
-            return True
+            path = self.ps.client.basic.problem.getPath(self.ps.numberPaths() - 1)
+            return True, path
         except BaseException as e:
             if self.verbose:
                 print(e)
-            return False
+            return False, None

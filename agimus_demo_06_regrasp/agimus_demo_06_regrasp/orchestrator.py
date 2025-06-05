@@ -22,7 +22,7 @@ from agimus_demo_06_regrasp.hpp_client import (
     get_traj_points_from_path,
 )
 
-# from agimus_demo_06_regrasp.manipulation_rrt_planner import ManipulationPlanner
+from agimus_demo_06_regrasp.manipulation_rrt_planner import ManipulationPlanner
 from agimus_demo_06_regrasp.async_subscriber import AsyncSubscriber
 from agimus_demo_06_regrasp.trajectory_publisher import TrajectoryPublisher
 from agimus_demo_06_regrasp.utils import (
@@ -45,11 +45,11 @@ def map_object_id(obj_id, dataset="tless"):
 def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
     """Return initial object position in world frame."""
     if object_name == "obj_20":
-        return [-0.12, -0.2, 0.95, -np.sqrt(2) / 2, 0.0, np.sqrt(2) / 2, 0.0]
+        return [0.1, -0.2, 0.85, -np.sqrt(2) / 2, 0.0, np.sqrt(2) / 2, 0.0]
     if object_name == "obj_21":
         return [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_23":
-        return [0.2, -0.23, 1.1, 0.0, 0.0, 0.0, 1.0]
+        return [0.1, -0.23, 0.9, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "cont_grasp_net_obj":
@@ -351,14 +351,43 @@ class Orchestrator(object):
 
     def test_manip_plan(self, object_name: str):
         current_robot_state = self.state_client.wait_for_future()
-        start_pose = get_hardcoded_initial_object_pose(object_name)
-        goal_pose = start_pose.copy()
-        goal_pose[1] += 0.05
-        # self.planner = ManipulationPlanner(object_name)
-        hpp_q_init = list(current_robot_state.position) + start_pose
-        hpp_q_goal = list(current_robot_state.position) + goal_pose
-        full_path = self.planner.solve(hpp_q_init, hpp_q_goal)
-        self.publish(full_path)
+        # start_pose = get_hardcoded_initial_object_pose(object_name)
+        # goal_pose = start_pose.copy()
+        # goal_pose[1] += 0.1
+
+        hpp_q_init = list(current_robot_state.position) + [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+        ]
+        self.hpp_client = HPPInterface(
+            object_name=object_name, use_spline_gradient_based_opt=False
+        )
+        start_obj_pose, rotated_90, rotate_180 = self.get_object_start_and_goal_pose(
+            object_name=object_name, q=hpp_q_init
+        )
+
+        self.planner = ManipulationPlanner(object_name)
+
+        hpp_q_init = list(current_robot_state.position) + start_obj_pose
+        hpp_q_goal = list(current_robot_state.position) + rotate_180
+
+        is_solved, full_path = self.planner.solve(hpp_q_init, hpp_q_goal)
+        print(f"Manipulation plan solved: {is_solved}")
+        if is_solved:
+            input("Solution found! ready to play?")
+            self.publish(full_path)
+        # hpp_q_init = list(current_robot_state.position) + rotated_90
+        # hpp_q_goal = list(current_robot_state.position) + rotate_180
+
+        # is_solved, full_path = self.planner.solve(hpp_q_init, hpp_q_goal)
+        # print(f"Manipulation plan solved: {is_solved}")
+        # if is_solved:
+        #     self.publish(full_path)
 
     def regrasp(self, object_name: str):
         """Main function that is called in the orchestrator
