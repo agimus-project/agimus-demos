@@ -50,6 +50,8 @@ def launch_setup(
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
+    use_ft_sensor = LaunchConfiguration("use_ft_sensor")
+    ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
 
@@ -61,6 +63,8 @@ def launch_setup(
         context.perform_substitution(disable_collision_safety).lower() == "true"
     )
     use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
+    use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
+    ft_sensor_ip_empty = context.perform_substitution(ft_sensor_ip) == ""
     on_aux_computer_bool = (
         context.perform_substitution(on_aux_computer).lower() == "true"
     )
@@ -105,25 +109,37 @@ def launch_setup(
     if robot_ip_empty and on_aux_computer_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and non-empty `robot_ip`."
+            "`on_aux_computer:=true` and non-empty `robot_ip`."
         )
 
     if not aux_computer_ip_empty and on_aux_computer_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and non-empty `aux_computer_ip_empty`."
+            "`on_aux_computer:=true` and non-empty `aux_computer_ip_empty`."
         )
 
     if on_aux_computer_bool and use_gazebo_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and `use_gazebo:=true`."
+            "`on_aux_computer:=true` and `use_gazebo:=true`."
         )
 
     if on_aux_computer_bool and use_rviz_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and `use_rviz:=true`."
+            "`on_aux_computer:=true` and `use_rviz:=true`."
+        )
+
+    if use_ft_sensor_bool and ft_sensor_ip_empty and not robot_ip_empty:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with "
+            "`use_ft_sensor:=true` empty `ft_sensor_ip` and non-empty `robot_ip`."
+        )
+
+    if not ft_sensor_ip_empty and use_gazebo_bool:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with "
+            "non empty `ft_sensor_ip` and `use_gazebo:=true`."
         )
 
     wait_for_non_zero_joints_node = Node(
@@ -223,6 +239,7 @@ def launch_setup(
             "robot_ip": robot_ip,
             "arm_id": arm_id,
             "disable_collision_safety": disable_collision_safety,
+            "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
@@ -261,6 +278,8 @@ def launch_setup(
             "aux_computer_ip": aux_computer_ip,
             "aux_computer_user": aux_computer_user,
             "arm_id": arm_id,
+            "disable_collision_safety": disable_collision_safety,
+            "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
@@ -286,6 +305,7 @@ def launch_setup(
         launch_arguments={
             "gz_verbose": gz_verbose,
             "gz_headless": gz_headless,
+            "use_ft_sensor": use_ft_sensor,
         }.items(),
         condition=IfCondition(use_gazebo),
     )
@@ -302,9 +322,14 @@ def launch_setup(
         "ee_id": "franka_hand",
         "gazebo_effort": "true",
         "with_sc": "false",
-        "special_connection": "ati_mini45_tool_mount",
         "franka_controllers_params": franka_controllers_params,
+        "use_ft_sensor": use_ft_sensor,
+        "ft_sensor_ip": ft_sensor_ip,
+        "rdt_sampling_rate": "7000",
+        "internal_filter_rate": "2",
+        "use_hardware_biasing": "true",
     }
+
     robot_description_file_substitution = PathJoinSubstitution(
         [
             FindPackageShare("franka_description"),
