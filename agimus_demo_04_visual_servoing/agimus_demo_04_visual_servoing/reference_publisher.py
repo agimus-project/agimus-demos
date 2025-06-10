@@ -65,11 +65,15 @@ class ReferencePublisher(TrajectoryPublisherBase):
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.tf_static_broadcaster = StaticTransformBroadcaster(self)
         self.vision_sub = self.create_subscription(
-            PoseStamped, "/object/detections", self.apriltag_callback, 5
+            PoseStamped, "/object/detections", self.vision_callback, 5
         )
 
-        self.wMo: pinocchio.SE3 = None
+        # This frame should be the same as the one used in agimus_controller
+        # visual servoing residual
+        self.world_frame = None
         self.object_frame = "current_object"
+        self.wMo_msg = None
+        self.wMo = None
 
     @property
     def end_effector_frame(self) -> str:
@@ -77,7 +81,7 @@ class ReferencePublisher(TrajectoryPublisherBase):
         # visual servoing residual
         return self._traj_weight_params.ee_frame_name
 
-    def apriltag_callback(self, pose_msg: PoseStamped):
+    def vision_callback(self, pose_msg: PoseStamped):
         if len(pose_msg.header.frame_id) == 0:
             self.world_frame = "fer_link0"
         else:
@@ -178,6 +182,7 @@ class ReferencePublisher(TrajectoryPublisherBase):
         self.timer = self.create_timer(self._dt, self.publish_reference)
 
     def publish_reference(self):
+        self._point.point.robot_configuration = self.current_q
         msg = weighted_traj_point_to_mpc_msg(self._point)
         self.publisher_.publish(msg)
         self._point.point.id += 1

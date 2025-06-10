@@ -5,7 +5,7 @@ import pinocchio as pin
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from geometry_msgs.msg import PoseStamped, Quaternion, TransformStamped
+from geometry_msgs.msg import PoseStamped, Quaternion
 from tf2_ros.transform_broadcaster import TransformBroadcaster
 
 from agimus_controller_ros.ros_utils import transform_msg_to_se3
@@ -37,23 +37,7 @@ class ApriltagTfToWorldPose(rclpy.node.Node):
             )
             return None
 
-    def publish_object_frame_to_current_object_in_tf(self):
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = self.object_frame
-        t.child_frame_id = "current_object"
-        t.transform.translation.x = 0.0
-        t.transform.translation.y = 0.0
-        t.transform.translation.z = 0.0
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
-        self.tf_broadcaster.sendTransform(t)
-
     def publish_pose_detection_in_world_frame(self):
-        self.publish_object_frame_to_current_object_in_tf()
-
         # retrieve in tf pose detection from apriltag
         try:
             wMo_msg = self.tf_buffer.lookup_transform(
@@ -65,7 +49,7 @@ class ApriltagTfToWorldPose(rclpy.node.Node):
                 throttle_duration_sec=2.0,
             )
             return
-        wMo = pin.se3ToXYZQUAT(transform_msg_to_se3(wMo_msg.transform))
+        wMo = pin.SE3ToXYZQUAT(transform_msg_to_se3(wMo_msg.transform))
 
         # publish it in a message
         ps = PoseStamped(header=wMo_msg.header)
