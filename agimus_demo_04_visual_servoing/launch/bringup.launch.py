@@ -92,10 +92,19 @@ def launch_setup(
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
     )
 
+    apriltag_tf_to_world_pose_pub = Node(
+        package="agimus_demos_common",
+        executable="apriltag_tf_to_world_pose",
+        name="detection_pub_node",
+        parameters=[get_use_sim_time()],
+        output="screen",
+    )
+
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         environment_publisher_node,
+        apriltag_tf_to_world_pose_pub,
         mpc_debugger_node("fer_hand_tcp", parent_frame="fer_link0"),
         RegisterEventHandler(
             event_handler=OnProcessExit(
