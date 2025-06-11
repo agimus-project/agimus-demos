@@ -78,6 +78,17 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
+            "use_ft_sensor",
+            default_value="false",
+            description="Enable or disable use of force-torque sensor",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "ft_sensor_ip",
+            default_value="",
+            description="Hostname or IP address of the force-torque sensor.",
+        ),
+        DeclareLaunchArgument(
             "gz_verbose",
             default_value="false",
             description="Whether to set verbosity level of Gazebo to 3.",

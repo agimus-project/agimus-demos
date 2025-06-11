@@ -32,6 +32,9 @@
   <exec_depend condition="$PAL_DISTRO != alum">franka_ign_ros2_control</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">franka_robot_state_broadcaster</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">gripper_controllers</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_description</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_diagnostic_broadcaster</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_driver</exec_depend>
 
   <!-- Tiago-Pro dependencies. -->
   <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_description</exec_depend>

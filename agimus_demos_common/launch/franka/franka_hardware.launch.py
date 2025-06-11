@@ -12,7 +12,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 from controller_manager.launch_utils import (
-    generate_load_controller_launch_description,  # noqa: I001
+    generate_controllers_spawner_launch_description,  # noqa: I001
 )
 
 
@@ -22,11 +22,13 @@ def launch_setup(
     arm_id = LaunchConfiguration("arm_id")
     robot_ip = LaunchConfiguration("robot_ip")
     disable_collision_safety = LaunchConfiguration("disable_collision_safety")
+    use_ft_sensor = LaunchConfiguration("use_ft_sensor")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
 
     disable_collision_safety_bool = (
         context.perform_substitution(disable_collision_safety).lower() == "true"
     )
+    use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
 
     controller_manager_node = Node(
         package="controller_manager",
@@ -46,8 +48,14 @@ def launch_setup(
         on_exit=Shutdown(),
     )
 
-    spawn_default_controller = generate_load_controller_launch_description(
-        "joint_state_broadcaster"
+    controllers = ["joint_state_broadcaster"]
+    if use_ft_sensor_bool:
+        controllers.extend(
+            ["force_torque_sensor_broadcaster", "net_ft_diagnostic_broadcaster"]
+        )
+
+    spawn_default_controllers = generate_controllers_spawner_launch_description(
+        controllers,
     )
 
     franka_gripper_launch = IncludeLaunchDescription(
@@ -97,7 +105,7 @@ def launch_setup(
     return [
         controller_manager_node,
         franka_gripper_launch,
-        spawn_default_controller,
+        spawn_default_controllers,
         disable_franka_collisions_node,
     ]
 
@@ -118,6 +126,12 @@ def generate_launch_description():
             "disable_collision_safety",
             default_value="false",
             description="Whether to disable safety limits for franka robot.",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "use_ft_sensor",
+            default_value="false",
+            description="Enable or disable use of force-torque sensor",
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(

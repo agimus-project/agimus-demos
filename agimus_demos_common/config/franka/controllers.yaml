@@ -9,6 +9,12 @@ controller_manager:
     gripper_action_controller:
       type: effort_controllers/GripperActionController
 
+    force_torque_sensor_broadcaster:
+      type: force_torque_sensor_broadcaster/ForceTorqueSensorBroadcaster
+
+    net_ft_diagnostic_broadcaster:
+      type: net_ft_diagnostic_broadcaster/NetFTDiagnosticBroadcaster
+
 
 gripper_action_controller:
   ros__parameters:
@@ -20,3 +26,16 @@ gripper_action_controller:
       i: 0.1
       i_clamp: 0.5
       p: 20.0
+
+force_torque_sensor_broadcaster:
+  ros__parameters:
+    sensor_name: ati_mini45
+    state_interface_names:
+    - force.x
+    - force.y
+    - force.z
+    - torque.x
+    - torque.y
+    - torque.z
+    frame_id: ati_mini45_measurement_reference
+    topic_name: ft_data
