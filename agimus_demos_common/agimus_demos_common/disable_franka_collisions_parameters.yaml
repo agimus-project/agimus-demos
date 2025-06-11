@@ -44,7 +44,7 @@ disable_franka_collisions:
       in [N].
     read_only: true
     validation:
-      fixed_size<>: [7]
+      fixed_size<>: [6]
       lower_element_bounds<>: [0.0]
 
   upper_force_thresholds_acceleration:
@@ -54,7 +54,7 @@ disable_franka_collisions:
       in [N].
     read_only: true
     validation:
-      fixed_size<>: [7]
+      fixed_size<>: [6]
       lower_element_bounds<>: [0.0]
 
   lower_force_thresholds_nominal:
@@ -63,7 +63,7 @@ disable_franka_collisions:
     description: Contact force thresholds for (x,y,z,R,P,Y) in [N].
     read_only: true
     validation:
-      fixed_size<>: [7]
+      fixed_size<>: [6]
       lower_element_bounds<>: [0.0]
 
   upper_force_thresholds_nominal:
@@ -72,5 +72,5 @@ disable_franka_collisions:
     description: Collision force thresholds for (x,y,z,R,P,Y) in [N].
     read_only: true
     validation:
-      fixed_size<>: [7]
+      fixed_size<>: [6]
       lower_element_bounds<>: [0.0]
