@@ -26,6 +26,7 @@ from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_controller_ros.simple_trajectory_publisher import (
     SimpleTrajectoryPublisher,
 )
+
 from agimus_controller_ros.ros_utils import pose_msg_to_se3
 
 
@@ -74,6 +75,8 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
         return frame, [0.1, -0.17, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return frame, [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_31":
+        return frame, [0.1, -0.2, 1.0, 0.0, 0.0, 0.707, 0.707]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -235,9 +238,6 @@ class Orchestrator(object):
         self, object_name: str, use_hardcoded_poses: bool
     ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
-
-        # obj_start_pose = get_hardcoded_initial_object_pose(object_name)
-
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
             obj_start_pose = get_hardcoded_initial_object_pose(object_name)
@@ -260,6 +260,7 @@ class Orchestrator(object):
             print("got obj pose")
 
             obj_start_pose[0] = "panda/" + obj_start_pose[0]
+
         if obj_start_pose[1] is None:
             raise ValueError(f"No {object_name} object detected")
         obj_goal_pose = get_hardcoded_final_object_pose(object_name=object_name)
@@ -282,7 +283,7 @@ class Orchestrator(object):
             # TODO: change it to something normal
             time.sleep(1.0)
 
-    def publish(
+    def add_trajectory_to_publish(
         self,
         path_vector,
         use_visual_servoing=False,
@@ -338,10 +339,29 @@ class Orchestrator(object):
             self.v = self.hpp_client.vf.createViewer()
             self.v(self.hpp_client.q_init)
             input("Trajectory computed. Ready to move. Press Enter to start motion...")
-        self.publish(traj)
+        self.add_trajectory_to_publish(traj)
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
+
+    def publish_identity_transform_in_tf(self, parent_frame, child_frame, stamp):
+        t = TransformStamped()
+
+        # Read message content and assign it to
+        # corresponding tf variables
+        t.header.stamp = stamp
+        t.header.frame_id = map_object_id(parent_frame)
+        t.child_frame_id = child_frame
+        t.transform.translation.x = 0.0
+        t.transform.translation.y = 0.0
+        t.transform.translation.z = 0.0
+        t.transform.rotation.x = 0.0
+        t.transform.rotation.y = 0.0
+        t.transform.rotation.z = 0.0
+        t.transform.rotation.w = 1.0
+
+        # Send the transformation
+        self.tf_broadcaster.sendTransform(t)
 
     def pick_and_place(
         self,
@@ -356,23 +376,12 @@ class Orchestrator(object):
             object_name=object_name,
             use_spline_gradient_based_opt=False,
         )
-        t = TransformStamped()
+        self.publish_identity_transform_in_tf(
+            parent_frame=object_name,
+            child_frame="current_object",
+            stamp=self._node.get_clock().now().to_msg(),
+        )
 
-        # Read message content and assign it to
-        # corresponding tf variables
-        t.header.stamp = self._node.get_clock().now().to_msg()
-        t.header.frame_id = map_object_id(object_name)
-        t.child_frame_id = "current_object"
-        t.transform.translation.x = 0.0
-        t.transform.translation.y = 0.0
-        t.transform.translation.z = 0.0
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
-
-        # Send the transformation
-        self.tf_broadcaster.sendTransform(t)
         self.object_to_grasp_name = object_name
         start_obj_pose, goal_obj_pose = self.get_object_start_and_goal_pose(
             object_name, use_hardcoded_poses=use_hardcoded_poses
@@ -396,22 +405,22 @@ class Orchestrator(object):
         self.open_gripper()
         self.open_gripper()
 
-        self.publish(grasp_path, use_visual_servoing=True, object_name=object_name)
+        self.add_trajectory_to_publish(
+            grasp_path, use_visual_servoing=True, object_name=object_name
+        )
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
-        input("Press Enter to continue...")
-
         if placing_path is not None:
             # TODO: check automatically
             self.close_gripper()
-            self.publish(placing_path, use_visual_servoing=False)
+            self.add_trajectory_to_publish(placing_path, use_visual_servoing=False)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
             self.open_gripper()
-            self.publish(freefly_path, use_visual_servoing=False)
+            self.add_trajectory_to_publish(freefly_path, use_visual_servoing=False)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
@@ -450,7 +459,7 @@ class Orchestrator(object):
                 input("Press Enter to open the gripper and continue...")
                 self.open_gripper()
             else:
-                self.publish(path)
+                self.add_trajectory_to_publish(path)
                 rclpy.spin_until_future_complete(
                     self.trajectory_publisher,
                     self.trajectory_publisher.future_trajectory_done,

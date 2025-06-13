@@ -111,7 +111,7 @@ def launch_setup(
 
     # add simulation of vision detection
     if vision_type in ["simulate_happypose", "simulate_apriltag_det"]:
-        simulated_object_pose = [0.0, -0.25, 1.25, 0.0, 0.0, 0.0, 1.0]
+        simulated_object_pose = [0.0, -0.25, 1.0, 0.0, 0.0, 0.707, 0.707]
         if vision_type == "simulate_apriltag_det":
             simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
             tf_node_object_detection = static_transform_publisher_node(

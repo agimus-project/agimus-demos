@@ -3,9 +3,9 @@ import rclpy.time
 import builtin_interfaces
 from rclpy.qos import qos_profile_system_default
 from rclpy.executors import ExternalShutdownException
+from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
 from rcl_interfaces.srv import SetParameters
 from rclpy.parameter import Parameter
-from geometry_msgs.msg import PoseStamped
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -131,14 +131,9 @@ class HappyposeSimulation(rclpy.node.Node):
 
         self._bMc_tf = None
 
-        # self.detection_pub = self.create_publisher(
-        #    Detection2DArray,
-        #    "/happypose/detections",
-        #    qos_profile_system_default,
-        # )
         self.detection_pub = self.create_publisher(
-            PoseStamped,
-            "/object/detections",
+            Detection2DArray,
+            "/happypose/detections",
             qos_profile_system_default,
         )
 
@@ -174,19 +169,16 @@ class HappyposeSimulation(rclpy.node.Node):
         """
         - cMo: pose of the object wrt camera
         """
-        # hypothesis = ObjectHypothesisWithPose()
-        # hypothesis.hypothesis.class_id = self._object_id
-        # hypothesis.pose.pose = se3_to_pose_msg(cMo)
-        #
-        # detection = Detection2D(results=[hypothesis])
-        # detection.header.stamp = stamp
-        # detection.header.frame_id = self._camera_name
-        # detections = Detection2DArray(detections=[detection])
-        detection = PoseStamped()
+        hypothesis = ObjectHypothesisWithPose()
+        hypothesis.hypothesis.class_id = self._object_id
+        hypothesis.pose.pose = se3_to_pose_msg(cMo)
+
+        detection = Detection2D(results=[hypothesis])
         detection.header.stamp = stamp
         detection.header.frame_id = self._camera_name
-        detection.pose = se3_to_pose_msg(cMo)
-        self.detection_pub.publish(detection)
+        detections = Detection2DArray(detections=[detection])
+
+        self.detection_pub.publish(detections)
 
     def publish(self):
         # at T + DT, publish cMo(T) = cMb(T) * bMo with the expected time stamp.
