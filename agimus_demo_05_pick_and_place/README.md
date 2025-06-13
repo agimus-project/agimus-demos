@@ -22,11 +22,11 @@ source install/setup.bash
 ## Start the demo in simulation using the Panda robot.
 ```bash
 cd workspace
-reset && source install/setup.bash && ros2 launch agimus_demo_05_pick_and_place bringup.launch.py simulate_happypose:=true use_gazebo:=true
+reset && source install/setup.bash && ros2 launch agimus_demo_05_pick_and_place bringup.launch.py vision_type:=simulate_apriltag_det use_gazebo:=true
 ```
 After the xterm terminal is opened, type there `o.pick_and_place('obj_26')`.
 
 ## Start the demo on hardware using the Panda robot.
 ```bash
-ros2 launch agimus_demo_05_pick_and_place bringup_hw.launch.py arm_id:=fer simulate_happypose:=false robot_ip:=<fci-ip>
+ros2 launch agimus_demo_05_pick_and_place bringup_hw.launch.py arm_id:=fer vision_type:=apriltag_det robot_ip:=<fci-ip>
 ```

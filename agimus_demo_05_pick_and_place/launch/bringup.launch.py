@@ -30,10 +30,8 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
-    simulate_happypose_arg = LaunchConfiguration("simulate_happypose")
-    simulate_happypose = (
-        context.perform_substitution(simulate_happypose_arg).lower() == "true"
-    )
+    vision_type_arg = LaunchConfiguration("vision_type")
+    vision_type = context.perform_substitution(vision_type_arg).lower()
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -71,22 +69,6 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    if simulate_happypose:
-        happypose_simulation_params = {
-            "object_id": "tless-obj_000031",
-            "base_name": "support_link",
-            "camera_name": "camera_color_optical_frame",
-            # "object_pose_in_base_txyz": [-0.17, -0.25, 0.85],
-            "object_pose_in_base_txyz": [0.0, -0.25, 1.25],
-            "object_pose_in_base_qxyzw": [0.0, 0.0, 0.0, 1.0],
-        }
-        happypose_simulation_node = Node(
-            package="agimus_demos_common",
-            executable="happypose_simulation",
-            parameters=[get_use_sim_time(), happypose_simulation_params],
-            output="screen",
-        )
-
     environment_description = ParameterValue(
         Command(
             [
@@ -115,12 +97,44 @@ def launch_setup(
         frame_id="robot_attachment_link",
         child_frame_id="world",
     )
+    tf_node_2 = static_transform_publisher_node(
+        frame_id="tless-obj_000031",
+        child_frame_id="current_object",
+    )
     tf_node_support_link = static_transform_publisher_node(
         frame_id="support_link",
         child_frame_id="base",
         xyz=["0.563", "-0.166", "0.780"],
         rot_xyzw=["0.000", "0.000", "1.000", "0.000"],
     )
+    env_nodes = [environment_publisher_node, tf_node, tf_node_2, tf_node_support_link]
+
+    # add simulation of vision detection
+    if vision_type in ["simulate_happypose", "simulate_apriltag_det"]:
+        simulated_object_pose = [0.0, -0.25, 1.25, 0.0, 0.0, 0.0, 1.0]
+        if vision_type == "simulate_apriltag_det":
+            simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
+            tf_node_object_detection = static_transform_publisher_node(
+                frame_id="support_link",
+                child_frame_id="tless-obj_000031",
+                xyz=simulated_object_pose_as_str[:3],
+                rot_xyzw=simulated_object_pose_as_str[3:],
+            )
+            env_nodes.append(tf_node_object_detection)
+        elif vision_type == "simulate_happypose":
+            happypose_simulation_params = {
+                "object_id": "tless-obj_000031",
+                "base_name": "support_link",
+                "camera_name": "camera_color_optical_frame",
+                "object_pose_in_base_txyz": simulated_object_pose[:3],
+                "object_pose_in_base_qxyzw": simulated_object_pose[3:],
+            }
+            happypose_simulation_node = Node(
+                package="agimus_demos_common",
+                executable="happypose_simulation",
+                parameters=[get_use_sim_time(), happypose_simulation_params],
+                output="screen",
+            )
 
     trajectory_weights_yaml = Path(
         FindPackageShare("agimus_demo_05_pick_and_place").find(
@@ -139,7 +153,7 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} --params-file {trajectory_weights_yaml}"',  #
         ],
         output="screen",
     )
@@ -147,9 +161,7 @@ def launch_setup(
     nodes_to_launch = [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
-        environment_publisher_node,
-        tf_node,
-        tf_node_support_link,
+        *env_nodes,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
@@ -161,19 +173,34 @@ def launch_setup(
             )
         ),
     ]
-    if simulate_happypose:
+    if vision_type == "simulate_happypose":
         nodes_to_launch.append(happypose_simulation_node)
+    elif vision_type in ["simulate_apriltag_det", "apriltag_det"]:
+        apriltag_tf_to_world_pose_pub = Node(
+            package="agimus_demos_common",
+            executable="apriltag_tf_to_world_pose",
+            name="detection_pub_node",
+            parameters=[get_use_sim_time()],
+            output="screen",
+        )
+        nodes_to_launch.append(apriltag_tf_to_world_pose_pub)
     return nodes_to_launch
 
 
 def generate_launch_description():
-    simulate_happypose = DeclareLaunchArgument(
-        "simulate_happypose",
-        default_value="false",
-        description="Launch happypose simulation node if set to true.",
+    vision_type = DeclareLaunchArgument(
+        "vision_type",
+        default_value="apriltag_det",
+        choices=[
+            "simulate_happypose",
+            "simulate_apriltag_det",
+            "happypose",
+            "apriltag_det",
+        ],
+        description="Type of vision used.",
     )
     return LaunchDescription(
-        [simulate_happypose]
+        [vision_type]
         + generate_default_franka_args()
         + [OpaqueFunction(function=launch_setup)]
     )

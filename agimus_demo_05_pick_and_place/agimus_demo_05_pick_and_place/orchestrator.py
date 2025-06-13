@@ -96,6 +96,14 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         raise ValueError(f"Object {object_name} not found")
 
 
+def get_in_fer_link0_M_support_link():
+    in_fer_link0_M_support_link = pin.SE3.Identity()
+    in_fer_link0_M_support_link.translation = np.array([0.563, -0.165, -0.780])
+    in_fer_link0_M_support_link.rotation[0, 0] = -1.0
+    in_fer_link0_M_support_link.rotation[1, 1] = -1.0
+    return in_fer_link0_M_support_link
+
+
 @dataclass
 class OrchestratorParams:
     """Orchestrator parameters."""
@@ -118,6 +126,10 @@ class Orchestrator(object):
         self.is_simulation = (
             self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
         )
+        self._node.declare_parameter("vision_type", "apriltag_det")
+        self.vision_type = (
+            self._node.get_parameter("vision_type").get_parameter_value().string_value
+        )
 
         self.object_to_grasp_name = None
         self.start_obj_pose = None
@@ -138,23 +150,29 @@ class Orchestrator(object):
             "/target_object",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
-        # self.vision_client = AsyncSubscriber(
-        #    self._node,
-        #    Detection2DArray,
-        #    "/happypose/detections",
-        #    qos_profile_system_default,
-        # )
-        self.vision_client = AsyncSubscriber(
-            self._node,
-            PoseStamped,
-            "/object/detections",
-            qos_profile_system_default,
-        )
+        if self.vision_type in ["simulate_happypose", "happypose"]:
+            self.vision_client = AsyncSubscriber(
+                self._node,
+                Detection2DArray,
+                "/happypose/detections",
+                qos_profile_system_default,
+            )
+        elif self.vision_type in ["simulate_apriltag_det", "apriltag_det"]:
+            self.vision_client = AsyncSubscriber(
+                self._node,
+                PoseStamped,
+                "/object/detections",
+                qos_profile_system_default,
+            )
+        else:
+            raise RuntimeError(f"Unknown vision type, got {self.vision_type}")
         self.tf_broadcaster = StaticTransformBroadcaster(self._node)
         self.open_gripper()
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_init_done
         )
+
+        self.in_fer_link0_M_support_link = get_in_fer_link0_M_support_link()
 
     def set_hardcoded_q0_start_and_above_source_bin(self):
         self.q0_start = [
@@ -226,18 +244,19 @@ class Orchestrator(object):
         else:
             # REAL setup, TODO: fix communication error when happy pose is running
             print("waiting for obj pose")
-            # with happypose
-            # object_detections = self.vision_client.wait_for_future()
-            # obj_start_pose = get_most_confident_object_pose(
-            #    object_detections, object_name
-            # )
-
-            # with apriltags
-            apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
-            obj_start_pose = [
-                apriltag_detections.header.frame_id,
-                pin.SE3ToXYZQUAT(pose_msg_to_se3(apriltag_detections.pose)),
-            ]
+            if self.vision_type in ["simulate_happypose", "happypose"]:
+                object_detections = self.vision_client.wait_for_future()
+                obj_start_pose = get_most_confident_object_pose(
+                    object_detections, object_name
+                )
+            elif self.vision_type in ["simulate_apriltag_det", "apriltag_det"]:
+                apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
+                obj_start_pose = [
+                    apriltag_detections.header.frame_id,
+                    pin.SE3ToXYZQUAT(pose_msg_to_se3(apriltag_detections.pose)),
+                ]
+            else:
+                raise RuntimeError(f"Unknown vision type, got {self.vision_type}")
             print("got obj pose")
 
             obj_start_pose[0] = "panda/" + obj_start_pose[0]
@@ -263,7 +282,13 @@ class Orchestrator(object):
             # TODO: change it to something normal
             time.sleep(1.0)
 
-    def publish(self, path_vector, use_visual_servoing=False, object_name=None):
+    def publish(
+        self,
+        path_vector,
+        use_visual_servoing=False,
+        object_name=None,
+        end_pre_grasp_idx=None,
+    ):
         q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(
             path_vector, dt=self.dt
         )
@@ -276,10 +301,6 @@ class Orchestrator(object):
                 q_array, dq_array, ddq_array
             )
         )
-        null_speed_idxs = [
-            idx for idx, val in enumerate(dq_array) if np.linalg.norm(val) < 1e-5
-        ]
-        pre_grasp_null_speed_idx = null_speed_idxs[2]
         if self.trajectory_publisher.params.trajectory_name == "generic_trajectory":
             self.trajectory_publisher.add_trajectory(trajectory)
         elif (
@@ -289,12 +310,8 @@ class Orchestrator(object):
             in_support_link_M_object = pin.XYZQUATToSE3(
                 self.hpp_client.start_obj_pose.copy()
             )
-            in_fer_link0_M_support_link = pin.SE3.Identity()
-            in_fer_link0_M_support_link.translation = np.array([0.563, -0.165, -0.780])
-            in_fer_link0_M_support_link.rotation[0, 0] = -1.0
-            in_fer_link0_M_support_link.rotation[1, 1] = -1.0
             in_fer_link0_M_object = (
-                in_fer_link0_M_support_link * in_support_link_M_object
+                self.in_fer_link0_M_support_link * in_support_link_M_object
             )
 
             self.trajectory_publisher.add_visual_servoing_trajectory(
@@ -302,7 +319,7 @@ class Orchestrator(object):
                 use_visual_servoing,
                 object_name,
                 pin.SE3ToXYZQUAT(in_fer_link0_M_object),
-                pre_grasp_null_speed_idx,
+                end_pre_grasp_idx,
             )
 
     def go_to(
@@ -370,11 +387,6 @@ class Orchestrator(object):
             q_init=list(current_robot_state.position),
             q_above_source_bin=self.q_above_source_bin,
         )
-        """
-        paths = self.hpp_client.plan_pick_and_place(
-            q_init=list(current_robot_state.position),
-            q_above_source_bin=self.q_above_source_bin,
-        )"""
 
         if enable_visualization_in_gepetto_gui:
             self.v = self.hpp_client.vf.createViewer()
@@ -388,18 +400,7 @@ class Orchestrator(object):
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
-        # input("Press Enter to continue...")
-        # self.publish(paths[1], use_visual_servoing=True, object_name=object_name)
-        # rclpy.spin_until_future_complete(
-        #    self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
-        # )
-        # for i in range(2, 5):
-        #    self.publish(paths[i], use_visual_servoing=False, object_name=object_name)
-        #    rclpy.spin_until_future_complete(
-        #        self.trajectory_publisher,
-        #        self.trajectory_publisher.future_trajectory_done,
-        #    )
-        # return
+        input("Press Enter to continue...")
 
         if placing_path is not None:
             # TODO: check automatically
@@ -415,10 +416,6 @@ class Orchestrator(object):
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
-
-        # Commented out since restart does not work properly (corba crashes)
-        # self.hpp_client.restart()
-        # del self.hpp_client
 
     def calibrate(
         self,

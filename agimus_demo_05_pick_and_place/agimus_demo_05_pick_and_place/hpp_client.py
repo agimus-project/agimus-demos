@@ -127,16 +127,12 @@ class HPPInterface:
             corba.restart()
         self.setup_problem()
 
-    def get_relative_start_obj_pose(self):
-        return self.start_obj_pose
-
     def set_relative_start_obj_pose(
         self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
     ):
         frame_pose = pinocchio.XYZQUATToSE3(
             self.get_robot_link_position(q_robot, frame_name)
         )
-        print("FRAME POSE ", frame_pose)
         pose = pinocchio.SE3ToXYZQUAT(
             frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
         )
@@ -423,9 +419,6 @@ class HPPInterface:
         print("Solving ...")
         res, paths = self.binPicking.solve(q_start_solve)
         if res:
-            # print("Pick and place path", p)
-            # print(p.length())
-            print("paths ", paths)
             grasp_path, placing_path, freefly_path = split_path(
                 paths, self.binPicking.c_robot()
             )
@@ -433,18 +426,11 @@ class HPPInterface:
                 grasp_path = concatenatePaths(
                     [path_to_start, grasp_path], self.binPicking.c_robot()
                 )
-            #    p = path_to_start.asVector()
-            #    p.appendPath(paths[0])
-            #    paths[0] = p
-            #    paths[-1].appendPath(path_to_start.reverse())
-            # for p in paths:
-            #    self.ps.client.basic.problem.addPath(p)
             self.ps.client.basic.problem.addPath(grasp_path)
             self.ps.client.basic.problem.addPath(placing_path)
             self.ps.client.basic.problem.addPath(freefly_path)
             print("Path generated.")
             return grasp_path, placing_path, freefly_path
-            # return paths
         else:
             # In this case, p is a string containing the error message
             print("No solution", paths)
