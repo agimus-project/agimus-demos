@@ -412,13 +412,25 @@ class HPPInterface:
 
 
 # ____________________________________________________________________________
-def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
+def get_traj_points_from_path(
+    hpp_path, waypoints_at_len=None, window_len=None, window_k=5, robot_ndof=7, dt=0.01
+):
     total_time = hpp_path.length()
     print(total_time)
     T = int(total_time / dt)
     traj_point_list = []
+    # Create times (lenghts-based) at which to sample
+    # Sample every dt point for most of traj, but in [w_a_l - w_l, w_a_l + w_l]
+    # # sample every k * dt point
+    # first_wp_time = int((waypoints_at_len[0] - window_len) / dt)
+    # last_wp_time = int((waypoints_at_len[-1] + window_len) / dt)
+    # traj_point_times = [total_time * iter / (T - 1) for iter in range(first_wp_time)]
+    # for wp_time_prev, wp_time_cur in zip(waypoints_at_len[:-1], waypoints_at_len[1:]):
+
+    # traj_point_times += [total_time * iter / (T - 1) for iter in range(last_wp_time, T)]
     for iter in range(T):
         iter_time = total_time * iter / (T - 1)  # iter * dt
+        # if this time is close to smoothing_ids, subsample path in the sampling window
 
         traj_point_list.append(
             TrajectoryPoint(

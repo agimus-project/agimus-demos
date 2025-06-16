@@ -75,7 +75,8 @@ class ManipulationPlanner:
         # set problem
         self.ps = ProblemSolver(self.robot)
         self.ps.selectPathPlanner("M-RRT")
-        self.ps.addPathOptimizer("RandomShortcut")
+        # self.ps.addPathOptimizer("RandomShortcut")
+        self.ps.addPathOptimizer("Graph-RandomShortcut")
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
         # add time parametrization for smooth velocities
         self.ps.addPathOptimizer("SimpleTimeParameterization")
