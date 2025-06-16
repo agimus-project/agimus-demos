@@ -196,7 +196,7 @@ class ManipulationPlanner:
                 path,
                 self.wd(self.wd(self.ps.client.basic.problem.getProblem()).robot()),
             )
-            for path, _ in path_seq:
+            for path, _, _ in path_seq:
                 self.ps.client.basic.problem.addPath(path)
 
             return True, path_seq

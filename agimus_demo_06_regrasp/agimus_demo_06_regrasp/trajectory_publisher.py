@@ -50,9 +50,11 @@ class TrajectoryPublisher(object):
         default_velocity_w = 1e-2
         velocity_weights = [default_velocity_w] * len(trajectory)
         if len(smoothing_indices) > 0:
+            print("Smoothinh indices provided, smoothing trajectory...")
+            print(smoothing_indices)
             reduced_velocity_weight = 1e-5
             subsampling_k = 5
-            window = 10
+            window = 20
             new_trajectory = list()
             velocity_weights = list()
             N = len(trajectory)
@@ -75,7 +77,7 @@ class TrajectoryPublisher(object):
             new_trajectory.extend(trajectory[b:])
             velocity_weights.extend([default_velocity_w] * (N - b))
             self._node.get_logger().warn(f"Smoothed to len {len(new_trajectory)}")
-            trajectory = new_trajectory
+            trajectory = new_trajectory.copy()
 
         for i, point in enumerate(trajectory):
             q = np.concatenate([point.robot_configuration, np.zeros(2)])
@@ -90,7 +92,7 @@ class TrajectoryPublisher(object):
 
             msg = MpcInput()
             msg.w_q = [1.0] * 7
-            msg.w_qdot = velocity_weights[i] * 7
+            msg.w_qdot = [velocity_weights[i]] * 7
             msg.w_qddot = [1e-6] * 7
             msg.w_robot_effort = [1e-4] * 7
             msg.w_pose = [1.0] * 6

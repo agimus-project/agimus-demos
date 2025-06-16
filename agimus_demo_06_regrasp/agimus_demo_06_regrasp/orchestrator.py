@@ -113,10 +113,10 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "cont_grasp_net_obj"
-        self.use_hardcoded_poses = False
+        self.use_hardcoded_poses = True
         self.use_contact_graspnet = False
         self.use_pointcloud = False
-        self.use_sim = False
+        self.use_sim = True
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
