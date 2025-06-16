@@ -6,4 +6,4 @@ reference_publisher:
     w_qddot: [0.01]
     w_robot_effort: [0.000001]
     w_pose: [1.0]
-    ee_frame_name: camera_color_optical_frame
+    ee_frame_name: fer_hand_tcp

@@ -111,7 +111,7 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_04_visual_servoing"),
             "config",
-            "trajectory_weight_params.yaml",
+            "trajectory_weights_params.yaml",
         ]
     )
 

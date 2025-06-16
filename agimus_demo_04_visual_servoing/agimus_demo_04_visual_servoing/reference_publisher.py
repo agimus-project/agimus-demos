@@ -29,17 +29,22 @@ from agimus_controller_ros.trajectory_weights_parameters import (
 
 
 def _as_list_of_size(v: list[float], size: int) -> list[float]:
+    """
+    Convert list of a single element into a list of `size` element.
+    If the input list has more than one element, it is returned as is.
+    """
     assert isinstance(v, list)
     if len(v) == 1:
         return v * size
     else:
         return v
 
-# Split SimpleTrajectoryPublisher so that the initialization is in base class while the handling of trajectory is in child class.
-# Implement a child class of the above base class that merely publishes a constant point.
-
 
 class ReferencePublisher(TrajectoryPublisherBase):
+    """Trajectory publisher that publishes a constant relative pose wrt to the object.
+    The relative pose corresponds to the first result from the vision pipeline.
+    """
+
     def __init__(self):
         self._dt = None
         super().__init__("reference_publisher")
@@ -59,22 +64,29 @@ class ReferencePublisher(TrajectoryPublisherBase):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.tf_static_broadcaster = StaticTransformBroadcaster(self)
-        self.create_subscription(
+        self.vision_sub = self.create_subscription(
             PoseStamped, "/object/detections", self.apriltag_callback, 5
         )
 
-        # This frame should be the same as the one used in agimus_controller
-        # visual servoing residual
-        self.world_frame = "fer_link0"
+        self.wMo: pinocchio.SE3 = None
         self.object_frame = "current_object"
 
     @property
     def end_effector_frame(self) -> str:
+        # This frame should be the same as the one used in agimus_controller
+        # visual servoing residual
         return self._traj_weight_params.ee_frame_name
 
-    def apriltag_callback(self, pose_msg):
+    def apriltag_callback(self, pose_msg: PoseStamped):
+        if len(pose_msg.header.frame_id) == 0:
+            self.world_frame = "fer_link0"
+        else:
+            self.world_frame = pose_msg.header.frame_id
+        self.get_logger().info("World frame set to " + self.world_frame)
         self.wMo_msg = pose_msg
         self.wMo = pose_msg_to_se3(pose_msg.pose)
+
+        self.destroy_subscription(self.vision_sub)
 
     def ready_callback(self):
         # Although unlikely, it is possible that `ready_callback` is called
@@ -111,6 +123,9 @@ class ReferencePublisher(TrajectoryPublisherBase):
         if wMee_msg is None:
             wMee_msg = self.get_transform(
                 self.world_frame, self.end_effector_frame, rclpy.time.Time()
+            )
+            self.get_logger().warn(
+                f"Could not find transform from {self.world_frame} to {self.end_effector_frame} at time {self.wMo_msg.header.stamp}. Using latest available value."
             )
         self._wMee = transform_msg_to_se3(wMee_msg.transform)
         self._oMee = self.wMo.inverse() * self._wMee
