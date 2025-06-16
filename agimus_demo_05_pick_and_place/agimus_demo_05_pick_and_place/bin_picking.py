@@ -140,7 +140,7 @@ class BinPicking(object):
     """
     timeParamDict = {
         "freefly": {"order": 2, "maxAcc": 2.0, "safety": 0.95},
-        "grasping": {"order": 2, "maxAcc": 0.1, "safety": 0.95},
+        "grasping": {"order": 2, "maxAcc": 0.5, "safety": 0.95},
         "approach": {"order": 2, "maxAcc": 0.5, "safety": 0.95},
     }
     """

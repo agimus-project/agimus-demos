@@ -48,8 +48,18 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
         return [0.1, -0.2, 0.85, -np.sqrt(2) / 2, 0.0, np.sqrt(2) / 2, 0.0]
     if object_name == "obj_21":
         return [-0.12, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_23":
-        return [0.1, -0.23, 0.9, 0.0, 0.0, 0.0, 1.0]
+    # elif object_name == "obj_23":
+    #     return [0.1, -0.23, 0.9, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_23":  # happypose
+        return [
+            0.04143410548567772,
+            -0.14208067953586578,
+            0.539716362953186,
+            0.07858735553072632,
+            0.03146105167416045,
+            -0.712108373698452,
+            0.6969475514873564,
+        ]
     elif object_name == "obj_26":
         return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "cont_grasp_net_obj":
@@ -103,9 +113,10 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "cont_grasp_net_obj"
-        self.use_hardcoded_poses = True
+        self.use_hardcoded_poses = False
         self.use_contact_graspnet = False
         self.use_pointcloud = False
+        self.use_sim = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -263,7 +274,15 @@ class Orchestrator(object):
         obj_in_world_start_pose = None
         if self.use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
-            obj_in_world_start_pose = get_hardcoded_initial_object_pose(object_name)
+            obj_in_cam_start_pose = get_hardcoded_initial_object_pose(object_name)
+            self.hpp_client.robot.setCurrentConfig(q)
+            # TODO: change from hardcoded robot name
+            cam_in_world_pose = self.hpp_client.robot.getLinkPosition(
+                linkName="panda/camera_color_optical_frame"
+            )
+            obj_in_world_start_pose = normalize_quaternion(
+                multiply_poses(cam_in_world_pose, obj_in_cam_start_pose)
+            )
         else:
             # REAL setup
             print("waiting for vision")
@@ -376,11 +395,22 @@ class Orchestrator(object):
         hpp_q_init = list(current_robot_state.position) + start_obj_pose
         hpp_q_goal = list(current_robot_state.position) + rotate_180
 
-        is_solved, full_path = self.planner.solve(hpp_q_init, hpp_q_goal)
+        is_solved, path_sequences = self.planner.solve(hpp_q_init, hpp_q_goal)
         print(f"Manipulation plan solved: {is_solved}")
         if is_solved:
             input("Solution found! ready to play?")
-            self.publish(full_path)
+            for path, object_moves in path_sequences:
+                self.publish(path)
+                # assuming object moves always goes 0-1-0-1-0-1
+                # doing it in the wrong place to have some delay
+                if not object_moves:
+                    if self.use_sim:
+                        self.close_gripper()  # for simulation
+                    else:
+                        self.grasp()  # for hardware robot
+                else:
+                    self.open_gripper()
+                input("Continue to next path?")
         # hpp_q_init = list(current_robot_state.position) + rotated_90
         # hpp_q_goal = list(current_robot_state.position) + rotate_180
 
@@ -475,8 +505,10 @@ class Orchestrator(object):
         self.publish(grasp_path)
         if placing_path is not None:
             # TODO: check automatically
-            self.close_gripper()  # for simulation
-            # self.grasp()  # for hardware robot
+            if self.use_sim:
+                self.close_gripper()  # for simulation
+            else:
+                self.grasp()  # for hardware robot
             self.publish(placing_path)
             self.open_gripper()
             self.publish(freefly_path)  #

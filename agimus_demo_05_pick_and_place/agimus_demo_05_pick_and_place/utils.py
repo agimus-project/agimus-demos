@@ -4,8 +4,17 @@ import typing as T
 import pinocchio as pin
 from geometry_msgs.msg import Pose
 import numpy.typing as npt
+import os
 
 XYZQuatType: T.TypeAlias = tuple[float, float, float, float, float, float, float]
+
+
+def hack_for_ros2_support_in_hpp():
+    """Hack to support ROS2 in HPP."""
+    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
+        os.environ["ROS_PACKAGE_PATH"] = ":".join(
+            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
+        )
 
 
 def concatenatePaths(paths, c_robot=None):

@@ -57,6 +57,27 @@ def split_path(path, c_robot=None):
     return grasp_path, placing_path, freefly_path
 
 
+def get_path_grasp_sequences(path, c_robot=None):
+    flat_path = path.flatten()
+    path_sequences = []
+    curr_state = path_move_object(path.pathAtRank(0))
+    curr_sequence = [path.pathAtRank(0)]
+
+    for idx in range(1, flat_path.numberPaths()):
+        if path_move_object(path.pathAtRank(idx)) == curr_state:
+            curr_sequence.append(path.pathAtRank(idx))
+        else:
+            print(f"Until {idx} the state was {curr_state}")
+            path_sequences.append(
+                (concatenatePaths(curr_sequence, c_robot), curr_state)
+            )
+            curr_state = path_move_object(path.pathAtRank(idx))
+            curr_sequence = [path.pathAtRank(idx)]
+    path_sequences.append((concatenatePaths(curr_sequence, c_robot), curr_state))
+    print(f"Last state was {idx} the state was {curr_state}")
+    return path_sequences
+
+
 def path_move_object(path):
     object_init_pose = np.array(path.initial()[9:12])
     object_end_pose = np.array(path.end()[9:12])

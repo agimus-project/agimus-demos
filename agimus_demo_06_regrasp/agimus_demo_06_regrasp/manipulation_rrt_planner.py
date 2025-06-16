@@ -1,4 +1,4 @@
-from hpp.corbaserver import shrinkJointRange
+from hpp.corbaserver import shrinkJointRange, wrap_delete
 from hpp.corbaserver.manipulation import (
     Robot,
     newProblem,
@@ -16,6 +16,8 @@ from agimus_demo_06_regrasp.utils import (
     BaseObject,
     get_obj_goal_handles,
     hack_for_ros2_support_in_hpp,
+    path_move_object,
+    get_path_grasp_sequences,
 )
 
 
@@ -56,6 +58,9 @@ class ManipulationPlanner:
         self.create_problem()
         self.create_graph()
 
+    def wd(self, o):
+        return wrap_delete(o, self.ps.client.basic._tools)
+
     def create_problem(self):
         """Create a new problem in HPP"""
         Client().problem.resetProblem()
@@ -70,11 +75,12 @@ class ManipulationPlanner:
         # set problem
         self.ps = ProblemSolver(self.robot)
         self.ps.selectPathPlanner("M-RRT")
+        self.ps.addPathOptimizer("RandomShortcut")
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
         # add time parametrization for smooth velocities
         self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
+        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
 
         # Add path projector to avoid discontinuities
@@ -154,28 +160,45 @@ class ManipulationPlanner:
     def solve(self, q_start, q_goal) -> bool:
         """Solve planning problem with classical hpp"""
         self.vf.createViewer()  # Create gepetto-gui viewer
-        # self.robot.setCurrentConfig(q_start)
-        # input("Press Enter to continue (q_init before projection) ...")
+        self.robot.setCurrentConfig(q_start)
+        input("Press Enter to continue (q_init before projection) ...")
         res, q_start, err = self.cg.applyNodeConstraints("free", q_start)
         assert res, f"Failed to apply node constraints on start configuration: {err}"
-        # self.robot.setCurrentConfig(q_start)
-        # input("Press Enter to continue (q_init after projection) ...")
-        # self.robot.setCurrentConfig(q_goal)
-        # input("Press Enter to continue (q_goal before projection) ...")
+        self.robot.setCurrentConfig(q_start)
+        input("Press Enter to continue (q_init after projection) ...")
+        self.robot.setCurrentConfig(q_goal)
+        input("Press Enter to continue (q_goal before projection) ...")
         res, q_goal, err = self.cg.applyNodeConstraints("free", q_goal)
         assert res, f"Failed to apply node constraints on goal configuration: {err}"
-        # self.robot.setCurrentConfig(q_goal)
-        # input("Press Enter to continue (q_goal after projection) ...")
+        self.robot.setCurrentConfig(q_goal)
+        input("Press Enter to continue (q_goal after projection) ...")
 
         self.robot.setCurrentConfig(q_start)
         self.clear_roadmap()
         self.ps.setInitialConfig(q_start)
         self.ps.addGoalConfig(q_goal)
         try:
-            self.ps.addPathOptimizer("RandomShortcut")
             self.ps.solve()
             path = self.ps.client.basic.problem.getPath(self.ps.numberPaths() - 1)
-            return True, path
+
+            flat_path = path.flatten()
+            # grasp_path_idxs = [0]
+            # placing_path_idxs = []
+            # freefly_path_idxs = []
+
+            for idx in range(1, flat_path.numberPaths()):
+                if path_move_object(path.pathAtRank(idx)):
+                    print(f"moving object at {idx}")
+                else:
+                    print(f"static object at {idx}")
+            path_seq = get_path_grasp_sequences(
+                path,
+                self.wd(self.wd(self.ps.client.basic.problem.getProblem()).robot()),
+            )
+            for path, _ in path_seq:
+                self.ps.client.basic.problem.addPath(path)
+
+            return True, path_seq
         except BaseException as e:
             if self.verbose:
                 print(e)

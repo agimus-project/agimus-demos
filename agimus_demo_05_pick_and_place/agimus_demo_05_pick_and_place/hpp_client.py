@@ -42,18 +42,10 @@ from agimus_demo_05_pick_and_place.utils import (
     get_obj_goal_handles,
     XYZQuatType,
     multiply_poses,
+    hack_for_ros2_support_in_hpp,
 )
 from hpp.rostools import process_xacro, retrieve_resource
 from agimus_controller.trajectory import TrajectoryPoint
-
-
-def hack_for_ros2_support_in_hpp():
-    import os
-
-    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
-        os.environ["ROS_PACKAGE_PATH"] = ":".join(
-            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
-        )
 
 
 class HPPInterface:
@@ -168,7 +160,7 @@ class HPPInterface:
             # TODO Should we always use SimpleTimeParameterization?
             self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
+        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
 
         # Add path projector to avoid discontinuities
