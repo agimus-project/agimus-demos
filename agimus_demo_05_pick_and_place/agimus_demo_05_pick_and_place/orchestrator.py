@@ -27,7 +27,7 @@ from agimus_controller_ros.simple_trajectory_publisher import (
     SimpleTrajectoryPublisher,
 )
 
-from agimus_controller_ros.ros_utils import pose_msg_to_se3
+from agimus_controller_ros.ros_utils import pose_msg_to_se3, se3_to_transform_msg
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -123,7 +123,7 @@ class Orchestrator(object):
         self._node = Node("pick_and_place")
         self.param = OrchestratorParams()
 
-        self.franka_gripper_cient = FrankaGripperClient(self._node)
+        # self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
         self.set_hardcoded_q0_start_and_above_source_bin()
         self.is_simulation = (
@@ -139,7 +139,7 @@ class Orchestrator(object):
         self.goal_obj_pose = None
 
         self.trajectory_publisher = SimpleTrajectoryPublisher()
-        self.dt = self.trajectory_publisher.params.dt
+        self.dt = self.trajectory_publisher.dt
 
         self.state_client = AsyncSubscriber(
             self._node,
@@ -267,11 +267,13 @@ class Orchestrator(object):
         return obj_start_pose, obj_goal_pose
 
     def open_gripper(self):
+        return
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
         # TODO: change it to something normal
         time.sleep(0.05)
 
     def close_gripper(self):
+        return
         if self.is_simulation:
             self.franka_gripper_cient.send_goal(
                 position=0.04, max_effort=self.param.max_holding_force
@@ -283,20 +285,23 @@ class Orchestrator(object):
             # TODO: change it to something normal
             time.sleep(1.0)
 
-    def add_trajectory_to_publish(
-        self,
-        path_vector,
-        use_visual_servoing=False,
-        object_name=None,
-        end_pre_grasp_idx=None,
-    ):
+    def add_trajectory_to_publish(self, path_vector, visual_servoing_time_range=None):
         q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(
             path_vector, dt=self.dt
         )
         # TODO: get this from OCP params somehow
-        q_array += [q_array[-1]] * 40  # OCP horizon
-        dq_array += [dq_array[-1]] * 40  # OCP horizon
-        ddq_array += [ddq_array[-1]] * 40  # OCP horizon
+        horizon_size = 40
+        if visual_servoing_time_range is None:
+            visual_servoing_idx_range = [0, 0]
+        else:
+            visual_servoing_idx_range = [
+                int(t / self.dt) for t in visual_servoing_time_range
+            ]
+            if visual_servoing_time_range[1] == path_vector.length():
+                visual_servoing_idx_range[1] += horizon_size
+        q_array += [q_array[-1]] * horizon_size  # OCP horizon
+        dq_array += [dq_array[-1]] * horizon_size  # OCP horizon
+        ddq_array += [ddq_array[-1]] * horizon_size  # OCP horizon
         trajectory = (
             self.trajectory_publisher.trajectory.build_trajectory_from_q_dq_ddq_arrays(
                 q_array, dq_array, ddq_array
@@ -317,10 +322,8 @@ class Orchestrator(object):
 
             self.trajectory_publisher.add_visual_servoing_trajectory(
                 trajectory,
-                use_visual_servoing,
-                object_name,
+                visual_servoing_idx_range,
                 pin.SE3ToXYZQUAT(in_fer_link0_M_object),
-                end_pre_grasp_idx,
             )
 
     def go_to(
@@ -344,21 +347,17 @@ class Orchestrator(object):
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
 
-    def publish_identity_transform_in_tf(self, parent_frame, child_frame, stamp):
+    def publish_transform_in_tf(
+        self, parent_frame, child_frame, transform: pin.SE3, stamp
+    ):
         t = TransformStamped()
 
         # Read message content and assign it to
         # corresponding tf variables
         t.header.stamp = stamp
-        t.header.frame_id = map_object_id(parent_frame)
+        t.header.frame_id = parent_frame
         t.child_frame_id = child_frame
-        t.transform.translation.x = 0.0
-        t.transform.translation.y = 0.0
-        t.transform.translation.z = 0.0
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
+        t.transform = se3_to_transform_msg(transform)
 
         # Send the transformation
         self.tf_broadcaster.sendTransform(t)
@@ -376,9 +375,10 @@ class Orchestrator(object):
             object_name=object_name,
             use_spline_gradient_based_opt=False,
         )
-        self.publish_identity_transform_in_tf(
-            parent_frame=object_name,
+        self.publish_transform_in_tf(
+            parent_frame=map_object_id(object_name),
             child_frame="current_object",
+            transform=pin.SE3.Identity(),
             stamp=self._node.get_clock().now().to_msg(),
         )
 
@@ -404,23 +404,38 @@ class Orchestrator(object):
 
         self.open_gripper()
         self.open_gripper()
-
+        time_pre_grasp = grasp_path.pathAtRank(grasp_path.numberPaths() - 1).length()
         self.add_trajectory_to_publish(
-            grasp_path, use_visual_servoing=True, object_name=object_name
+            grasp_path,
+            visual_servoing_time_range=[
+                grasp_path.length() - time_pre_grasp,
+                grasp_path.length(),
+            ],
         )
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
+
+        apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
+
+        self.publish_transform_in_tf(
+            parent_frame=apriltag_detections.header.frame_id,
+            child_frame="current_object",
+            transform=pose_msg_to_se3(apriltag_detections.pose),
+            stamp=self._node.get_clock().now().to_msg(),
+        )
+
         if placing_path is not None:
             # TODO: check automatically
             self.close_gripper()
-            self.add_trajectory_to_publish(placing_path, use_visual_servoing=False)
+            time_pre_grasp = placing_path.pathAtRank(0).length()
+            self.add_trajectory_to_publish(placing_path)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,
             )
             self.open_gripper()
-            self.add_trajectory_to_publish(freefly_path, use_visual_servoing=False)
+            self.add_trajectory_to_publish(freefly_path)
             rclpy.spin_until_future_complete(
                 self.trajectory_publisher,
                 self.trajectory_publisher.future_trajectory_done,

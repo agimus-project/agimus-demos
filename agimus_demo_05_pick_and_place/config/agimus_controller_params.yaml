@@ -10,7 +10,7 @@ agimus_controller_node:
         factors: [1, 2,4]
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       max_qp_iter: 200
-      max_iter: 20
+      max_iter: 3
       use_constraints: true
       activate_callback: false
       increasing_weights:
