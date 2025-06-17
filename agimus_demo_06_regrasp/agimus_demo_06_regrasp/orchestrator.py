@@ -117,6 +117,7 @@ class Orchestrator(object):
         self.use_contact_graspnet = False
         self.use_pointcloud = False
         self.use_sim = True
+        self.smooth = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -346,12 +347,15 @@ class Orchestrator(object):
         # TODO: change it to something normal
         time.sleep(1.0)
 
-    def publish(self, path_vector, smooth_at_len=None, dt=0.01):
+    def publish(self, path_vector, smooth_at_len=[], dt=0.01):
         traj = get_traj_points_from_path(path_vector, dt=dt)
         # TODO: get this from OCP params somehow
         traj += [traj[-1]] * 40  # OCP horizon
-        smoothing_indices = [int(el / dt) for el in smooth_at_len]
-        self.trajectory_publisher.publish(traj, smoothing_indices=smoothing_indices)
+        if len(smooth_at_len) > 0:
+            smoothing_indices = [int(el / dt) for el in smooth_at_len]
+            self.trajectory_publisher.publish(traj, smoothing_indices=smoothing_indices)
+        else:
+            self.trajectory_publisher.publish(traj)
 
     def go_to(self, desired_configuration):
         self.hpp_client = HPPInterface(
@@ -400,8 +404,11 @@ class Orchestrator(object):
         print(f"Manipulation plan solved: {is_solved}")
         if is_solved:
             input("Solution found! ready to play?")
-            for path, object_moves, smoothing_indices in path_sequences:
-                self.publish(path, smoothing_indices)
+            for path, object_moves, waypoints_at_len in path_sequences:
+                if self.smooth:
+                    self.publish(path, waypoints_at_len)
+                else:
+                    self.publish(path)
                 # assuming object moves always goes 0-1-0-1-0-1
                 # doing it in the wrong place to have some delay
                 if not object_moves:

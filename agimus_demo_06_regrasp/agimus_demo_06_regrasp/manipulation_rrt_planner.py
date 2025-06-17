@@ -74,6 +74,9 @@ class ManipulationPlanner:
         shrinkJointRange(self.robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
         # set problem
         self.ps = ProblemSolver(self.robot)
+        # self.ps.setRandomSeed(42)
+        # np.random.seed(42)
+        # random.seed(42)
         self.ps.selectPathPlanner("M-RRT")
         # self.ps.addPathOptimizer("RandomShortcut")
         self.ps.addPathOptimizer("Graph-RandomShortcut")
@@ -188,10 +191,14 @@ class ManipulationPlanner:
             # freefly_path_idxs = []
 
             for idx in range(1, flat_path.numberPaths()):
-                if path_move_object(path.pathAtRank(idx)):
-                    print(f"moving object at {idx}")
+                if path_move_object(flat_path.pathAtRank(idx)):
+                    print(
+                        f"moving object at {idx}: {flat_path.pathAtRank(idx).length()}"
+                    )
                 else:
-                    print(f"static object at {idx}")
+                    print(
+                        f"static object at {idx}: {flat_path.pathAtRank(idx).length()}"
+                    )
             path_seq = get_path_grasp_sequences(
                 path,
                 self.wd(self.wd(self.ps.client.basic.problem.getProblem()).robot()),

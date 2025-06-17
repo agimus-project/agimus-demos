@@ -67,11 +67,18 @@ def get_path_grasp_sequences(path, c_robot=None):
     for idx in range(1, flat_path.numberPaths()):
         if path_move_object(path.pathAtRank(idx)) == curr_state:
             curr_sequence.append(path.pathAtRank(idx))
-            waypoints_at_len.append(path.pathAtRank(idx - 1).length())
+            if len(waypoints_at_len) == 0:
+                waypoints_at_len.append(path.pathAtRank(idx - 1).length())
+            else:
+                waypoints_at_len.append(
+                    waypoints_at_len[-1] + path.pathAtRank(idx - 1).length()
+                )
         else:
-            print(f"Until {idx} the state was {curr_state}")
             path_sequences.append(
                 (concatenatePaths(curr_sequence, c_robot), curr_state, waypoints_at_len)
+            )
+            print(
+                f"Until {idx} the state was {curr_state}, full len = {path_sequences[-1][0].length()}"
             )
             curr_state = path_move_object(path.pathAtRank(idx))
             curr_sequence = [path.pathAtRank(idx)]

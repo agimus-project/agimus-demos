@@ -15,6 +15,10 @@ class TrajectoryPublisher(object):
         self.pin_data = None
         self.ee_frame_id = None
         self.ee_frame_name = "fer_joint7"
+        self.default_velocity_w = 1e-2
+        self.reduced_velocity_weight = 1e-5
+        self.subsampling_k = 5
+        self.window = 40
 
         self._publisher = self._node.create_publisher(MpcInput, "/mpc_input", 10)
         qos_profile = QoSProfile(
@@ -47,14 +51,10 @@ class TrajectoryPublisher(object):
             time.sleep(0.5)
 
         self._node.get_logger().warn(f"Publishing traj of len {len(trajectory)}")
-        default_velocity_w = 1e-2
-        velocity_weights = [default_velocity_w] * len(trajectory)
+        velocity_weights = [self.default_velocity_w] * len(trajectory)
         if len(smoothing_indices) > 0:
-            print("Smoothinh indices provided, smoothing trajectory...")
+            print("Smoothing indices provided, smoothing trajectory...")
             print(smoothing_indices)
-            reduced_velocity_weight = 1e-5
-            subsampling_k = 5
-            window = 20
             new_trajectory = list()
             velocity_weights = list()
             N = len(trajectory)
@@ -62,20 +62,22 @@ class TrajectoryPublisher(object):
             for i in smoothing_indices:
                 # a and b are the start (included) and end (excluded) of the interval of
                 # indices
-                a = max(i - window, 0)
-                b = min(i + window, N)
+                a = max(i - self.window, prev_b)
+                b = min(i + self.window, N)
+                print("a:", a)
+                print("b:", b)
                 # Add the points that are not changed.
                 new_trajectory.extend(trajectory[prev_b:a])
-                velocity_weights.extend([default_velocity_w] * (a - prev_b))
+                velocity_weights.extend([self.default_velocity_w] * (a - prev_b))
                 # Smoothen between a and b
-                shortcut = trajectory[a:b][::subsampling_k]
+                shortcut = trajectory[a:b][:: self.subsampling_k]
                 new_trajectory.extend(shortcut)
-                velocity_weights.extend([reduced_velocity_weight] * len(shortcut))
+                velocity_weights.extend([self.reduced_velocity_weight] * len(shortcut))
                 prev_b = b
 
             # Add the points that are not changed.
             new_trajectory.extend(trajectory[b:])
-            velocity_weights.extend([default_velocity_w] * (N - b))
+            velocity_weights.extend([self.default_velocity_w] * (N - b))
             self._node.get_logger().warn(f"Smoothed to len {len(new_trajectory)}")
             trajectory = new_trajectory.copy()
 
