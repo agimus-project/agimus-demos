@@ -25,6 +25,7 @@ def launch_setup(
             "mpc_input",
             "ocp_solve_time",
             "ocp_x0",
+            "object/detections",
         ],
         output="screen",
     )

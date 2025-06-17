@@ -12,11 +12,11 @@
         <mask>1 1 1 0 1 1</mask>
     </handle> -->
     <handle name="zn_yp1" clearance="0.075">
-        <position xyz="0.01 0.024 0.12" xyzw="0.0 0.0 0.0 1.0" />
+        <position xyz="0.025 0.024 0.12" xyzw="0.0 0.0 0.0 1.0" />
         <link name="base_link" />
     </handle>
     <handle name="zn_yn1" clearance="0.075">
-        <position xyz="0.01 0.024 0.12" xyzw="1.0 0.0 0.0 0.0" />
+        <position xyz="0.025 0.024 0.12" xyzw="1.0 0.0 0.0 0.0" />
         <link name="base_link" />
     </handle>
 

@@ -11,7 +11,7 @@ simple_trajectory_publisher:
     w_increasing:
       max_weight: 2000.0
       percent: 0.9
-      time_reach_percent: 2.5
+      time_reach_percent: 4.0
     trajectory_name: generic_visual_servoing_trajectory
     generic_trajectory_visual_servoing:
-      start_visual_servoing_time_threshold: 3.0
+      start_visual_servoing_time_threshold: 4.0
