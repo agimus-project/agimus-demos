@@ -105,7 +105,15 @@ def launch_setup(
             frame_id="world",
             child_frame_id="big_box_root",
         )
-        env_nodes = [environment_publisher_node, tf_node]
+        tf_node_2 = static_transform_publisher_node(
+            frame_id="fer_link0",
+            child_frame_id="big_box_root",
+        )
+        tf_node_3 = static_transform_publisher_node(
+            frame_id="tless-obj_000031",
+            child_frame_id="current_object",
+        )
+        env_nodes = [environment_publisher_node, tf_node, tf_node_2, tf_node_3]
 
     trajectory_weights_yaml = PathJoinSubstitution(
         [
@@ -145,6 +153,7 @@ def launch_setup(
                 remappings=[("robot_description", "robot_description_with_collision")]
             ),
         ),
+        apriltag_tf_to_world_pose_pub,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,

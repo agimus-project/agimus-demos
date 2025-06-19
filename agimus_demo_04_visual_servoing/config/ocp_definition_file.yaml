@@ -26,7 +26,7 @@ running_model:
           class: ResidualModelState
     - name: goal_tracking
       update: true
-      weight: 10.0
+      weight: 4.0
       cost:
         class: CostModelResidual
         activation:
@@ -39,12 +39,13 @@ running_model:
           object_frame: current_object
     - name: avoid_collision
       update: false
-      weight: 10.0
+      weight: 5.0
+      publish_residual: true
       cost:
         class: CostModelResidual
         activation:
           class: ActivationModelQuadExp
-          alpha: 1e-2
+          alpha: 2e-2
         residual:
           class: ResidualDistanceCollision
           collision_pair: [fer_hand_sc_capsule_0, big_box_link_1]
