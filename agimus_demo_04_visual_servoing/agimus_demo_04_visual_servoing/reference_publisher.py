@@ -68,8 +68,6 @@ class ReferencePublisher(TrajectoryPublisherBase):
             PoseStamped, "/object/detections", self.vision_callback, 5
         )
 
-        # This frame should be the same as the one used in agimus_controller
-        # visual servoing residual
         self.world_frame = None
         self.object_frame = "current_object"
         self.wMo_msg = None
