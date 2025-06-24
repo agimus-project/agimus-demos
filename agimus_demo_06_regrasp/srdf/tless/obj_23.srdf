@@ -48,12 +48,8 @@
     <!-- <handle name="plug_angles90" clearance="0.075">
         <position xyz="0. 0.013 0.0" xyzw="-0.5 -0.5 0.5 -0.5"/>
         <link name="base_link"/>
-    </handle> -->
-
-
-
-
-    <!-- <handle name="plug_xp_anglesneg90" clearance="0.075">
+    </handle>
+    <handle name="plug_xp_anglesneg90" clearance="0.075">
         <position xyz="0. 0.013 0.0" xyzw="0.5000000000 -0.5000000000 0.5000000000 0.5000000000"/>
         <link name="base_link"/>
     </handle> -->

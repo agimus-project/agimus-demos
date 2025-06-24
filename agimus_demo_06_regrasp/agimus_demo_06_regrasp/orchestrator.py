@@ -117,7 +117,7 @@ class Orchestrator(object):
         self.use_contact_graspnet = False
         self.use_pointcloud = False
         self.use_sim = True
-        self.smooth = False
+        self.smooth = True
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -343,7 +343,7 @@ class Orchestrator(object):
         time.sleep(0.05)
 
     def grasp(self):
-        self.franka_gripper_cient.grasp()
+        self.franka_gripper_cient.grasp(force=30.0)
         # TODO: change it to something normal
         time.sleep(1.0)
 

@@ -121,7 +121,7 @@ class ManipulationPlanner:
             srdf_path=retrieve_resource(
                 f"{self.package_location}/srdf/tless/{self.object_name}.srdf"
             ),
-            name="tless_20",
+            name=self.object_name,
         )
         self.vf.loadObjectModel(self.manip_object, self.manip_object.name)
 
@@ -167,7 +167,7 @@ class ManipulationPlanner:
         self.factory.setObjects(
             [self.manip_object.name],
             [self.object_handles],
-            [["tless_20/lower_upper_z", "tless_20/lower_y"]],
+            [[f"{self.object_name}/lower_upper_z", f"{self.object_name}/lower_y"]],
         )
         self.factory.setRules(rules)
         self.factory.generate()
