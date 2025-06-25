@@ -37,6 +37,15 @@ def launch_setup(
             ]
         )
     )
+    empty_sdf = context.perform_substitution(
+        PathJoinSubstitution(
+            [
+                FindPackageShare("franka_description"),
+                "worlds",
+                "empty.sdf",
+            ]
+        )
+    )
 
     gazebo_empty_world = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -49,7 +58,8 @@ def launch_setup(
             )
         ),
         launch_arguments={
-            "gz_args": "empty.sdf -r"
+            "gz_args": empty_sdf
+            + " -r"
             + f" {'-s' if gz_headless_bool else ''}"
             + f" {'-v 3' if gz_verbose_bool else ''}"
             + f" --gui-config {gz_gui_config_path_str}"
