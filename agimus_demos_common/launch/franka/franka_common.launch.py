@@ -54,6 +54,7 @@ def launch_setup(
     ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
+    gz_world_path = LaunchConfiguration("gz_world_path")
 
     robot_ip_empty = context.perform_substitution(robot_ip) == ""
     aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
@@ -305,6 +306,7 @@ def launch_setup(
         launch_arguments={
             "gz_verbose": gz_verbose,
             "gz_headless": gz_headless,
+            "gz_world_path": gz_world_path,
             "use_ft_sensor": use_ft_sensor,
         }.items(),
         condition=IfCondition(use_gazebo),
@@ -477,6 +479,17 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "gz_world_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "worlds",
+                    "empty.sdf",
+                ]
+            ),
+            description="Path to Gazebo world SDF file.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

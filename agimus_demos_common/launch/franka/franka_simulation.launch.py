@@ -22,10 +22,12 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
+    gz_world_path = LaunchConfiguration("gz_world_path")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
 
     gz_verbose_bool = context.perform_substitution(gz_verbose).lower() == "true"
     gz_headless_bool = context.perform_substitution(gz_headless).lower() == "true"
+    gz_world_path_str = context.perform_substitution(gz_world_path)
     use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
 
     gz_gui_config_path_str = context.perform_substitution(
@@ -34,15 +36,6 @@ def launch_setup(
                 FindPackageShare("agimus_demos_common"),
                 "config",
                 "gz_gui.config",
-            ]
-        )
-    )
-    empty_sdf = context.perform_substitution(
-        PathJoinSubstitution(
-            [
-                FindPackageShare("franka_description"),
-                "worlds",
-                "empty.sdf",
             ]
         )
     )
@@ -58,7 +51,7 @@ def launch_setup(
             )
         ),
         launch_arguments={
-            "gz_args": empty_sdf
+            "gz_args": gz_world_path_str
             + " -r"
             + f" {'-s' if gz_headless_bool else ''}"
             + f" {'-v 3' if gz_verbose_bool else ''}"
@@ -129,6 +122,17 @@ def generate_launch_description():
             default_value="false",
             description="Whether to launch Gazebo in headless mode (no GUI is launched, only physics server).",
             choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "gz_world_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "worlds",
+                    "empty.sdf",
+                ]
+            ),
+            description="Path to Gazebo world SDF file.",
         ),
         DeclareLaunchArgument(
             "use_ft_sensor",
