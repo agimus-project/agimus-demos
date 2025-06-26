@@ -22,10 +22,12 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
+    gz_world_path = LaunchConfiguration("gz_world_path")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
 
     gz_verbose_bool = context.perform_substitution(gz_verbose).lower() == "true"
     gz_headless_bool = context.perform_substitution(gz_headless).lower() == "true"
+    gz_world_path_str = context.perform_substitution(gz_world_path)
     use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
 
     gz_gui_config_path_str = context.perform_substitution(
@@ -49,7 +51,8 @@ def launch_setup(
             )
         ),
         launch_arguments={
-            "gz_args": "empty.sdf -r"
+            "gz_args": gz_world_path_str
+            + " -r"
             + f" {'-s' if gz_headless_bool else ''}"
             + f" {'-v 3' if gz_verbose_bool else ''}"
             + f" --gui-config {gz_gui_config_path_str}"
@@ -119,6 +122,17 @@ def generate_launch_description():
             default_value="false",
             description="Whether to launch Gazebo in headless mode (no GUI is launched, only physics server).",
             choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "gz_world_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "worlds",
+                    "empty.sdf",
+                ]
+            ),
+            description="Path to Gazebo world SDF file.",
         ),
         DeclareLaunchArgument(
             "use_ft_sensor",
