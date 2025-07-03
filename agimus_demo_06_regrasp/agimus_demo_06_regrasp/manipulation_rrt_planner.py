@@ -20,6 +20,7 @@ from agimus_demo_06_regrasp.utils import (
     get_path_grasp_sequences,
 )
 
+import time
 
 class ManipulationPlanner:
     """
@@ -58,6 +59,8 @@ class ManipulationPlanner:
         self.create_problem()
         self.create_graph()
 
+        self.start_time = time.time()
+
     def wd(self, o):
         return wrap_delete(o, self.ps.client.basic._tools)
 
@@ -77,9 +80,17 @@ class ManipulationPlanner:
         # self.ps.setRandomSeed(42)
         # np.random.seed(42)
         # random.seed(42)
-        self.ps.selectPathPlanner("M-RRT")
-        # self.ps.addPathOptimizer("RandomShortcut")
+        
+        # self.ps.selectPathPlanner("M-RRT")
+        self.ps.selectPathPlanner("StatesPathFinder")
+        self.ps.setParameter("StatesPathFinder/innerPlannerTimeOut", 5.0)
+        # surprisingly faster to arrive at the solution for higher values (when other params same)
+        self.ps.setParameter("StatesPathFinder/innerPlannerMaxIterations", 1000)
+        # faster for lower values, but fails more often
+        self.ps.setParameter("StatesPathFinder/nTriesUntilBacktrack", 10)
+        self.ps.setParameter("StatesPathFinder/maxDepth", 4)
         self.ps.addPathOptimizer("Graph-RandomShortcut")
+        self.ps.addPathOptimizer("RandomShortcut")
         self.ps.addPathOptimizer("EnforceTransitionSemantic")
         # add time parametrization for smooth velocities
         self.ps.addPathOptimizer("SimpleTimeParameterization")
@@ -90,6 +101,14 @@ class ManipulationPlanner:
         # Add path projector to avoid discontinuities
         self.ps.selectPathProjector("Progressive", 0.05)
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
+
+                # parameters = self.ps.getAvailable("defaultparameter")
+        # for p in parameters:
+        #     if "StatesPathFinder" in p:
+        #         print(p)
+        #         print(self.ps.getParameter(p))
+        #         print(self.ps.getParameterDoc(p))
+        # print(self.ps.getAvailable("parameter"))
 
         # create viewer factory to debug with gepetto-gui
         self.vf = ViewerFactory(self.ps)
@@ -153,6 +172,15 @@ class ManipulationPlanner:
         self.factory.setRules(rules)
         self.factory.generate()
         self.cg.initialize()
+        # print([el for el in self.cg.nodes])
+        # self.cg.graph.setTargetNodeList(self.cg.graphId, 
+        # [
+        #     self.cg.nodes['free'],
+        #     self.cg.nodes['panda/panda_gripper grasps tless_20/plug_anglesneg45'],
+        #     self.cg.nodes['free'],
+        #     self.cg.nodes['panda/panda_gripper grasps tless_20/plug_angles45'],
+        #     self.cg.nodes['free'],
+        # ])
 
     def clear_roadmap(self):
         """Clear problem solver roadmap and erase all paths"""
@@ -182,6 +210,7 @@ class ManipulationPlanner:
         self.ps.setInitialConfig(q_start)
         self.ps.addGoalConfig(q_goal)
         try:
+            self.start_time = time.time()
             self.ps.solve()
             path = self.ps.client.basic.problem.getPath(self.ps.numberPaths() - 1)
 
@@ -205,9 +234,10 @@ class ManipulationPlanner:
             )
             for path, _, _ in path_seq:
                 self.ps.client.basic.problem.addPath(path)
-
+            print(f"Solution found in {time.time() - self.start_time}s")
             return True, path_seq
         except BaseException as e:
             if self.verbose:
                 print(e)
+            print(f"Solution not found. Spent {time.time() - self.start_time}s")
             return False, None

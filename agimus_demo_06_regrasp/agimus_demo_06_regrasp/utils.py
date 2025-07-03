@@ -86,7 +86,7 @@ def get_path_grasp_sequences(path, c_robot=None):
     path_sequences.append(
         (concatenatePaths(curr_sequence, c_robot), curr_state, waypoints_at_len)
     )
-    print(f"Last state was {idx} the state was {curr_state}")
+    print(f"Last state was {idx} the state was {curr_state}, full len = {path_sequences[-1][0].length()}")
     return path_sequences
 
 
