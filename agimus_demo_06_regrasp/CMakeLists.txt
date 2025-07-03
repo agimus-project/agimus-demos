@@ -15,7 +15,8 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS scripts/regrasp_node DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/regrasp_node scripts/image_saver
+        DESTINATION lib/${PROJECT_NAME})
 
 #
 # Unit tests

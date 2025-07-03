@@ -63,7 +63,7 @@ pin.forwardKinematics(rmodel, rdata, q)
 pin.updateFramePlacements(rmodel, rdata)
 link_id = rmodel.getFrameId("panda_hand")
 ee_pose = rdata.oMf[link_id]
-object_name = "obj_20"
+object_name = "obj_23"
 ycbv = Object.create_mesh(
     path_to_mesh=Path(__file__).parent.parent / f"urdf/tless/{object_name}.obj",
     scale=1e-3,
@@ -74,7 +74,7 @@ ycbv = Object.create_mesh(
 object_mesh = load_convex_mesh(
     str(Path(__file__).parent.parent / f"urdf/tless/{object_name}.obj")
 )
-object_mesh.scale(0.001)
+# object_mesh.scale(0.001)
 for i, geom_obj in enumerate(rob._geom_model.geometryObjects):
     if "panda_hand" in geom_obj.name:
         # mesh_path = geom_obj.geometry.meshPath

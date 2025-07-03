@@ -30,6 +30,7 @@ After the xterm terminal is opened, type there `o.pick_and_place('obj_26')`.
 ```bash
 ros2 launch agimus_demo_05_pick_and_place bringup_hw.launch.py robot_ip:=<fci-ip>
 ros2 launch agimus_demo_05_pick_and_place bringup.launch.py robot_ip:=192.168.102.11 aux_computer_ip:=192.168.102.21 aux_computer_user:=ros
+ros2 bag record /camera/color/image_raw /camera/color/camera_info /camera/depth/color/points /camera/depth/camera_info /camera2/color/image_raw /camera2/color/camera_info /happypose/detections /joint_states /mpc_debug /mpc_input /control
 ```
 
 

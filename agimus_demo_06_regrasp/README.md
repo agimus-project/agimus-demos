@@ -25,7 +25,8 @@ source install/setup.bash
 ## Start the demo in simulation using the Panda robot.
 ```bash
 cd workspace
-reset && source install/setup.bash && ros2 launch agimus_demo_06_regrasp bringup.launch.py use_gazebo:=true
+reset && source install/setup.bash
+ros2 launch agimus_demo_06_regrasp bringup.launch.py use_gazebo:=true
 ```
 After the xterm terminal is opened, type there `o.regrasp('obj_23')`.
 
@@ -33,4 +34,13 @@ After the xterm terminal is opened, type there `o.regrasp('obj_23')`.
 ```bash
 ros2 launch agimus_demo_06_regrasp bringup_hw.launch.py robot_ip:=<fci-ip>
 ros2 launch agimus_demo_06_regrasp bringup.launch.py robot_ip:=192.168.102.11 aux_computer_ip:=192.168.102.21 aux_computer_user:=ros
+ros2 bag record /camera/color/image_raw /camera/color/camera_info /camera/depth/color/points /camera/depth/camera_info /camera2/color/image_raw /camera2/color/camera_info /happypose/detections /joint_states /mpc_debug /mpc_input /control
+```
+
+```
+python scripts/image_saver
+ros2 bag play rosbag2_2025...
+
+ffmpeg -framerate 30 -i output_images/frame_%05d.png -c:v libx264 -pix_fmt yuv420p dataset_video2_21_26_20_long.mp4
+ffmpeg -ss 29 -i dataset_video2_21_26_20_long.mp4 -c copy dataset_video2_21_26_20.mp4
 ```
