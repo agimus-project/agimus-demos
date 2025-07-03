@@ -6,7 +6,6 @@ from agimus_demo_05_pick_and_place.orchestrator import (
 import pinocchio.liegroups
 import eigenpy
 import random
-from hpp.corbaserver.manipulation import loadServerPlugin
 
 eigenpy.seed(random.randint(0, 1000))
 
@@ -100,8 +99,7 @@ elif scenario == 2:
 # )
 # obj_in_world_pose = multiply_poses(cam_in_world_pose, obj_in_cam_pose)
 # TODO: make this better
-loadServerPlugin("corbaserver", "manipulation-corba.so")
-loadServerPlugin("corbaserver", "bin_picking.so")
+
 hpp_client = HPPInterface(object_name)
 obj_in_world_pose[3:] = obj_in_world_pose[3:] / np.linalg.norm(obj_in_world_pose[3:])
 hpp_client.start_obj_pose = list(obj_in_world_pose)

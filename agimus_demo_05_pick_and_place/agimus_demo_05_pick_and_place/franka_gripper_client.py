@@ -30,7 +30,9 @@ class FrankaGripperClient(object):
         future.add_done_callback(self.goal_response_callback)
 
     def grasp(self, width: float = 0.0, speed: float = 0.04, force: int = 10.0):
-        self._node.get_logger().info("Waiting for Franka gripper action server to be available...")
+        self._node.get_logger().info(
+            "Waiting for Franka gripper action server to be available..."
+        )
         self._action_client.wait_for_server()
 
         goal_msg = Grasp.Goal()

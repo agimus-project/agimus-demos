@@ -6,11 +6,22 @@
 <!-- so if it is _zp this means that robot hand is in positive direction along z-axis -->
 <!-- Next is same convention for which object axis points in the tele-button direction -->
 <robot name="tless_23">
-    <handle name="goal_handle" clearance="0.03">
+
+    <handle name="goal_handle_up" clearance="0.03">
         <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 -0.70710678118"/>
         <link name="base_link"/>
         <mask>1 1 1 0 0 0</mask>
     </handle>
+    <handle name="goal_handle_down" clearance="0.03">
+        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
+        <link name="base_link"/>
+        <mask>1 1 1 0 1 1</mask>
+    </handle>
+    <!-- <handle name="goal_handle2" clearance="0.03">
+        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.0 0.0 1.0"/>
+        <link name="base_link"/>
+        <mask>1 1 1 0 1 1</mask>
+    </handle> -->
     <handle name="side_A_zp_yp" clearance="0.075">
         <position xyz="0.05 -0.019 0.0" xyzw="0.0 -0.7071067811865475 0.0 0.7071067811865476"/>
         <link name="base_link"/>

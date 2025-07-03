@@ -1,3 +1,4 @@
+from pathlib import Path
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
 from launch.event_handlers import OnProcessExit
@@ -8,9 +9,10 @@ from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable
 from launch_ros.parameter_descriptions import ParameterValue
 
+
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    generate_include_franka_launch,
+    generate_include_launch,
     get_use_sim_time,
 )
 
@@ -22,7 +24,7 @@ from agimus_demos_common.static_transform_publisher_node import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
+    franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -43,6 +45,12 @@ def launch_setup(
         parameters=[get_use_sim_time(), agimus_controller_yaml],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
+    )
+    happypose_to_tf_node = Node(
+        package="agimus_demos_common",
+        executable="happypose_to_tf_node",
+        parameters=[get_use_sim_time()],
+        output="screen",
     )
 
     environment_description = ParameterValue(
@@ -74,13 +82,23 @@ def launch_setup(
         child_frame_id="world",
     )
 
+    trajectory_weights_yaml = Path(
+        FindPackageShare("agimus_demo_05_pick_and_place").find(
+            "agimus_demo_05_pick_and_place"
+        )
+    )
+
+    trajectory_weights_yaml = str(
+        trajectory_weights_yaml / "config" / "trajectory_weigths_params.yaml"
+    )
+
     pick_and_place_node = ExecuteProcess(
         cmd=[
             "xterm",
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            'ros2 run agimus_demo_05_pick_and_place pick_and_place_node"',
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args --params-file {trajectory_weights_yaml}"',
         ],
         output="screen",
     )
@@ -95,6 +113,7 @@ def launch_setup(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[
                     agimus_controller_node,
+                    happypose_to_tf_node,
                     pick_and_place_node,
                 ],
             )

@@ -1,0 +1,13 @@
+---
+# Values for collision and acceleration thresholds are based on examples provided by Franka Emika Exact values are based on:
+# https://github.com/agimus-project/franka_ros2/blob/humble/franka_example_controllers/include/franka_example_controllers/default_robot_behavior_utils.hpp
+disable_franka_collisions:
+  ros__parameters:
+    lower_torque_thresholds_acceleration: [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0] # [Nm]
+    upper_torque_thresholds_acceleration: [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0] # [Nm]
+    lower_torque_thresholds_nominal: [25.0, 25.0, 22.0, 20.0, 19.0, 17.0, 14.0] # [Nm]
+    upper_torque_thresholds_nominal: [35.0, 35.0, 32.0, 30.0, 29.0, 27.0, 24.0] # [Nm]
+    lower_force_thresholds_acceleration: [30.0, 30.0, 30.0, 25.0, 25.0, 25.0] # [N, N, N, Nm, Nm, Nm]
+    upper_force_thresholds_acceleration: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0] # [N, N, N, Nm, Nm, Nm]
+    lower_force_thresholds_nominal: [30.0, 30.0, 30.0, 25.0, 25.0, 25.0] # [N, N, N, Nm, Nm, Nm]
+    upper_force_thresholds_nominal: [40.0, 40.0, 40.0, 35.0, 35.0, 35.0] # [N, N, N, Nm, Nm, Nm]

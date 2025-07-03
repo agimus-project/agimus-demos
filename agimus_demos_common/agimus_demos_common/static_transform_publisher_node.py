@@ -23,13 +23,13 @@ def static_transform_publisher_node(
     rpy_labels = ("roll", "pitch", "yaw")
     if xyz is not None:
         for label, value in zip(labels, xyz):
-            args.extend([f"--{label}", value])
+            args.extend([f"--{label}", str(value)])
     if rot_xyzw is not None:
         for label, value in zip(labels, rot_xyzw):
-            args.extend([f"--q{label}", value])
+            args.extend([f"--q{label}", str(value)])
     if rot_rpy is not None:
         for label, value in zip(rpy_labels, rot_rpy):
-            args.extend([f"--{label}", value])
+            args.extend([f"--{label}", str(value)])
     node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",

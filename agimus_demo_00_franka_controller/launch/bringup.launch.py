@@ -38,6 +38,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "franka",
                         "franka_common.launch.py",
                     ]
                 )

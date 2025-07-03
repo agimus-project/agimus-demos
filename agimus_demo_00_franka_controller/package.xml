@@ -16,7 +16,7 @@
 
   <exec_depend>agimus_demos_common</exec_depend>
   <exec_depend>controller_manager</exec_depend>
-  <exec_depend>franka_example_controllers</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">franka_example_controllers</exec_depend>
   <exec_depend>ros2launch</exec_depend>
 
   <export>

@@ -11,8 +11,8 @@ from sensor_msgs.msg import JointState  # noqa: I001
 
 
 class WaitForNonZeroJoints(Node):
-    """Main class implementing ROS node redirecting /robot_description topic
-    to parameter of a node."""
+    """Main class implementing ROS node awaiting joint state message to be populated
+    with non-zero values."""
 
     def __init__(self):
         super().__init__("wait_for_non_zero_joints_node")

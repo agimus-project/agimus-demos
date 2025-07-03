@@ -24,53 +24,53 @@
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0.1835 0.11"/>
+      <origin xyz="0 0.1835 0.12"/>
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
       <material name="red"/>
     </visual>
     <collision>
-      <origin xyz="0 0.1835 0.11"/>
+      <origin xyz="0 0.1835 0.12"/>
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 -0.1835 0.11"/>
+      <origin xyz="0 -0.1835 0.12"/>
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
       <material name="red"/>
     </visual>
     <collision>
-      <origin xyz="0 -0.1835 0.11"/>
+      <origin xyz="0 -0.1835 0.12"/>
       <geometry>
         <box size="0.567 0.001 0.22"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0.2835 0 0.11"/>
+      <origin xyz="0.2835 0 0.12"/>
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>
       <material name="red"/>
     </visual>
     <collision>
-      <origin xyz="0.2835 0 0.11"/>
+      <origin xyz="0.2835 0 0.12"/>
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.2835 0 0.11"/>
+      <origin xyz="-0.2835 0 0.12"/>
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>
       <material name="red"/>
     </visual>
     <collision>
-      <origin xyz="-0.2835 0 0.11"/>
+      <origin xyz="-0.2835 0 0.12"/>
       <geometry>
         <box size="0.001 0.367 0.22"/>
       </geometry>

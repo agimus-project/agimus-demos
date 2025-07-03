@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+ <tabbed_widget name="Main Window" parent="main_window">
+  <Tab containers="1" tab_name="Right Arm">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.333333;0.333333;0.333333" count="3">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.697665" top="-0.036805" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[0]" color="#1f77b4"/>
+         <curve name="/joint_states/arm_right_1_joint/position" color="#17becf"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-2.137730" top="-1.534539" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[1]" color="#d62728"/>
+         <curve name="/joint_states/arm_right_2_joint/position" color="#bcbd22"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.669025" top="-0.336516" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[2]" color="#1ac938"/>
+         <curve name="/joint_states/arm_right_3_joint/position" color="#1f77b4"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter orientation="-" sizes="0.250562;0.249438;0.250562;0.249438" count="4">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-2.420716" top="-2.109277" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[3]" color="#ff7f0e"/>
+         <curve name="/joint_states/arm_right_4_joint/position" color="#d62728"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-0.188770" top="0.281552" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[4]" color="#f14cc1"/>
+         <curve name="/joint_states/arm_right_5_joint/position" color="#1ac938"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-1.561440" top="-1.010955" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[5]" color="#17becf"/>
+         <curve name="/joint_states/arm_right_6_joint/position" color="#ff7f0e"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.444046" bottom="-1.856910" top="0.160642" right="62.446658"/>
+         <limitY/>
+         <curve name="/mpc_input/q[6]" color="#9467bd"/>
+         <curve name="/joint_states/arm_right_7_joint/position" color="#f14cc1"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="Desired EE position">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockArea name="...">
+      <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+       <range left="57.457246" bottom="-0.327039" top="0.458989" right="62.447251"/>
+       <limitY/>
+       <curve name="/mpc_input/pose/position/x" color="#9467bd"/>
+       <curve name="/mpc_input/pose/position/y" color="#17becf"/>
+       <curve name="/mpc_input/pose/position/z" color="#bcbd22"/>
+       <curve name="/mpc_debug/references[2]/data/data[0]" color="#1f77b4"/>
+       <curve name="/mpc_debug/references[2]/data/data[1]" color="#d62728"/>
+       <curve name="/mpc_debug/references[2]/data/data[2]" color="#1ac938"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="tab2">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.5;0.5" count="2">
+      <DockSplitter orientation="-" sizes="0.250562;0.249438;0.250562;0.249438" count="4">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.697667" top="-0.036740" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[0]" color="#17becf"/>
+         <curve name="/mpc_debug/references[1]/data/data[0]" color="#1ac938"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-2.137761" top="-1.534589" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[1]" color="#bcbd22"/>
+         <curve name="/mpc_debug/references[1]/data/data[1]" color="#ff7f0e"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.673766" top="-0.336271" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[2]" color="#1f77b4"/>
+         <curve name="/mpc_debug/references[1]/data/data[2]" color="#f14cc1"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-2.420770" top="-2.109284" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[3]" color="#d62728"/>
+         <curve name="/mpc_debug/references[1]/data/data[3]" color="#9467bd"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter orientation="-" sizes="0.333333;0.333333;0.333333" count="3">
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-0.188867" top="0.281554" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[4]" color="#1ac938"/>
+         <curve name="/mpc_debug/references[1]/data/data[4]" color="#9467bd"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-1.561440" top="-1.010966" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[5]" color="#ff7f0e"/>
+         <curve name="/mpc_debug/references[1]/data/data[5]" color="#17becf"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_y="false" mode="TimeSeries" flip_x="false" style="Lines">
+         <range left="57.459272" bottom="-1.982522" top="0.163822" right="62.447251"/>
+         <limitY/>
+         <curve name="/mpc_debug/states_predictions/data[6]" color="#f14cc1"/>
+         <curve name="/mpc_debug/references[1]/data/data[6]" color="#bcbd22"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="2"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters delimiter="0" time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad MCAP"/>
+  <plugin ID="DataLoad ROS2 bags">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value=""/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="ROS2 Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value="/joint_states;/mpc_input;/mpc_debug"/>
+  </plugin>
+  <plugin ID="UDP Server"/>
+  <plugin ID="WebSocket Server"/>
+  <plugin ID="ZMQ Subscriber"/>
+  <plugin ID="Fast Fourier Transform"/>
+  <plugin ID="Quaternion to RPY"/>
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays&#xa;&#xa; new_series: a series previously created with ScatterXY.new(name)&#xa; prefix:     prefix of the timeseries, before the index of the array&#xa; suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.&#xa; suffix_Y:   suffix to complete the name of the series containing the Y value&#xa; timestamp:   usually the tracker_time variable&#xa;              &#xa; Example:&#xa; &#xa; Assuming we have multiple series in the form:&#xa; &#xa;   /trajectory/node.{X}/position/x&#xa;   /trajectory/node.{X}/position/y&#xa;   &#xa; where {N} is the index of the array (integer). We can create a reactive series from the array with:&#xa; &#xa;   new_series = ScatterXY.new(&quot;my_trajectory&quot;) &#xa;   CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time );&#xa;--]]&#xa;&#xa;function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )&#xa;  &#xa;  --- clear previous values&#xa;  new_series:clear()&#xa;  &#xa;  --- Append points to new_series&#xa;  index = 0&#xa;  while(true) do&#xa;&#xa;    x = index;&#xa;    -- if not nil, get the X coordinate from a series&#xa;    if suffix_X ~= nil then &#xa;      series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )&#xa;      if series_x == nil then break end&#xa;      x = series_x:atTime(timestamp)&#x9; &#xa;    end&#xa;    &#xa;    series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )&#xa;    if series_y == nil then break end &#xa;    y = series_y:atTime(timestamp)&#xa;    &#xa;    new_series:push_back(x,y)&#xa;    index = index+1&#xa;  end&#xa;end&#xa;&#xa;--[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]&#xa;&#xa;function GetSeriesNamesByPrefix(prefix)&#xa;  -- GetSeriesNames(9 is a built-in function&#xa;  all_names = GetSeriesNames()&#xa;  filtered_names = {}&#xa;  for i, name in ipairs(all_names)  do&#xa;    -- check the prefix&#xa;    if name:find(prefix, 1, #prefix) then&#xa;      table.insert(filtered_names, name);&#xa;    end&#xa;  end&#xa;  return filtered_names&#xa;end&#xa;&#xa;--[[ Modify an existing series, applying offsets to all their X and Y values&#xa;&#xa; series: an existing timeseries, obtained with TimeseriesView.find(name)&#xa; delta_x: offset to apply to each x value&#xa; delta_y: offset to apply to each y value &#xa;  &#xa;--]]&#xa;&#xa;function ApplyOffsetInPlace(series, delta_x, delta_y)&#xa;  -- use C++ indices, not Lua indices&#xa;  for index=0, series:size()-1 do&#xa;    x,y = series:at(index)&#xa;    series:set(index, x + delta_x, y + delta_y)&#xa;  end&#xa;end&#xa;"/>
+   <scripts/>
+  </plugin>
+  <plugin ID="CSV Exporter"/>
+  <plugin ID="ROS2 Topic Re-Publisher"/>
+ </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
+ <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS2 Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <customMathEquations/>
+ <snippets/>
+ <!-- - - - - - - - - - - - - - - -->
+</root>

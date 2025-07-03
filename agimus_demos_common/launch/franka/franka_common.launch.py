@@ -1,7 +1,9 @@
 import ast
+from copy import deepcopy
 
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
+    ExecuteProcess,
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
@@ -42,19 +44,28 @@ def launch_setup(
     aux_computer_user = LaunchConfiguration("aux_computer_user")
     on_aux_computer = LaunchConfiguration("on_aux_computer")
     use_gazebo = LaunchConfiguration("use_gazebo")
+    disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     external_controllers_params = LaunchConfiguration("external_controllers_params")
     external_controllers_names = LaunchConfiguration("external_controllers_names")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
+    use_ft_sensor = LaunchConfiguration("use_ft_sensor")
+    ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
+    gz_world_path = LaunchConfiguration("gz_world_path")
 
     robot_ip_empty = context.perform_substitution(robot_ip) == ""
     aux_computer_ip_empty = context.perform_substitution(aux_computer_ip) == ""
     aux_computer_user_empty = context.perform_substitution(aux_computer_user) == ""
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
+    disable_collision_safety_bool = (
+        context.perform_substitution(disable_collision_safety).lower() == "true"
+    )
     use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
+    use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
+    ft_sensor_ip_empty = context.perform_substitution(ft_sensor_ip) == ""
     on_aux_computer_bool = (
         context.perform_substitution(on_aux_computer).lower() == "true"
     )
@@ -77,6 +88,13 @@ def launch_setup(
             "`use_gazebo:=true` and non-empty `robot_ip`."
         )
 
+    if robot_ip_empty and disable_collision_safety_bool:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with both "
+            "`disable_collision_safety:=true` and empty `robot_ip`. "
+            "Disabling collision safety is only supported on the real robot."
+        )
+
     if robot_ip_empty and not aux_computer_ip_empty:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
@@ -92,25 +110,37 @@ def launch_setup(
     if robot_ip_empty and on_aux_computer_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and non-empty `robot_ip`."
+            "`on_aux_computer:=true` and non-empty `robot_ip`."
         )
 
     if not aux_computer_ip_empty and on_aux_computer_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and non-empty `aux_computer_ip_empty`."
+            "`on_aux_computer:=true` and non-empty `aux_computer_ip_empty`."
         )
 
     if on_aux_computer_bool and use_gazebo_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and `use_gazebo:=true`."
+            "`on_aux_computer:=true` and `use_gazebo:=true`."
         )
 
     if on_aux_computer_bool and use_rviz_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
-            "`on_aux_computer_bool:=true` and `use_rviz:=true`."
+            "`on_aux_computer:=true` and `use_rviz:=true`."
+        )
+
+    if use_ft_sensor_bool and ft_sensor_ip_empty and not robot_ip_empty:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with "
+            "`use_ft_sensor:=true` empty `ft_sensor_ip` and non-empty `robot_ip`."
+        )
+
+    if not ft_sensor_ip_empty and use_gazebo_bool:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with "
+            "non empty `ft_sensor_ip` and `use_gazebo:=true`."
         )
 
     wait_for_non_zero_joints_node = Node(
@@ -128,18 +158,55 @@ def launch_setup(
     )
 
     spawn_external_controllers = generate_controllers_spawner_launch_description(
-        external_controllers_names_list,
+        deepcopy(external_controllers_names_list),
         controller_params_files=(
             [external_controllers_params_str]
             if external_controllers_params_str != ""
             else None
         ),
+        extra_spawner_args=[
+            "--inactive",
+            "--controller-manager-timeout",
+            "10000000",
+        ],
+    )
+
+    print("external_controllers_names_list = ", external_controllers_names_list)
+    activate_external_controllers = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "control",
+            "switch_controllers",
+            "--activate",
+        ]
+        + deepcopy(external_controllers_names_list),
+        output="screen",
     )
 
     spawn_external_controllers_on_exit_event = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=wait_for_non_zero_joints_node,
             on_exit=[spawn_external_controllers],
+        ),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    use_gazebo,
+                    "' == 'true' or '",
+                    aux_computer_ip,
+                    "' == '') and ",
+                    external_controllers_names,
+                    " != ['']",
+                ]
+            )
+        ),
+    )
+
+    activate_external_controllers_on_exit_event = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_external_controllers.entities[2],
+            on_exit=[activate_external_controllers],
         ),
         condition=IfCondition(
             PythonExpression(
@@ -163,6 +230,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "franka",
                         "franka_hardware.launch.py",
                     ]
                 )
@@ -171,6 +239,8 @@ def launch_setup(
         launch_arguments={
             "robot_ip": robot_ip,
             "arm_id": arm_id,
+            "disable_collision_safety": disable_collision_safety,
+            "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
@@ -188,6 +258,7 @@ def launch_setup(
             franka_hardware_launch,
             wait_for_non_zero_joints_node,
             spawn_external_controllers_on_exit_event,
+            activate_external_controllers_on_exit_event,
         ]
 
     franka_remote_hardware_launch = IncludeLaunchDescription(
@@ -197,6 +268,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "franka",
                         "franka_remote_hardware.launch.py",
                     ]
                 )
@@ -207,6 +279,8 @@ def launch_setup(
             "aux_computer_ip": aux_computer_ip,
             "aux_computer_user": aux_computer_user,
             "arm_id": arm_id,
+            "disable_collision_safety": disable_collision_safety,
+            "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
@@ -223,6 +297,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "franka",
                         "franka_simulation.launch.py",
                     ]
                 )
@@ -231,6 +306,8 @@ def launch_setup(
         launch_arguments={
             "gz_verbose": gz_verbose,
             "gz_headless": gz_headless,
+            "gz_world_path": gz_world_path,
+            "use_ft_sensor": use_ft_sensor,
         }.items(),
         condition=IfCondition(use_gazebo),
     )
@@ -248,7 +325,13 @@ def launch_setup(
         "gazebo_effort": "true",
         "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
+        "use_ft_sensor": use_ft_sensor,
+        "ft_sensor_ip": ft_sensor_ip,
+        "rdt_sampling_rate": "7000",
+        "internal_filter_rate": "2",
+        "use_hardware_biasing": "true",
     }
+
     robot_description_file_substitution = PathJoinSubstitution(
         [
             FindPackageShare("franka_description"),
@@ -364,6 +447,7 @@ def launch_setup(
         franka_simulation_launch,
         wait_for_non_zero_joints_node,
         spawn_external_controllers_on_exit_event,
+        activate_external_controllers_on_exit_event,
         robot_state_publisher_node,
         robot_collision_publisher_node,
         robot_srdf_publisher_node,
@@ -390,10 +474,22 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
-                    "franka_controllers.yaml",
+                    "franka",
+                    "controllers.yaml",
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
+        ),
+        DeclareLaunchArgument(
+            "gz_world_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("franka_description"),
+                    "worlds",
+                    "empty.sdf",
+                ]
+            ),
+            description="Path to Gazebo world SDF file.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",
@@ -401,7 +497,8 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "rviz",
-                    "franka_preview.rviz",
+                    "franka",
+                    "preview.rviz",
                 ]
             ),
             description="Path to RViz configuration file",

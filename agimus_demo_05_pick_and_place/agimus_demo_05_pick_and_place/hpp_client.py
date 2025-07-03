@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import typing as T
 from math import sqrt
 
 # Used if hppcorbaserver is not running in separate script
@@ -32,7 +33,9 @@ from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver, Client
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
+from agimus_demo_05_pick_and_place.utils import concatenatePaths
 import numpy as np
+from hpp_idl.hpp.core_idl import Path as HPPPath
 
 import time
 
@@ -45,7 +48,22 @@ from agimus_demo_05_pick_and_place.utils import (
     hack_for_ros2_support_in_hpp,
 )
 from hpp.rostools import process_xacro, retrieve_resource
-from agimus_controller.trajectory import TrajectoryPoint
+import pinocchio
+
+
+XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
+
+
+def hack_for_ros2_support_in_hpp():
+    import os
+
+    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
+        os.environ["ROS_PACKAGE_PATH"] = ":".join(
+            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
+        )
+
+
+corba = None
 
 
 class HPPInterface:
@@ -62,8 +80,8 @@ class HPPInterface:
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt: bool = True,
         gripper_open_value: float = 0.04,
-        source_bin_pose: XYZQuatType = [0.05, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
-        destination_bin_pose: XYZQuatType = [0.5, 0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        source_bin_pose: XYZQuatType = [0.06, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
+        destination_bin_pose: XYZQuatType = [0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
     ):
         hack_for_ros2_support_in_hpp()
 
@@ -72,7 +90,7 @@ class HPPInterface:
         self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
 
-        self._goal_gripper_clearance = 0.05
+        self._goal_gripper_clearance = 0.3
         self._after_picking_clearance = 0.3
         self._point_cloud_res = 0.001
 
@@ -101,23 +119,34 @@ class HPPInterface:
             urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
             srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
             name="source_box",
-            rootJointType="anchor",
         )
         self.obstacle2_object = BaseObject(
-            urdf_path=retrieve_resource(f"{package_location}/urdf/small_box.urdf"),
-            srdf_path=retrieve_resource(f"{package_location}/srdf/small_box.srdf"),
+            urdf_path=retrieve_resource(f"{package_location}/urdf/big_box.urdf"),
+            srdf_path=retrieve_resource(f"{package_location}/srdf/big_box.srdf"),
             name="dest_box",
-            rootJointType="anchor",
         )
-
-        # Init corbaserver programmatically
-        # self.corba = CorbaServer()
-        # if hppcorbaserver runs already
-        Client().problem.resetProblem()
+        # Init corbaserver
+        global corba
+        if corba is None:
+            corba = CorbaServer()
+        else:
+            corba.restart()
         self.setup_problem()
 
+    def set_relative_start_obj_pose(
+        self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
+    ):
+        frame_pose = pinocchio.XYZQUATToSE3(
+            self.get_robot_link_position(q_robot, frame_name)
+        )
+        pose = pinocchio.SE3ToXYZQUAT(
+            frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
+        )
+        pose[3:] = pose[3:] / np.linalg.norm(pose[3:])
+        self.start_obj_pose = pose.tolist()
+
     @property
-    def goal_obj_pose(self) -> XYZQuatType:
+    def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
         """Returns a list of size 7 contains the pose of the goal,
         defined in the destination box frame.
 
@@ -125,9 +154,8 @@ class HPPInterface:
         """
         return self._goal_obj_pose
 
-    @goal_obj_pose.setter
-    def goal_obj_pose(self, pose: tuple[float, float, float]):
-        """Sets the position of the goal wrt the destination box.
+    def set_goal_obj_pose(self, frame_name: str, pose: T.Tuple[float, float, float]):
+        """Sets the position of the goal wrt `frame_name`.
 
         Only the translation can be changed so only the 3 first element of the input
         are use.
@@ -136,7 +164,7 @@ class HPPInterface:
             raise RuntimeError("Cannot reset the goal object pose")
         self._goal_obj_pose = pose[:3] + [0, sqrt(2) / 2, 0, -sqrt(2) / 2]
         self.ps.client.manipulation.robot.addGripper(
-            "dest_box/base_link",
+            frame_name,
             "goal/gripper",
             self._goal_obj_pose,
             self._goal_gripper_clearance,
@@ -162,6 +190,7 @@ class HPPInterface:
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
         self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
+        self.ps.setParameter("BiRRT*/maxStepLength", 0.5 * float(np.sqrt(7)))
 
         # Add path projector to avoid discontinuities
         self.ps.selectPathProjector("Progressive", 0.05)
@@ -178,8 +207,12 @@ class HPPInterface:
         # load moving obstacle
         self.vf.loadObjectModel(self.obstacle_object, self.obstacle_object.name)
         self.vf.loadObjectModel(self.obstacle2_object, self.obstacle2_object.name)
-        self.robot.setRootJointPosition("source_box", self.default_obstacle_pose)
-        self.robot.setRootJointPosition("dest_box", self.default_obstacle2_pose)
+        self.robot.setJointBounds(
+            f"{self.obstacle_object.name}/root_joint", self.default_object_bounds
+        )
+        self.robot.setJointBounds(
+            f"{self.obstacle2_object.name}/root_joint", self.default_object_bounds
+        )
         print("Part and box loaded")
         self.robot.client.manipulation.robot.insertRobotSRDFModel(
             "panda",
@@ -195,11 +228,6 @@ class HPPInterface:
             "panda", srdfString
         )
 
-        # Add an empty point cloud
-        self.ps.client.basic.obstacle.loadPointCloudFromPoints(
-            "pointcloud", self._point_cloud_res, []
-        )
-
         # Lock gripper in open position.
         self.ps.createLockedJoint(
             "locked_finger_1", "panda/fer_finger_joint1", [self.gripper_open_value]
@@ -210,14 +238,13 @@ class HPPInterface:
         self.ps.setConstantRightHandSide("locked_finger_1", True)
         self.ps.setConstantRightHandSide("locked_finger_2", True)
 
-        # for name, position in (
-        #     ("source_box", self.default_obstacle_pose),
-        #     ("dest_box", self.default_obstacle2_pose),
-        # ):
-        #     lj_name = f"locked_{name}"
-        #     self.ps.createLockedJoint(lj_name, f"{name}/root_joint", position)
-        #     self.ps.setConstantRightHandSide(lj_name, True)
-
+        for name, position in (
+            ("source_box", self.default_obstacle_pose),
+            ("dest_box", self.default_obstacle2_pose),
+        ):
+            lj_name = f"locked_{name}"
+            self.ps.createLockedJoint(lj_name, f"{name}/root_joint", position)
+            self.ps.setConstantRightHandSide(lj_name, True)
         # Add handle of the objects
         self.handles, self.goal_handles = get_obj_goal_handles(
             prefix=self.manip_object.name + "/",
@@ -229,46 +256,11 @@ class HPPInterface:
         self.set_robot()
         self.set_problem()
 
-    def add_handle(self, transform: XYZQuatType, handle_id: str):
-        # Create handle from Grasp generator
-        self.ps.client.manipulation.robot.addHandle(
-            f"{self.manip_object.name}/base_link",
-            f"{self.manip_object.name}/handle{handle_id}",
-            transform,  # xyz_quatxyzw
-            0.03,  # default clearance for handle
-            [1, 1, 1, 1, 1, 1],
-        )
-        # rotate around x np.pi to account for both possible orientations of gripper
-        self.ps.client.manipulation.robot.addHandle(
-            f"{self.manip_object.name}/base_link",
-            f"{self.manip_object.name}/handle{handle_id}_rotated",
-            multiply_poses(transform, [0, 0, 0, 1, 0, 0, 0]),  # xyz_quatxyzw
-            0.03,  # default clearance for handle
-            [1, 1, 1, 1, 1, 1],
-        )
-
-        # Create a goal handle that is opposite to generated grasp
-        # (rotate 180 degrees around y-axis)
-        self.ps.client.manipulation.robot.addHandle(
-            f"{self.manip_object.name}/base_link",
-            f"{self.manip_object.name}/goal_handle{handle_id}",
-            multiply_poses(
-                transform, [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
-            ),  # xyz_quatxyzw
-            0.01,  # default clearance for goal handle
-            # [1, 1, 1, 0, 1, 1]  # goal mask allows rotation around x-axis
-            [1, 1, 1, 0, 0, 0],  # goal mask allows any rotation
-        )
-        # Add handles to respective lists
-        self.handles.append(f"{self.manip_object.name}/handle{handle_id}")
-        self.handles.append(f"{self.manip_object.name}/handle{handle_id}_rotated")
-        self.goal_handles.append(f"{self.manip_object.name}/goal_handle{handle_id}")
-
     def get_robot_link_position(
         self,
-        q_robot: list[float],
+        q_robot: T.List[float],
         frame_name: str,
-    ) -> list[float]:
+    ) -> T.List[float]:
         """Get the position of a robot frame"""
         # TODO don't assume q_robot is of right size.
         q = self.robot.getCurrentConfig()
@@ -280,10 +272,10 @@ class HPPInterface:
 
     def set_point_cloud(
         self,
-        q_robot: list[float],
+        q_robot: T.List[float],
         camera_frame_name: str,
-        points: list[tuple[float, float, float]],
-        colors: list[tuple[float, float, float, float]] | None = None,
+        points: T.List[T.Tuple[float, float, float]],
+        colors: T.Optional[T.List[T.Tuple[float, float, float, float]]] = None,
     ):
         frame_position = self.get_robot_link_position(q_robot, camera_frame_name)
 
@@ -295,22 +287,37 @@ class HPPInterface:
 
     def restart(self):
         """This needs to be improved"""
-        self.corba.restart()
+        corba.restart()
         self.setup_problem()
 
     def _build_bin_picking(
         self,
         enable_collision_between_box_and_part: bool,
+        only_free_node: bool,
         build_effector: bool,
         config_box_poses=None,
     ):
         self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
-        self.binPicking.objects = [self.manip_object.name]
+        self.binPicking.objects = [
+            self.manip_object.name,
+            self.obstacle_object.name,
+            self.obstacle2_object.name,
+        ]
         self.binPicking.robotGrippers = ["panda/panda_gripper"]
-        self.binPicking.goalGrippers = ["goal/gripper"]
-        self.binPicking.goalHandles = self.goal_handles
-        self.binPicking.handles = self.handles
-        self.binPicking.graphConstraints = ["locked_finger_1", "locked_finger_2"]
+        if only_free_node:
+            self.binPicking.goalGrippers = []
+            self.binPicking.goalHandles = []
+            self.binPicking.handles = []
+        else:
+            self.binPicking.goalGrippers = ["goal/gripper"]
+            self.binPicking.goalHandles = self.goal_handles
+            self.binPicking.handles = self.handles
+        self.binPicking.graphConstraints = [
+            "locked_finger_1",
+            "locked_finger_2",
+            "locked_source_box",
+            "locked_dest_box",
+        ]
 
         # TODO: restructure this
         def disable_collision():
@@ -353,19 +360,28 @@ class HPPInterface:
         self,
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
+        q_above_source_bin: T.Optional[list[float]] = None,
     ):
         assert self._goal_obj_pose is not None, (
             "Goal object pose should have been set before."
         )
 
-        self.q_init = q_init + self.start_obj_pose
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
 
         self._build_bin_picking(
             enable_collision_between_box_and_part,
+            only_free_node=False,
             build_effector=True,
             config_box_poses=(
                 q_init  # Not important
                 + self.start_obj_pose  # Not important
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
             ),
         )
 
@@ -378,31 +394,54 @@ class HPPInterface:
         print("\nPose of the object : \n", q_init[r : r + 7], "\n")
 
         found, msg = self.robot.isConfigValid(q_init)
+        assert found, f"Init config not collision free: {msg}"
+
+        if q_above_source_bin is None:
+            q_start_solve = q_init
+            path_to_start = None
+        else:
+            self.q_above_source_bin = (
+                q_above_source_bin
+                + self.start_obj_pose
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
+            )
+
+            res, self.q_above_source_bin, err = (
+                self.binPicking.graph.applyNodeConstraints(
+                    "free", self.q_above_source_bin
+                )
+            )
+            assert res
+            found, msg = self.robot.isConfigValid(self.q_above_source_bin)
+            assert found, msg
+
+            q_start_solve = self.q_above_source_bin
+            path_to_start = self.binPicking.move_in_free(q_init, q_start_solve)
 
         # Resolving the path to the object
-        if found:
-            print("[INFO] Object found with no collision")
-            print("Solving ...")
-            res, p = self.binPicking.solve(q_init)
-            if res:
-                print("Pick and place path", p)
-                print(p.length())
-                grasp_path, placing_path, freefly_path = split_path(
-                    p, self.binPicking.c_robot()
-                )
-                self.ps.client.basic.problem.addPath(grasp_path)
-                self.ps.client.basic.problem.addPath(placing_path)
-                self.ps.client.basic.problem.addPath(freefly_path)
-                print("Path generated.")
-                return grasp_path, placing_path, freefly_path
-            else:
-                # In this case, p is a string containing the error message
-                print("No solution", p)
-                return None
-
+        print("[INFO] Object found with no collision")
+        print("Solving ...")
+        res, p = self.binPicking.solve(q_start_solve)
+        if res:
+            print("Pick and place path", p)
+            print(p.length())
+            grasp_path, placing_path, freefly_path = split_path(
+                p, self.binPicking.c_robot()
+            )
+            if path_to_start is not None:
+                p = path_to_start.asVector()
+                p.appendPath(grasp_path)
+                grasp_path = p
+                freefly_path.appendPath(path_to_start.reverse())
+            self.ps.client.basic.problem.addPath(grasp_path)
+            self.ps.client.basic.problem.addPath(placing_path)
+            self.ps.client.basic.problem.addPath(freefly_path)
+            print("Path generated.")
+            return grasp_path, placing_path, freefly_path
         else:
-            print("[INFO] Initial configuration is invalid:")
-            print(msg)
+            # In this case, p is a string containing the error message
+            print("No solution", p)
             return None
 
     def plan_free_motion(
@@ -410,29 +449,32 @@ class HPPInterface:
         q_init: list[float],
         q_goal: list[float],
     ):
-        assert self._goal_obj_pose is not None, (
-            "Goal object pose should have been set before."
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+        self.q_goal = (
+            q_goal
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
         )
 
-        # object_static = np.isclose(self.start_obj_pose, self.goal_obj_pose).all()
-        self.q_init = q_init + self.start_obj_pose
-        if q_goal is None:
-            q_goal = q_init.copy()
-        self.q_goal = q_goal + self.goal_obj_pose
+        self._build_bin_picking(True, only_free_node=True, build_effector=False)
 
-        self._build_bin_picking(True, build_effector=False)
-
-        res, q_init, err = self.binPicking.graph.applyNodeConstraints(
+        res, self.q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
         )
         assert res, f"Robot q_init isn't a valid configuration {err}"
-        q_init_ok, msg_init = self.robot.isConfigValid(q_init)
+        q_init_ok, msg_init = self.robot.isConfigValid(self.q_init)
 
-        res, q_goal, err = self.binPicking.graph.applyNodeConstraints(
+        res, self.q_goal, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_goal
         )
         assert res, f"Robot q_goal isn't a valid configuration {err}"
-        q_goal_ok, msg_goal = self.robot.isConfigValid(q_goal)
+        q_goal_ok, msg_goal = self.robot.isConfigValid(self.q_goal)
 
         if not q_init_ok:
             print("q_init is not collision free", msg_init)
@@ -440,29 +482,112 @@ class HPPInterface:
             print("q_goal is not collision free", msg_goal)
         else:
             print("Solving ...")
-            p = self.binPicking.move_in_free(q_init, self.q_goal)
+            p = self.binPicking.move_in_free(self.q_init, self.q_goal)
             print("Free path", p)
             return p
         return
 
+    def plan_calib_motion(
+        self, q_init: list[float], box_handles: list[str], n_samples: int = 0
+    ) -> list[T.Optional[HPPPath]]:
+        """Calculates a set of motion to calibrate the position of the bins.
+
+        It returns a list of either a HPP path or None. None marks the time when the
+        gripper should be closed then opened.
+        """
+
+        gripper = "panda/panda_gripper"
+        self.ps.createLockedJoint(
+            "locked_object", f"{self.manip_object.name}/root_joint", self.start_obj_pose
+        )
+        self.ps.setConstantRightHandSide("locked_object", True)
+
+        bp = self.binPicking = BinPicking(self.ps, self.use_spline_gradient_based_opt)
+        bp.objects = [
+            self.manip_object.name,
+            self.obstacle_object.name,
+            self.obstacle2_object.name,
+        ]
+        bp.robotGrippers = [gripper]
+        bp.handles = box_handles
+        bp.graphConstraints = [
+            "locked_finger_1",
+            "locked_finger_2",
+            "locked_object",
+            "locked_source_box",
+            "locked_dest_box",
+        ]
+        bp.buildGraph(placement_clearance=self._after_picking_clearance)
+
+        self.q_init = (
+            q_init
+            + self.start_obj_pose
+            + self.default_obstacle_pose
+            + self.default_obstacle2_pose
+        )
+
+        res, self.q_init, err = bp.graph.applyNodeConstraints("free", self.q_init)
+        assert res, f"Robot q_init isn't a valid configuration {err}"
+        q_init_ok, msg_init = self.robot.isConfigValid(self.q_init)
+
+        assert q_init_ok, f"q_init is not collision free: {msg_init}"
+
+        edge_fmt = "{gripper} > {handle} | f_{num}"
+        last_q = self.q_init
+        paths = []
+        for handle in box_handles:
+            edges = [
+                edge_fmt.format(gripper=gripper, handle=handle, num="01"),
+                edge_fmt.format(gripper=gripper, handle=handle, num="12"),
+            ]
+            path, report = bp.generateConsecutivePaths(
+                edges, last_q, Nsamples=n_samples
+            )
+
+            assert path is not None, f"Failed to generate path: {report}"
+            bp.transitionPlanner.setEdge(bp.graph.edges[edges[0]])
+            p_to_start, res, msg = bp.transitionPlanner.directPath(
+                last_q, path.initial(), True
+            )
+            assert res, f"Failed to generate path: {msg}"
+            p_to_start = bp.wd(p_to_start)
+            p_to_start = bp.wd(
+                bp.transitionPlanner.timeParameterization(p_to_start.asVector())
+            )
+
+            last_q = path.initial()
+            paths.append(p_to_start)
+            paths.append(path)
+            paths.append(None)
+            paths.append(path.reverse())
+
+        bp.transitionPlanner.setEdge(bp.graph.edges["Loop | f"])
+        back_to_init, res, msg = bp.transitionPlanner.directPath(
+            last_q, self.q_init, True
+        )
+        paths.append(back_to_init)
+
+        # For gepetto GUI
+        global_path = concatenatePaths(
+            [p for p in paths if p is not None], bp.c_robot()
+        )
+        self.ps.hppcorba.problem.addPath(global_path)
+        print(f"Added to path vector at index {self.ps.numberPaths() - 1}")
+
+        return paths
+
 
 # ____________________________________________________________________________
-def get_traj_points_from_path(hpp_path, robot_ndof=7, dt=0.01):
+def get_q_dq_ddq_arrays_from_path(hpp_path, robot_ndof=7, dt=0.01):
     total_time = hpp_path.length()
     print(total_time)
     T = int(total_time / dt)
-    traj_point_list = []
+    q_array = []
+    dq_array = []
+    ddq_array = []
     for iter in range(T):
-        iter_time = total_time * iter / (T - 1)  # iter * dt
-
-        traj_point_list.append(
-            TrajectoryPoint(
-                robot_configuration=np.array(hpp_path.call(iter_time)[0][:robot_ndof]),
-                robot_velocity=np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]),
-                robot_acceleration=np.array(
-                    hpp_path.derivative(iter_time, 2)[:robot_ndof]
-                ),
-                end_effector_poses={"link0": np.eye(4)},
-            )
-        )
-    return traj_point_list
+        iter_time = total_time * iter / (T - 1)
+        q_array.append(np.array(hpp_path.call(iter_time)[0][:robot_ndof]))
+        dq_array.append(np.array(hpp_path.derivative(iter_time, 1)[:robot_ndof]))
+        ddq_array.append(np.array(hpp_path.derivative(iter_time, 2)[:robot_ndof]))
+    return q_array, dq_array, ddq_array

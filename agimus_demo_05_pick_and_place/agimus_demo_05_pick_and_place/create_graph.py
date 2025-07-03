@@ -106,7 +106,7 @@ def makeGraph(
     factory = Factory(ps, graph, **factory_kwargs)
     factory.constraints.removeEmptyConstraints = False
     factory.setGrippers(grippers)
-    factory.setObjects(objects, handles, [[]])
+    factory.setObjects(objects, handles, [[], [], []])
     factory.setRules(rules)
     factory.setPossibleGrasps(possibleGrasps)
     factory.generate()

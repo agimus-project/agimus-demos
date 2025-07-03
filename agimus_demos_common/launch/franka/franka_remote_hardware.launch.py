@@ -157,7 +157,7 @@ def launch_setup(
             ],
             # If docker container is stopped (eg. hardware error or e-stop)
             # Propagate this stop to the rest of the system on the main computer
-            "on_exit": Shutdown(),
+            "on_exit": None,  # Shutdown(),
             "skip_step": False,
         },
     ]
@@ -266,6 +266,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("agimus_demos_common"),
                     "config",
+                    "franka",
                     "franka_controllers.yaml",
                 ]
             ),

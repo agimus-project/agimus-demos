@@ -30,9 +30,8 @@ from hpp.corbaserver.manipulation import Client as ManipClient, ProblemSolver
 from hpp.corbaserver.manipulation import Constraints, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
-from agimus_demo_05_pick_and_place.utils import concatenatePaths, config_dist
+from agimus_demo_05_pick_and_place.utils import concatenatePaths
 import typing as T
-import numpy as np
 
 
 def generateTargetConfig(
@@ -208,6 +207,11 @@ class BinPicking(object):
         Build the constraint graph
           - discretize handles,
         """
+        if "graph" in self.ps.client.manipulation.problem.getAvailable(
+            "ConstraintGraph"
+        ):
+            self.ps.client.manipulation.graph.deleteGraph("graph")
+
         print("Started building the graph")
         # store list of not discretized handles
         self.initialHandles = self.handles[:]
@@ -225,7 +229,7 @@ class BinPicking(object):
             self.robot,
             self.robotGrippers + self.goalGrippers,
             self.objects,
-            [handles],
+            [handles, [], []],
             self._rules(),
             self._possibleGrasps(),
             factory_kwargs=dict(
@@ -332,8 +336,6 @@ class BinPicking(object):
                             self.placePaths[robotGripper][handle] = p
                             found = True
                             break
-                        else:
-                            self.placePaths_debug_msg[robotGripper][handle] = msg
                     if found:
                         break
 
@@ -448,13 +450,7 @@ class BinPicking(object):
             self._freeGrasps[gripper] = list()
             for handle in self.handles:
                 if self.placePaths[gripper].get(handle) is None:
-                    failure_reports.append(
-                        (
-                            gripper,
-                            handle,
-                            f"no place path with msg: {self.placePaths_debug_msg[gripper].get(handle)}",
-                        )
-                    )
+                    failure_reports.append((gripper, handle, "no place path"))
                     continue
                 col, msg, gripperAxis = self.bpc.bin_picking.collisionTest(
                     gripper, handle, q
@@ -487,11 +483,7 @@ class BinPicking(object):
                 placePath = self.placePaths[gripper].get(handle)
                 if not placePath:
                     failure_reports.append(
-                        (
-                            gripper,
-                            handle,
-                            f"No place path for {gripper} / {handle} with msg: {self.placePaths_debug_msg[gripper].get(handle)}",
-                        )
+                        (gripper, handle, f"No place path for {gripper} / {handle}")
                     )
                     break
                 # generate pregrasp, grasp and preplace configuration to
@@ -503,33 +495,6 @@ class BinPicking(object):
                 ]
                 pickPath, msg = self.generateConsecutivePaths(edges, q)
                 if pickPath:
-                    # if handle_rotated is in self._freeGrasps[gripper], compare the two
-                    # return the one where difference in q is smallest
-                    if handle + "_rotated" in self._freeGrasps[gripper]:
-                        edges = [
-                            f"{gripper} > {handle}_rotated | f_01",
-                            f"{gripper} > {handle}_rotated | f_12",
-                            f"{gripper} > {handle}_rotated | f_23",
-                        ]
-                        rotated_placePath = self.placePaths[gripper].get(
-                            handle + "_rotated"
-                        )
-                        if rotated_placePath:
-                            rotated_pickPath, msg = self.generateConsecutivePaths(
-                                edges, q
-                            )
-                            if rotated_pickPath:
-                                q1 = pickPath.initial()
-                                q2 = rotated_pickPath.initial()
-                                if config_dist(q2, q) < config_dist(q1, q):
-                                    return (
-                                        gripper,
-                                        handle + "_rotated",
-                                        rotated_pickPath,
-                                        rotated_placePath,
-                                        None,
-                                    )
-
                     return gripper, handle, pickPath, placePath, None
                 else:
                     failure_reports.append((gripper, handle, msg))
