@@ -7,13 +7,12 @@ import pinocchio as pin
 import time
 from typing import Tuple
 
-import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState, PointCloud2
 from vision_msgs.msg import Detection2DArray
-from contact_graspnet_msgs.srv import GetSceneGrasps
+# from contact_graspnet_msgs.srv import GetSceneGrasps
 
 from agimus_demo_06_regrasp.franka_gripper_client import FrankaGripperClient
 
@@ -27,13 +26,11 @@ from agimus_demo_06_regrasp.async_subscriber import AsyncSubscriber
 from agimus_demo_06_regrasp.trajectory_publisher import TrajectoryPublisher
 from agimus_demo_06_regrasp.utils import (
     normalize_quaternion,
-    posemsg2mat,
     graspnet_to_handle,
     inverse_pose,
     multiply_poses,
     XYZQuatType,
 )
-from agimus_demo_06_regrasp.poincloud_utils import read_points_xyz_rgb
 from hpp.corbaserver.manipulation import loadServerPlugin
 
 
@@ -117,7 +114,7 @@ class Orchestrator(object):
         self.use_contact_graspnet = False
         self.use_pointcloud = False
         self.use_sim = True
-        self.smooth = True
+        self.smooth = False
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
 
@@ -147,46 +144,46 @@ class Orchestrator(object):
                 "/camera/depth/color/points",
                 QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
             )
-        if self.use_contact_graspnet:
-            self.grasps_client = self._node.create_client(
-                GetSceneGrasps, "contact_graspnet/get_scene_grasps"
-            )
+        # if self.use_contact_graspnet:
+        #     self.grasps_client = self._node.create_client(
+        #         GetSceneGrasps, "contact_graspnet/get_scene_grasps"
+        #     )
         self.open_gripper()
         # if hppcorbaserver is running in a separate script
         loadServerPlugin("corbaserver", "manipulation-corba.so")
         loadServerPlugin("corbaserver", "bin_picking.so")
 
-        if self.use_contact_graspnet:
-            self.detected_grasps = self.get_all_grasps()
-            current_robot_state = self.state_client.wait_for_future()
-            self.grasp_q = list(current_robot_state.position)
+        # if self.use_contact_graspnet:
+        #     self.detected_grasps = self.get_all_grasps()
+        #     current_robot_state = self.state_client.wait_for_future()
+        #     self.grasp_q = list(current_robot_state.position)
 
-    def get_all_grasps(self) -> dict[list[tuple[np.array, float]]]:
-        """Get all grasps from the graspnet service"""
-        self.grasps_client.wait_for_service()
-        self._node.get_logger().info("Graspnet service is available, calling...")
-        request = GetSceneGrasps.Request()
-        future = self.grasps_client.call_async(request)
-        rclpy.spin_until_future_complete(self._node, future)
-        self._node.get_logger().info("Graspnet service response received!")
-        resp: GetSceneGrasps.GetSceneGrasps.Response = future.result()
-        scene_grasps = resp.scene_grasps
+    # def get_all_grasps(self) -> dict[list[tuple[np.array, float]]]:
+    #     """Get all grasps from the graspnet service"""
+    #     self.grasps_client.wait_for_service()
+    #     self._node.get_logger().info("Graspnet service is available, calling...")
+    #     request = GetSceneGrasps.Request()
+    #     future = self.grasps_client.call_async(request)
+    #     rclpy.spin_until_future_complete(self._node, future)
+    #     self._node.get_logger().info("Graspnet service response received!")
+    #     resp: GetSceneGrasps.GetSceneGrasps.Response = future.result()
+    #     scene_grasps = resp.scene_grasps
 
-        object_nb = len(scene_grasps.object_types)
-        all_grasps = {}
-        for i in range(object_nb):
-            object_type = scene_grasps.object_types[i]
-            object_id = f"{i}_{object_type}"
+    #     object_nb = len(scene_grasps.object_types)
+    #     all_grasps = {}
+    #     for i in range(object_nb):
+    #         object_type = scene_grasps.object_types[i]
+    #         object_id = f"{i}_{object_type}"
 
-            # grasps of the i-th object
-            grasps_i = scene_grasps.object_grasps[i]
+    #         # grasps of the i-th object
+    #         grasps_i = scene_grasps.object_grasps[i]
 
-            all_grasps[object_id] = [
-                (posemsg2mat(grasp), score)
-                for grasp, score in zip(grasps_i.grasps, grasps_i.scores)
-            ]
+    #         all_grasps[object_id] = [
+    #             (posemsg2mat(grasp), score)
+    #             for grasp, score in zip(grasps_i.grasps, grasps_i.scores)
+    #         ]
 
-        return all_grasps
+    #     return all_grasps
 
     def get_best_object_pose(
         self,
@@ -318,17 +315,17 @@ class Orchestrator(object):
         # )
         return obj_in_world_start_pose, rotated90, rotated180
 
-    def set_pointcloud(self):
-        pointcloud_msg = self.pointcloud_client.wait_for_future()
-        points, colors, depth_frame = read_points_xyz_rgb(pointcloud_msg, "panda/")
-        current_robot_state = self.state_client.wait_for_future()
-        q_robot = list(current_robot_state.position)
-        self.hpp_client.set_point_cloud(
-            q_robot=q_robot,
-            camera_frame_name=depth_frame,
-            points=points.tolist(),
-            colors=colors.tolist(),
-        )
+    # def set_pointcloud(self):
+    #     pointcloud_msg = self.pointcloud_client.wait_for_future()
+    #     points, colors, depth_frame = read_points_xyz_rgb(pointcloud_msg, "panda/")
+    #     current_robot_state = self.state_client.wait_for_future()
+    #     q_robot = list(current_robot_state.position)
+    #     self.hpp_client.set_point_cloud(
+    #         q_robot=q_robot,
+    #         camera_frame_name=depth_frame,
+    #         points=points.tolist(),
+    #         colors=colors.tolist(),
+    #     )
 
     def open_gripper(self):
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
@@ -343,7 +340,7 @@ class Orchestrator(object):
         time.sleep(0.05)
 
     def grasp(self):
-        self.franka_gripper_cient.grasp(force=30.0)
+        self.franka_gripper_cient.grasp()
         # TODO: change it to something normal
         time.sleep(1.0)
 
@@ -484,8 +481,8 @@ class Orchestrator(object):
     ):
         current_robot_state = self.state_client.wait_for_future()
 
-        if self.use_pointcloud:
-            self.set_pointcloud()
+        # if self.use_pointcloud:
+        #     self.set_pointcloud()
         self.hpp_client = HPPInterface(
             object_name=object_name, use_spline_gradient_based_opt=False
         )

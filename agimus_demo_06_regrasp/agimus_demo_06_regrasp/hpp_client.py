@@ -174,10 +174,10 @@ class HPPInterface:
             "panda", srdfString
         )
 
-        # Add an empty point cloud
-        self.ps.client.basic.obstacle.loadPointCloudFromPoints(
-            "pointcloud", self._point_cloud_res, []
-        )
+        # # Add an empty point cloud
+        # self.ps.client.basic.obstacle.loadPointCloudFromPoints(
+        #     "pointcloud", self._point_cloud_res, []
+        # )
 
         # Lock gripper in open position.
         self.ps.createLockedJoint(
