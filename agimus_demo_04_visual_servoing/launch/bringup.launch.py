@@ -5,7 +5,6 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
@@ -102,7 +101,7 @@ def launch_setup(
             parameters=[{"robot_description": environment_description}],
         )
         tf_node = static_transform_publisher_node(
-            frame_id="world",
+            frame_id="fer_link0",
             child_frame_id="big_box_root",
         )
         tf_node_2 = static_transform_publisher_node(
@@ -110,7 +109,7 @@ def launch_setup(
             child_frame_id="big_box_root",
         )
         tf_node_3 = static_transform_publisher_node(
-            frame_id="tless-obj_000031",
+            frame_id="big_tag1",
             child_frame_id="current_object",
         )
         env_nodes = [environment_publisher_node, tf_node, tf_node_2, tf_node_3]
@@ -132,28 +131,20 @@ def launch_setup(
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
     )
 
-    apriltag_tf_to_world_pose_pub = Node(
-        package="agimus_demos_common",
-        executable="apriltag_tf_to_world_pose",
-        name="detection_pub_node",
-        parameters=[get_use_sim_time()],
-        output="screen",
-    )
+    # mpc_debugger = mpc_debugger_node(
+    #     "fer_hand_tcp",
+    #     parent_frame="fer_link0",
+    #     cost_plot=True,
+    #     node_kwargs=dict(
+    #         remappings=[("robot_description", "robot_description_with_collision")]
+    #     ),
+    # )
 
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         *env_nodes,
-        apriltag_tf_to_world_pose_pub,
-        mpc_debugger_node(
-            "fer_hand_tcp",
-            parent_frame="fer_link0",
-            cost_plot=True,
-            node_kwargs=dict(
-                remappings=[("robot_description", "robot_description_with_collision")]
-            ),
-        ),
-        apriltag_tf_to_world_pose_pub,
+        # mpc_debugger,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
