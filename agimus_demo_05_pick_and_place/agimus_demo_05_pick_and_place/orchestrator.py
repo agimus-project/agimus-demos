@@ -4,9 +4,10 @@ from typing import Tuple
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
+import pinocchio as pin
 import time
 import typing as T
-import pinocchio as pin
+
 
 from tf2_ros import StaticTransformBroadcaster
 import rclpy
@@ -16,6 +17,7 @@ from geometry_msgs.msg import Pose, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray, Detection2D
 
+from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
 
 from agimus_demo_05_pick_and_place.hpp_client import (
     HPPInterface,
@@ -75,7 +77,7 @@ def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[flo
     elif object_name == "obj_26":
         return frame, [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_31":
-        return frame, [0.1, -0.2, 1.0, 0.0, 0.0, 0.707, 0.707]
+        return frame, [0.18, -0.14, 0.95, 0.0, 0.0, 0.707, 0.707]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -122,7 +124,7 @@ class Orchestrator(object):
         self._node = Node("pick_and_place")
         self.param = OrchestratorParams()
 
-        # self.franka_gripper_cient = FrankaGripperClient(self._node)
+        self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
         self.set_hardcoded_q0_start_and_above_source_bin()
         self.is_simulation = (
@@ -188,6 +190,9 @@ class Orchestrator(object):
             0.0,
             0.0,
         ]
+
+        # these q0_2 and q0_3 are poses that we used where we had good estimation from happypose
+        # as the robot was able to see multiple faces of the objects.
         self.q0_2 = [
             0.23478670612576777,
             0.6708581179127536,
@@ -211,6 +216,9 @@ class Orchestrator(object):
             0.038980063050985336,
             0.008928003512008873,
         ]
+
+        # this configuration is used as an intermediate configuration above the box, we use it
+        #  because it's helps hpp find better planning when doing the picking of the objects in the box.
         self.q_above_source_bin = [
             -0.37749851551808805,
             -0.24527851252273686,
@@ -266,13 +274,13 @@ class Orchestrator(object):
         return obj_start_pose, obj_goal_pose
 
     def open_gripper(self):
-        return
+        """Open the gripper."""
         self.franka_gripper_cient.send_goal(position=0.039, max_effort=10.0)
         # TODO: change it to something normal
         time.sleep(0.05)
 
     def close_gripper(self):
-        return
+        """Close the gripper."""
         if self.is_simulation:
             self.franka_gripper_cient.send_goal(
                 position=0.04, max_effort=self.param.max_holding_force
@@ -284,12 +292,21 @@ class Orchestrator(object):
             # TODO: change it to something normal
             time.sleep(1.0)
 
-    def add_trajectory_to_publish(self, path_vector, visual_servoing_time_range=None):
+    def add_trajectory_to_publish(
+        self, path_vector, visual_servoing_time_range=None
+    ) -> None:
+        """Transform hpp path into a trajectory to publish with possibility to use visual servoing."""
         q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(
             path_vector, dt=self.dt
         )
         # TODO: get this from OCP params somehow
         horizon_size = 40
+        # add complete horizon at the end of the trajectory of the last point
+        q_array += [q_array[-1]] * horizon_size  # OCP horizon
+        dq_array += [dq_array[-1]] * horizon_size  # OCP horizon
+        ddq_array += [ddq_array[-1]] * horizon_size  # OCP horizon
+
+        # find trajectory points idx range where to apply visual servoing
         if visual_servoing_time_range is None:
             visual_servoing_idx_range = [0, 0]
         else:
@@ -298,14 +315,15 @@ class Orchestrator(object):
             ]
             if visual_servoing_time_range[1] == path_vector.length():
                 visual_servoing_idx_range[1] += horizon_size
-        q_array += [q_array[-1]] * horizon_size  # OCP horizon
-        dq_array += [dq_array[-1]] * horizon_size  # OCP horizon
-        ddq_array += [ddq_array[-1]] * horizon_size  # OCP horizon
+
+        # convert arrays in list of trajectory points
         trajectory = (
             self.trajectory_publisher.trajectory.build_trajectory_from_q_dq_ddq_arrays(
                 q_array, dq_array, ddq_array
             )
         )
+
+        # pass the trajectory to the trajectory publisher
         if self.trajectory_publisher.params.trajectory_name == "generic_trajectory":
             self.trajectory_publisher.add_trajectory(trajectory)
         elif (
@@ -329,7 +347,8 @@ class Orchestrator(object):
         self,
         desired_configuration: T.List[float],
         enable_visualization_in_gepetto_gui: bool = True,
-    ):
+    ) -> None:
+        """Publish an hpp trajectory to go to desired configuration"""
         self.hpp_client = HPPInterface(
             object_name=self.default_object_name, use_spline_gradient_based_opt=False
         )
@@ -348,7 +367,8 @@ class Orchestrator(object):
 
     def publish_transform_in_tf(
         self, parent_frame, child_frame, transform: pin.SE3, stamp
-    ):
+    ) -> None:
+        """Publish desired static transform, mainly used to decide what object to track."""
         t = TransformStamped()
 
         # Read message content and assign it to
@@ -367,6 +387,7 @@ class Orchestrator(object):
         use_hardcoded_poses: bool = False,
         enable_visualization_in_gepetto_gui: bool = True,
     ):
+        """Plan with hpp a pick and place path and publish it."""
         current_robot_state = self.state_client.wait_for_future()
         q_init = list(current_robot_state.position)
 
@@ -445,7 +466,12 @@ class Orchestrator(object):
         box_handles: list[str],
         enable_visualization_in_gepetto_gui: bool = True,
         n_samples: int = 1000,
-    ):
+    ) -> None:
+        """
+        Publish a plan made by hpp to setup the place of the boxes in the scene.
+           You have to chose among handles of the boxes and the robot will pass by them
+           to correct their position.
+        """
         current_robot_state = self.state_client.wait_for_future()
         q_init = list(current_robot_state.position)
 
