@@ -177,7 +177,7 @@ def launch_setup(
         nodes_to_launch.append(happypose_simulation_node)
     elif vision_type in ["simulate_apriltag_det", "apriltag_det"]:
         apriltag_tf_to_world_pose_pub = Node(
-            package="agimus_demos_common",
+            package="olt_ros2_pipeline",
             executable="apriltag_tf_to_world_pose",
             name="detection_pub_node",
             parameters=[get_use_sim_time()],

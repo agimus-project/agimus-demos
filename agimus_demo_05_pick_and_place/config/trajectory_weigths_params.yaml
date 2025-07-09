@@ -15,6 +15,5 @@ simple_trajectory_publisher:
     w_collision_avoidance: 0.2
     trajectory_name: generic_visual_servoing_trajectory
     generic_trajectory_visual_servoing:
-      start_visual_servoing_time_threshold: 4.0
       w_increasing_max_rotation: 160.0
       w_increasing_max_collision_avoidance: 40.0

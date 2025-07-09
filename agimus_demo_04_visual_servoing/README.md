@@ -16,12 +16,7 @@ This demo requires source built of dependencies found in:
 - [agimus_dev.repos](../agimus_dev.repos)
 
 
-install following packages
-```bash
-sudo apt install ros-humble-image-proc
-sudo apt install ros-humble-apriltag-msgs
-```
-you'll also need dependencies related to apriltag that can be found in [vision.repos](../vision.repos)
+This demo is done using apriltag (but could also be done with happypose in the future), to use it you'll also need to install the package [olt_ros2_pipeline](https://github.com/agimus-project/olt_ros2_pipeline?tab=readme-ov-file#launch-apriltag) from source, note that can use apriltag from this package without installing happypose.
 
 ### Apriltag setup
 the apriltag used can be found  [here](https://triagechallenge.darpa.mil/docs/AprilTag_0-20_family36h11.pdf),
