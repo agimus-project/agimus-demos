@@ -35,9 +35,126 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelVisualServoing
-          world_frame: fer_link0
+          world_frame: support_link
           robot_frame: fer_hand_tcp
           object_frame: current_object
+    - name: avoid_collision
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_1, big_box_link_1]
+    - name: avoid_collision2
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_1, big_box_link_2]
+    - name: avoid_collision3
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_1, big_box_link_3]
+    - name: avoid_collision4
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_1, big_box_link_4]
+    - name: avoid_collision5
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_1, obstacle1_capsule_0]
+    - name: avoid_collision6
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_0, obstacle1_capsule_0]
+    - name: avoid_collision7
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_1, obstacle1_capsule_0]
+    - name: avoid_collision8
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, obstacle1_capsule_0]
+    - name: avoid_collision9
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 1
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_1, big_box_link_3]
 
 terminal_model:
   class: IntegratedActionModelEuler
