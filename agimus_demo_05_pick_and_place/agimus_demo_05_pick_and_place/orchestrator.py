@@ -14,13 +14,13 @@ from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray, Detection2D
 
-from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
+from agimus_demos_common.orchestrator.franka_gripper_client import FrankaGripperClient
 
 from agimus_demo_05_pick_and_place.hpp_client import (
     HPPInterface,
     get_q_dq_ddq_arrays_from_path,
 )
-from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
+from agimus_demos_common.orchestrator.async_subscriber import AsyncSubscriber
 from agimus_controller_ros.simple_trajectory_publisher import SimpleTrajectoryPublisher
 
 
