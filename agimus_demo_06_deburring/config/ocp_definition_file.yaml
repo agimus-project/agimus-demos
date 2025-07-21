@@ -1,0 +1,115 @@
+---
+running_model:
+  class: IAMSoftContactAugmented
+  differential:
+    class: DAMSoftContactAugmentedFwdDynamics
+    Kp: [150.0, 150.0, 150.0]
+    Kv: [0.5, 0.5, 0.5]
+    frame_name: ati_mini45_measurement_reference
+    oPc: [0.0, 0.0, 0.0]
+    with_gravity_torque_reg: true
+    enabled_directions: [true, true, true]
+    ref: LOCAL
+    cost_ref: LOCAL
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: frame_pose_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslation
+          id: 0
+    - name: frame_rotation_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotation
+          id: ati_mini45_measurement_reference
+    - name: frame_velocity_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameVelocity
+          reference_frame: WORLD
+          id: ati_mini45_measurement_reference
+terminal_model:
+  class: IAMSoftContactAugmented
+  differential:
+    class: DAMSoftContactAugmentedFwdDynamics
+    Kp: [150.0, 150.0, 150.0]
+    Kv: [0.5, 0.5, 0.5]
+    frame_name: ati_mini45_measurement_reference
+    oPc: [0.0, 0.0, 0.0]
+    with_gravity_torque_reg: true
+    enabled_directions: [true, true, true]
+    ref: LOCAL
+    cost_ref: LOCAL
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: frame_pose_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslation
+          id: 0
+    - name: frame_rotation_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotation
+          id: ati_mini45_measurement_reference
+    - name: frame_velocity_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameVelocity
+          reference_frame: WORLD
+          id: ati_mini45_measurement_reference
