@@ -8,16 +8,20 @@ Expected behaviors (intention only):
 
 ---
 
-## Install dependencies and build.
-**This section may not be up to date.**
+### Dependencies
 
-```bash
-vcs import src < src/agimus-demos/agimus_demo_05_pick_and_place/dependencies.repos
-rosdep update --rosdistro $ROS_DISTRO
-rosdep install -y -i --from-paths src --rosdistro $ROS_DISTRO --skip-keys libfranka
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install
-source install/setup.bash
-```
+This demo requires source built of dependencies found in:
+- [franka.repos](../franka.repos)
+- [control.repos](../control.repos)
+- [agimus_dev.repos](../agimus_dev.repos)
+
+
+This demo is done using apriltag (but could also be done with happypose in the future), to use it you'll also need to install the package [olt_ros2_pipeline](https://github.com/agimus-project/olt_ros2_pipeline?tab=readme-ov-file#launch-apriltag) from source, note that can use apriltag from this package without installing happypose.
+
+### Apriltag setup
+the apriltag used can be found  [here](https://triagechallenge.darpa.mil/docs/AprilTag_0-20_family36h11.pdf),
+the apriltag side size used was 44 mm, but can be modified [here](https://github.com/TheoMF/olt_ros2_pipeline/blob/topic/tmartinez/apriltag/config/tags_36h11.yaml#L22)
+
 
 ## Start the demo in simulation using the Panda robot.
 ```bash
@@ -39,6 +43,13 @@ In RViz, you can visualize frames:
 
 ## Start the demo on hardware using the Panda robot.
 **This section may not be up to date.**
+
+for the vision side you'll have to launch
 ```bash
-ros2 launch agimus_demo_05_pick_and_place bringup_hw.launch.py arm_id:=fer robot_ip:=<fci-ip>
+ros2 launch olt_ros2_pipeline vision_bringup.launch.py
+```
+
+for the control side you'll have to launch
+```bash
+ros2 launch agimus_demo_05_pick_and_place bringup.launch.py arm_id:=fer robot_ip:=<fci-ip> use_ft_sensor:=false
 ```

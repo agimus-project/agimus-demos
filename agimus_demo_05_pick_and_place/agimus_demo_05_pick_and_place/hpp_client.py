@@ -28,40 +28,25 @@ import typing as T
 from math import sqrt
 
 # Used if hppcorbaserver is not running in separate script
-# from agimus_demo_05_pick_and_place.corba import CorbaServer
+from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import shrinkJointRange
-from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver, Client
+from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-from agimus_demo_05_pick_and_place.utils import concatenatePaths
+from agimus_demo_05_pick_and_place.utils import concatenatePaths, split_path
 import numpy as np
 from hpp_idl.hpp.core_idl import Path as HPPPath
 
 import time
 
 from agimus_demo_05_pick_and_place.utils import (
-    split_path,
     BaseObject,
     get_obj_goal_handles,
     XYZQuatType,
-    multiply_poses,
     hack_for_ros2_support_in_hpp,
 )
 from hpp.rostools import process_xacro, retrieve_resource
 import pinocchio
-
-
-XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
-
-
-def hack_for_ros2_support_in_hpp():
-    import os
-
-    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
-        os.environ["ROS_PACKAGE_PATH"] = ":".join(
-            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
-        )
-
 
 corba = None
 
@@ -90,8 +75,8 @@ class HPPInterface:
         self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
 
-        self._goal_gripper_clearance = 0.3
-        self._after_picking_clearance = 0.3
+        self._goal_gripper_clearance = 0.4
+        self._after_picking_clearance = 0.4
         self._point_cloud_res = 0.001
 
         self.default_obstacle_pose = source_bin_pose
@@ -422,18 +407,15 @@ class HPPInterface:
         # Resolving the path to the object
         print("[INFO] Object found with no collision")
         print("Solving ...")
-        res, p = self.binPicking.solve(q_start_solve)
+        res, paths = self.binPicking.solve(q_start_solve)
         if res:
-            print("Pick and place path", p)
-            print(p.length())
             grasp_path, placing_path, freefly_path = split_path(
-                p, self.binPicking.c_robot()
+                paths, self.binPicking.c_robot()
             )
             if path_to_start is not None:
-                p = path_to_start.asVector()
-                p.appendPath(grasp_path)
-                grasp_path = p
-                freefly_path.appendPath(path_to_start.reverse())
+                grasp_path = concatenatePaths(
+                    [path_to_start, grasp_path], self.binPicking.c_robot()
+                )
             self.ps.client.basic.problem.addPath(grasp_path)
             self.ps.client.basic.problem.addPath(placing_path)
             self.ps.client.basic.problem.addPath(freefly_path)
@@ -441,7 +423,7 @@ class HPPInterface:
             return grasp_path, placing_path, freefly_path
         else:
             # In this case, p is a string containing the error message
-            print("No solution", p)
+            print("No solution", paths)
             return None
 
     def plan_free_motion(

@@ -1,15 +1,15 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler
+from launch.conditions import IfCondition
+from launch.actions import OpaqueFunction, RegisterEventHandler, DeclareLaunchArgument
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
-
+from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
@@ -21,6 +21,9 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    use_mpc_debugger = LaunchConfiguration("use_mpc_debugger")
+    tracked_object_name = LaunchConfiguration("tracked_object_name")
+
     franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
 
     agimus_controller_yaml = PathJoinSubstitution(
@@ -102,7 +105,7 @@ def launch_setup(
             parameters=[{"robot_description": environment_description}],
         )
         tf_node = static_transform_publisher_node(
-            frame_id="world",
+            frame_id="fer_link0",
             child_frame_id="big_box_root",
         )
         tf_node_2 = static_transform_publisher_node(
@@ -110,7 +113,7 @@ def launch_setup(
             child_frame_id="big_box_root",
         )
         tf_node_3 = static_transform_publisher_node(
-            frame_id="tless-obj_000031",
+            frame_id=tracked_object_name,
             child_frame_id="current_object",
         )
         env_nodes = [environment_publisher_node, tf_node, tf_node_2, tf_node_3]
@@ -132,28 +135,21 @@ def launch_setup(
         parameters=[get_use_sim_time(), trajectory_weights_yaml],
     )
 
-    apriltag_tf_to_world_pose_pub = Node(
-        package="agimus_demos_common",
-        executable="apriltag_tf_to_world_pose",
-        name="detection_pub_node",
-        parameters=[get_use_sim_time()],
-        output="screen",
+    mpc_debugger = mpc_debugger_node(
+        "fer_hand_tcp",
+        parent_frame="fer_link0",
+        cost_plot=True,
+        node_kwargs=dict(
+            remappings=[("robot_description", "robot_description_with_collision")],
+            condition=IfCondition(use_mpc_debugger),
+        ),
     )
 
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
         *env_nodes,
-        apriltag_tf_to_world_pose_pub,
-        mpc_debugger_node(
-            "fer_hand_tcp",
-            parent_frame="fer_link0",
-            cost_plot=True,
-            node_kwargs=dict(
-                remappings=[("robot_description", "robot_description_with_collision")]
-            ),
-        ),
-        apriltag_tf_to_world_pose_pub,
+        mpc_debugger,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
@@ -168,6 +164,21 @@ def launch_setup(
 
 
 def generate_launch_description():
+    declared_arguments = [
+        DeclareLaunchArgument(
+            "use_mpc_debugger",
+            default_value="false",
+            description="Launches the mpc_debugger_node along.",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "tracked_object_name",
+            default_value="big_tag1",
+            description="Name of the tracked object, as appearing in the tf2 tree.",
+        ),
+    ]
     return LaunchDescription(
-        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+        declared_arguments
+        + generate_default_franka_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
