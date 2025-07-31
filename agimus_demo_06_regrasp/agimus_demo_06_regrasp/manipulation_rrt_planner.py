@@ -22,6 +22,7 @@ from agimus_demo_06_regrasp.utils import (
 
 import time
 
+
 class ManipulationPlanner:
     """
     Manipulation RRT planner inspired from
@@ -80,7 +81,7 @@ class ManipulationPlanner:
         # self.ps.setRandomSeed(42)
         # np.random.seed(42)
         # random.seed(42)
-        
+
         # self.ps.selectPathPlanner("M-RRT")
         self.ps.selectPathPlanner("StatesPathFinder")
         self.ps.setParameter("StatesPathFinder/innerPlannerTimeOut", 5.0)
@@ -102,7 +103,7 @@ class ManipulationPlanner:
         self.ps.selectPathProjector("Progressive", 0.05)
         self.ps.selectPathValidation("Graph-Progressive", 0.01)
 
-                # parameters = self.ps.getAvailable("defaultparameter")
+        # parameters = self.ps.getAvailable("defaultparameter")
         # for p in parameters:
         #     if "StatesPathFinder" in p:
         #         print(p)
@@ -173,7 +174,7 @@ class ManipulationPlanner:
         self.factory.generate()
         self.cg.initialize()
         # print([el for el in self.cg.nodes])
-        # self.cg.graph.setTargetNodeList(self.cg.graphId, 
+        # self.cg.graph.setTargetNodeList(self.cg.graphId,
         # [
         #     self.cg.nodes['free'],
         #     self.cg.nodes['panda/panda_gripper grasps tless_20/plug_anglesneg45'],
