@@ -1,4 +1,4 @@
-AGIMUS demo 05 pick and place
+AGIMUS demo 06 regrasp
 -----------------------------
 
 The purpose of this demo is to use the AGIMUS architecture to regrasp an object.

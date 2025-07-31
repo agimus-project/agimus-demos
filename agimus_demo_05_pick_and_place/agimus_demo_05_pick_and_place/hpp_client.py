@@ -217,7 +217,7 @@ class HPPInterface:
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
             srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
-            srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
+        srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += "</robot>"
         self.robot.client.manipulation.robot.insertRobotSRDFModelFromString(
             "panda", srdfString
