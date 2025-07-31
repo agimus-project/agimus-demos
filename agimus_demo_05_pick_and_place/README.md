@@ -42,39 +42,7 @@ After the xterm terminal is opened, type there `o.pick_and_place('obj_<tless obj
 To place the source and destination box as it is in hpp, you may have first to calibrate the position of the two boxes, for that you can use in the xterm terminal `o.calibrate`.
 To start the demo :
 ```bash
-ros2 launch agimus_demo_05_pick_and_place bringup_hw.launch.py robot_ip:=<fci-ip>
-ros2 launch agimus_demo_05_pick_and_place bringup.launch.py robot_ip:=192.168.102.11 aux_computer_ip:=192.168.102.21 aux_computer_user:=ros
-ros2 bag record /camera/color/image_raw /camera/color/camera_info /camera/depth/color/points /camera/depth/camera_info /camera2/color/image_raw /camera2/color/camera_info /happypose/detections /joint_states /mpc_debug /mpc_input /control
-```
-```
 ros2 launch agimus_demo_05_pick_and_place bringup.launch.py arm_id:=fer vision_type:=apriltag_det robot_ip:=<fci-ip> use_ft_sensor:=false
-```
-
-GraspIt installation
-```bash
-sudo apt-get install libsoqt-dev
-git clone https://github.com/jmirabel/graspit
-git clone https://github.com/jmirabel/graspit_script
-cd graspit
-mkdir build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/home/gepetto/graspit_install  -DGRASPIT_DATA_DIR=/home/gepetto/graspit_install/.graspit
-make -j16
-make install
-cd ../../graspit_script/
-mkdir build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/home/gepetto/graspit_install
-make -j16
-make install
-
-env_dir=/home/gepetto/graspit_install
-export LD_LIBRARY_PATH=${env_dir}/lib:${LD_LIBRARY_PATH}
-export PATH=${env_dir}/bin:${PATH}
-export CMAKE_PREFIX_PATH=${env_dir}:${CMAKE_PREFIX_PATH}
-export GRASPIT=${env_dir}/graspit_data
-export GRASPIT_PLUGIN_DIR=${env_dir}/lib/plugins
-cd ..
-mkdir $GRASPIT
-cp -r data/* "$GRASPIT"
 ```
 
 ## tips

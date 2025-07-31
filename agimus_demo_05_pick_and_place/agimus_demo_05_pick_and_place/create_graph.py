@@ -43,7 +43,7 @@ class Factory(ConstraintGraphFactory):
 
     def generate(self):
         part = self.objects[0]
-        # box = self.objects[1]
+        box = self.objects[1]
         # create preplacement and placement constraints for the object
         self.ps.createTransformationConstraint(
             f"place_{part}",
@@ -58,15 +58,15 @@ class Factory(ConstraintGraphFactory):
         self.ps.setConstantRightHandSide(f"place_{part}/complement", False)
         self.ps.createTransformationConstraint(
             f"preplace_{part}",
-            "source_box/base_link",
+            f"{box}/root_joint",
             f"{part}/root_joint",
             [0, 0, self._placement_clearance, 0, 0, 0, 1],
             [False, False, True, False, False, False],
         )
-        # self.ps.createLockedJoint(
-        #     f"place_{box}/complement", f"{box}/base_link", [0, 0, 0, 0, 0, 0, 1]
-        # )
-        # self.ps.setConstantRightHandSide(f"place_{box}/complement", False)
+        self.ps.createLockedJoint(
+            f"place_{box}/complement", f"{box}/root_joint", [0, 0, 0, 0, 0, 0, 1]
+        )
+        self.ps.setConstantRightHandSide(f"place_{box}/complement", False)
         self.ps.createTransformationConstraint(
             f"vertical_{part}",
             "",

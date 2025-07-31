@@ -26,8 +26,6 @@
 
 import typing as T
 from math import sqrt
-
-# Used if hppcorbaserver is not running in separate script
 from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
@@ -42,11 +40,22 @@ import time
 from agimus_demo_05_pick_and_place.utils import (
     BaseObject,
     get_obj_goal_handles,
-    XYZQuatType,
-    hack_for_ros2_support_in_hpp,
 )
 from hpp.rostools import process_xacro, retrieve_resource
 import pinocchio
+
+
+XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
+
+
+def hack_for_ros2_support_in_hpp():
+    import os
+
+    if "ROS_PACKAGE_PATH" not in os.environ and "AMENT_PREFIX_PATH" in os.environ:
+        os.environ["ROS_PACKAGE_PATH"] = ":".join(
+            v + "/share" for v in os.environ["AMENT_PREFIX_PATH"].split(":")
+        )
+
 
 corba = None
 
@@ -208,6 +217,7 @@ class HPPInterface:
         srdfString = '<robot name="demo">'
         for i in range(1, 8):
             srdfString += f'<disable_collisions link1="panda_link{i}_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
+            srdfString += f'<disable_collisions link1="panda_hand_sc" link2="{self.manip_object.name}/base_link" reason="handled otherwise"/>'
         srdfString += "</robot>"
         self.robot.client.manipulation.robot.insertRobotSRDFModelFromString(
             "panda", srdfString

@@ -1,17 +1,3 @@
-bag_files
-*.mp4
-agimus_demo_06_regrasp/output_images
-obj_01.obj
-obj_02.obj
-obj_21.obj
-obj_22.obj
-obj_24.obj
-obj_25.obj
-obj_26.obj
-obj_28.obj
-obj_30.obj
-graspnet_output.pkl
-
 # Python ignores
 *.pyc
 *.pyo

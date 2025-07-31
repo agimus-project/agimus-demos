@@ -76,10 +76,4 @@
       </geometry>
     </collision>
   </link>
-  <!-- The link and joint below are required to bypass a bug in setRootJointPosition in hpp-manipulation -->
-  <link name="fake_base_link"/>
-  <joint name="fake_joint" type="fixed">
-  <parent link="fake_base_link"/>
-  <child link="base_link"/>
-  </joint>
 </robot>
