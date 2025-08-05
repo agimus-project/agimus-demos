@@ -182,7 +182,7 @@ class HPPInterface:
             # TODO Should we always use SimpleTimeParameterization?
             self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
+        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
         self.ps.setParameter("BiRRT*/maxStepLength", 0.5 * float(np.sqrt(7)))
 

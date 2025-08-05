@@ -32,6 +32,7 @@ from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths
 import typing as T
+import numpy as np
 
 
 def generateTargetConfig(
@@ -138,8 +139,8 @@ class BinPicking(object):
     This configuration defines the poses of objects other than the part.
     """
     timeParamDict = {
-        "freefly": {"order": 2, "maxAcc": 1.0, "safety": 0.95},
-        "grasping": {"order": 2, "maxAcc": 0.1, "safety": 0.95},
+        "freefly": {"order": 2, "maxAcc": 2.0, "safety": 0.95},
+        "grasping": {"order": 2, "maxAcc": 0.5, "safety": 0.95},
         "approach": {"order": 2, "maxAcc": 0.5, "safety": 0.95},
     }
     """
@@ -156,6 +157,7 @@ class BinPicking(object):
         self.bpc = BpClient()
         # Store place paths where the object is released
         self.placePaths = dict()
+        self.placePaths_debug_msg = dict()
         self._freeGrasps = dict()
 
     def c_robot(self):
@@ -315,6 +317,7 @@ class BinPicking(object):
         for irg in robotGrippers:
             robotGripper = self.factory.grippers[irg]
             self.placePaths[robotGripper] = dict()
+            self.placePaths_debug_msg[robotGripper] = dict()
 
             for ih in regularHandles:
                 handle = self.factory.handles[ih]
@@ -421,10 +424,10 @@ class BinPicking(object):
             raise RuntimeError("You need to call method generateGoalConfigs first.")
         for o in self.objects[1:]:
             r = self.robot.rankInConfiguration[f"{o}/root_joint"]
-            if q[r : r + 7] != self.q_goal[r : r + 7]:
+            if not np.isclose(q[r : r + 7], self.q_goal[r : r + 7]).all():
                 raise RuntimeError(
                     f"Object {o} is in pose {q[r : r + 7]} but "
-                    + "was in pose {self.q_goal[r:r+7]} when pre-computing"
+                    + f"was in pose {self.q_goal[r : r + 7]} when pre-computing"
                     + " goal configurations."
                 )
 
@@ -520,7 +523,7 @@ class BinPicking(object):
         q = q_start
         edge = "Loop | f"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
-        self.setParam("approach")
+        self.setParam("freefly")
         # TODO when the direct path succeeds, it is not time parameterized.
         # I (Joseph Mirabel) don't thing we actually need the explicit call
         # to directPath because I expect `planPath` to try it first.
@@ -547,7 +550,7 @@ class BinPicking(object):
         return True, p_direct
 
     def move_in_free(self, q_start, q_goal):
-        self.setParam("approach")
+        self.setParam("freefly")
         edge = "Loop | f"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p = self.wd(
