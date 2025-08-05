@@ -32,6 +32,7 @@ from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths
 import typing as T
+import numpy as np
 
 
 def generateTargetConfig(
