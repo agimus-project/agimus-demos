@@ -71,7 +71,7 @@ Terminal 3
 source install/setup.bash
 (option 1) ros2 launch agimus_demo_06_regrasp bringup_hw.launch.py robot_ip:=<fci-ip>
 (option 2) ros2 launch agimus_demo_06_regrasp bringup.launch.py robot_ip:=192.168.102.11 aux_computer_ip:=192.168.102.21 aux_computer_user:=ros
-(record bag dor debugging) ros2 bag record /camera/color/image_raw /camera/color/camera_info /camera/depth/color/points /camera/depth/camera_info /camera2/color/image_raw /camera2/color/camera_info /happypose/detections /joint_states /mpc_debug /mpc_input /control
+(record bag for debugging) ros2 bag record /camera/color/image_raw /camera/color/camera_info /camera/depth/color/points /camera/depth/camera_info /camera2/color/image_raw /camera2/color/camera_info /happypose/detections /joint_states /mpc_debug /mpc_input /control
 ```
 
 To generate video from saved camera images
