@@ -7,10 +7,14 @@
     Common launch and config files used across all demos created for Agimus Project.
   </description>
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <license>BSD-2</license>
   <author email="mederic.fourmy@cvut.cz">Mederic Fourmy</author>
   <author email="krzysztof.wojciechowski@laas.fr">Krzysztof Wojciechowski</author>
+  <author email="thomas.peyrucain@pal-robotics.com">Thomas Peyrucain</author>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
+  <author email="thomas.peyrucain@pal-robotics.com">Thomas Peyrucain</author>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
 
-  <license>BSD-2</license>
   <url type="website">https://www.agimus-project.eu/</url>
   <url type="repository">https://github.com/agimus-project/agimus-demos</url>
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
@@ -18,22 +22,41 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <!-- External dependencies. -->
+  <exec_depend>python3-jinja2</exec_depend>
+
+  <!-- Franka dependencies. -->
+  <exec_depend condition="$PAL_DISTRO != alum">franka_description</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">franka_gripper</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">franka_hardware</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">franka_ign_ros2_control</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">franka_robot_state_broadcaster</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">gripper_controllers</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_description</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_diagnostic_broadcaster</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">net_ft_driver</exec_depend>
+
+  <!-- Tiago-Pro dependencies. -->
+  <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_description</exec_depend>
+  <exec_depend  condition="$PAL_DISTRO == alum">tiago_pro_gazebo</exec_depend>
+
+  <!-- ROS2 dependencies. -->
+  <build_depend>generate_parameter_library</build_depend>
+  <build_depend>generate_parameter_library_py</build_depend>
+
   <exec_depend>controller_manager</exec_depend>
-  <exec_depend>franka_description</exec_depend>
-  <exec_depend>franka_gripper</exec_depend>
-  <exec_depend>franka_hardware</exec_depend>
-  <exec_depend>franka_ign_ros2_control</exec_depend>
-  <exec_depend>franka_robot_state_broadcaster</exec_depend>
-  <exec_depend>gripper_controllers</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
-  <exec_depend>linear_feedback_controller</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>ros2launch</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>xacro</exec_depend>
+
+  <!-- Consortium dependencies. -->
+  <exec_depend>linear_feedback_controller</exec_depend>
+  <exec_depend>linear_feedback_controller_msgs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

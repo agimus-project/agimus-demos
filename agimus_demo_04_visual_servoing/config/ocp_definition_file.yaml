@@ -1,0 +1,78 @@
+---
+running_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: control_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelControl
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: goal_tracking
+      update: true
+      weight: 4.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelVisualServoing
+          world_frame: fer_link0
+          robot_frame: fer_hand_tcp
+          object_frame: current_object
+    - name: avoid_collision
+      update: false
+      weight: 5.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelQuadExp
+          alpha: 2e-2
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_hand_sc_capsule_0, big_box_link_1]
+
+terminal_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    # - name: goal_tracking
+    #   update: true
+    #   weight: 1.0
+    #   cost:
+    #     class: CostModelResidual
+    #     activation:
+    #       class: ActivationModelWeightedQuad
+    #       weights: 1.0
+    #     residual:
+    #       class: ResidualModelFramePlacement
+    #       id: 0

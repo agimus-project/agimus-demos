@@ -1,0 +1,29 @@
+---
+repositories:
+  # TODO waiting for release with
+  # https://github.com/agimus-project/colmpc/pull/38
+  # https://github.com/agimus-project/colmpc/pull/39
+  vcs_agimus/colmpc:
+    type: git
+    url: https://github.com/agimus-project/colmpc
+    version: main
+
+  vcs_agimus/linear-feedback-controller:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller
+    version: main
+
+  vcs_agimus/linear_feedback_controller_msgs:
+    type: git
+    url: https://github.com/loco-3d/linear-feedback-controller-msgs
+    version: v1.0.0
+
+  vcs_agimus/agimus_controller:
+    type: git
+    url: https://github.com/agimus-project/agimus_controller
+    version: humble-devel
+
+  vcs_agimus/agimus_msgs:
+    type: git
+    url: https://github.com/agimus-project/agimus_msgs
+    version: humble-devel

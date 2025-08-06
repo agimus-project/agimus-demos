@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>agimus_demos</name>
+  <version>0.0.0</version>
+  <description>A package to aggregate all packages in agimus_demos.</description>
+  <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
+  <license>BSD</license>
+
+  <!-- Common -->
+  <exec_depend>agimus_demos_common</exec_depend>
+
+  <!-- Franka -->
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_00_franka_controller</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_01_lfc_alone</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_02_simple_pd_plus</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_03_mpc_dummy_traj</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_demo_05_pick_and_place</exec_depend>
+
+  <!-- Tiago Pro -->
+  <exec_depend condition="$PAL_DISTRO == alum">agimus_demo_02_simple_pd_plus_tiago_pro</exec_depend>
+  <exec_depend condition="$PAL_DISTRO == alum">agimus_demo_03_mpc_dummy_traj_tiago_pro</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

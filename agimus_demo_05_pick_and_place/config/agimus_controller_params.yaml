@@ -1,0 +1,32 @@
+---
+agimus_controller_node:
+  ros__parameters:
+    rate: 100.0
+    ocp:
+      dt: 0.01
+      horizon_size: 19
+      dt_factor_n_seq:
+        n_steps: [10, 9]
+        factors: [1, 6]
+      armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      max_qp_iter: 200
+      max_iter: 8
+      termination_tolerance: 0.0001
+      activate_callback: false
+      effector_frame_name: fer_hand_tcp
+    collision_pairs_names: [cp_1, cp_2, cp_3, cp_4, cp_5]
+    cp_1:
+      first: fer_hand_sc_capsule_1
+      second: big_box_link_1
+    cp_2:
+      first: fer_hand_sc_capsule_1
+      second: big_box_link_2
+    cp_3:
+      first: fer_hand_sc_capsule_1
+      second: big_box_link_3
+    cp_4:
+      first: fer_hand_sc_capsule_1
+      second: big_box_link_4
+    cp_5:
+      first: fer_hand_sc_capsule_1
+      second: obstacle1_capsule_0

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot name="box">
+    <handle name="calib_y-" clearance="0.05">
+        <position xyz="0 -0.1835 0.20" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
+        <link name="base_link"/>
+        <mask>1 1 1 1 1 1</mask>
+    </handle>
+    <handle name="calib_y+" clearance="0.05">
+        <position xyz="0 0.1835 0.20" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
+        <link name="base_link"/>
+        <mask>1 1 1 1 1 1</mask>
+    </handle>
+    <handle name="calib_x-" clearance="0.05">
+        <position xyz="-0.2835 0 0.20" xyzw="-0.5 0.5 0.5  0.5"/>
+        <link name="base_link"/>
+        <mask>1 1 1 1 1 1</mask>
+    </handle>
+    <handle name="calib_x+" clearance="0.05">
+        <position xyz="0.2835 0 0.20" xyzw="-0.5 0.5 0.5  0.5"/>
+        <link name="base_link"/>
+        <mask>1 1 1 1 1 1</mask>
+    </handle>
+</robot>

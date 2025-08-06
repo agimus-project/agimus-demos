@@ -6,6 +6,15 @@ The repository is organized as set of demos with increasing complexity.
 Each folder contains a ROS 2 package launching the demo.
 The `README.md` file of each demo contains a detailed description of the expected results and instruction on how to launch the demo.
 
+## Table of content
+
+- [Usage](#Usage)
+- [Installation](#Installation)
+
+## Usage
+
+### Running demos
+
 All of the demos are launched in a similar manner. For Gazebo simulation use
 ```bash
 ros2 launch agimus_demo_<demo-name> bringup.launch.py use_gazebo:=true use_rviz:=true
@@ -15,7 +24,28 @@ For the real robot use
 ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
 ```
 
-## Running demos with Docker
+### Plotting and debugging
+
+> [!CAUTION]
+> This is work in progress and subject to change.
+
+The following tools assume that agimus-controller node was started with parameter `publish_debug_data` set to `true`.
+
+You can visualize MPC outputs using PlotJuggler with
+```bash
+ros2 launch agimus_demos_common plotjuggler_mpc.launch.py
+```
+
+You can visualize the current prediction of MPC in RViz in two steps:
+```bash
+ros2 run agimus_controller_ros mpc_debugger_node --frame fer_hand_tcp
+```
+Then use Rviz to display the marker array published to `mpc_states_prediction_markers`.
+If your RViz config file is up-to-date, the visualization is already configured and just needs to be enabled by checking the box of `MPC predictions`.
+
+## Installation
+
+### Running demos with Docker
 
 > [!NOTE]
 > This is a recommended installation for this package. You can always install it from source (see below), but to avoid issues with building from source we advise you to use prebuilt docker images, that contains all the dependencies.
@@ -48,7 +78,7 @@ source install/setup.bash
 
 Now you are ready to run all of your demos!
 
-## Building dependencies from source
+### Building dependencies from source
 
 > [!IMPORTANT]
 > Not all demos require all dependencies. Check README.md files of each demo to learn which dependencies are required.
@@ -61,10 +91,12 @@ cd ~/ros2_ws
 git clone https://github.com/agimus-project/agimus-demos.git src/agimus-demos
 
 # Clone dependencies required by Franka robots
-vcs import --recursive src < src/agimus-demos/franka.repos
+vcs import --shallow --recursive src < src/agimus-demos/franka.repos
+# Clone base dependencies for optimal control
+vcs import --shallow --recursive src < src/agimus-demos/control.repos
+# Clone Agimus-specific dependencies
+vcs import --shallow --recursive src < src/agimus-demos/agimus_dev.repos
 
-# Clone dependencies for MPC and collision avoidance
-vcs import --recursive src < src/agimus-demos/control.repos
 # Pinocchio has a hardcoded hpp-fcl as dependency while we expect Coal
 # Until it is fixed we need to change it manually
 sed -i 's/hpp-fcl/coal/g' src/vcs_control/pinocchio/package.xml
@@ -116,3 +148,21 @@ colcon build \
 # Source the workspace
 source install/setup.bash
 ```
+
+### Dual computer setup
+
+Dual computer setup with real time computer can be used to ensure stable control. Auxiliary computer with real-time kernel is expected to have docker installed and ssh keys exchanged with non-real-time machine. User account on the auxiliary computer requires access to `docker` group and a group with real time priorities.
+
+Before launching the demo, you have to exchange ssh keys:
+```bash
+# Copy ssh keys to real-time computer to enable ssh connections
+ssh-copy-id <remote username>@<remote ip>
+```
+Once ssh keys are exchanged you can use the following commands to start the controller:
+```bash
+ros2 launch agimus_demo_<demo-name> bringup.launch.py robot_ip:=<robot-ip> aux_computer_ip:=<remote ip> aux_computer_user:=<remote username>
+```
+This will automatically start a docker container with real time controllers on the specified auxiliary computer and launch all remaining nodes on the machine where this command is executed.
+
+> [!NOTE]
+> In many cases when ROS launch is stopped, the auxiliary computer leaves docker container running. Then the docker container has to be either manually stopped from terminal, or in case Linear Feedback Controller is running this can be done by pressing emergency stop of the robot. Emergency stop interrupts the controller end interrupts the execution of the docker container.

@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="environment">
+  <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/support.urdf.xacro" />
+
+  <xacro:support />
+  <joint name="support_to_box" type="fixed">
+    <parent link="support_link" />
+    <child link="big_box_link" />
+    <origin xyz="0.06 -0.2 0.761" />
+  </joint>
+
+  <xacro:include
+    filename="$(find agimus_demo_05_pick_and_place)/urdf/obstacles.xacro" />
+
+
+</robot>
