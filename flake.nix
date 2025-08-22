@@ -2,9 +2,8 @@
   description = "Description of the environments for the AGIMUS demos";
 
   inputs = {
-    gepetto.url = "github:nim65s/gepetto-nix/agimus-demos";
+    gepetto.url = "github:nim65s/gepetto-nix/gazebo";
     flake-parts.follows = "gepetto/flake-parts";
-    gazebo-sim-overlay.follows = "gepetto/gazebo-sim-overlay";
     nixpkgs.follows = "gepetto/nixpkgs";
     nix-ros-overlay.follows = "gepetto/nix-ros-overlay";
     systems.follows = "gepetto/systems";
@@ -78,7 +77,6 @@
         {
           devShells.default = pkgs.mkShell {
             packages = [
-              pkgs.gz-harmonic
               self'.packages.default
             ];
           };
@@ -97,6 +95,7 @@
                   agimus-demo-05-pick-and-place
                   agimus-demos
                   agimus-demos-common
+                  pkgs.gz-harmonic
                 ];
               };
           };
