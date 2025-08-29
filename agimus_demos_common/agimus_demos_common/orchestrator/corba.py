@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import subprocess
 from hpp.corbaserver.tools import Tools
 from hpp.corbaserver.manipulation import Client, loadServerPlugin
 from omniORB.CORBA import SystemException
@@ -15,10 +14,10 @@ class CorbaServer:
             self.start()
 
     def start(self):
-        corba_command = "hppcorbaserver"
+        # corba_command = "hppcorbaserver"
 
-        self.process = subprocess.Popen(corba_command, shell=True)
-        print(corba_command)
+        # self.process = subprocess.Popen(corba_command, shell=True)
+        # print(corba_command)
 
         assert self.wait_for_corba(), "ERROR: time out, could not start corba server!"
 
@@ -43,7 +42,7 @@ class CorbaServer:
         def enable_print():
             sys.stdout = sys.__stdout__
 
-        block_print()
+        # block_print()
         for i in range(time_out):
             try:
                 loadServerPlugin("corbaserver", "manipulation-corba.so")
@@ -55,7 +54,7 @@ class CorbaServer:
             except Exception as e:
                 print(e)
 
-        enable_print()
+        # enable_print()
         return False
 
     def kill(self):

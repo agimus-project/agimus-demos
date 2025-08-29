@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22.1)
 #
 # Project definition
 #
-project(agimus_demo_06_deburring LANGUAGES CXX)
+project(agimus_demo_07_deburring LANGUAGES CXX)
 
 #
 # Handle dependencies by reading the package.xml
@@ -17,6 +17,9 @@ ament_auto_find_build_dependencies()
 ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS scripts/deburring_orchestrator_node
         DESTINATION lib/${PROJECT_NAME})
+
+generate_parameter_module(orchestrator_parameters
+                          agimus_demo_07_deburring/orchestrator_parameters.yaml)
 
 #
 # Unit tests

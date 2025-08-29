@@ -1,0 +1,65 @@
+---
+orchestrator_parameters:
+  mpc_input_topic_name:
+    type: string
+    description: Name of the topic to which MPC input should be published.
+    read_only: true
+  buffer_size_topic_name:
+    type: string
+    description: Name of the topic publishing MPC buffer size.
+    read_only: true
+  update_frequency:
+    type: double
+    default_value: 0.02
+    description: Frequency at which MPC buffer is updated.
+    read_only: true
+  buffer_size:
+    type: int
+    default_value: 50
+    description: Target size of the MPC buffer to maintain.
+    read_only: true
+  pylone_used_handles:
+    type: string_array
+    description: Names of the handles of pylone that are enabled in the demo.
+    validation:
+      not_empty<>: []
+  world_frame:
+    type: string
+    description: Name of the frame considered to be wold frame used by HPP.
+    validation:
+      not_empty<>: []
+  pylone_frame:
+    type: string
+    description: Name of the frame id in ROS associated to the base of pylone.
+    validation:
+      not_empty<>: []
+  ee_frame_name:
+    type: string
+    description: End-effector name.
+    validation:
+      not_empty<>: []
+  gripper_name:
+    type: string
+    description: Name of the frame gripper used by HPP to plan motion.
+    validation:
+      not_empty<>: []
+  w_q:
+    type: double_array
+    default_value: [1.0]
+    description: Weights for joint configuration cost.
+  w_qdot:
+    type: double_array
+    default_value: [0.1]
+    description: Weights for joint velocity cost.
+  w_qddot:
+    type: double_array
+    default_value: [0.0001]
+    description: Weights for joint acceleration cost.
+  w_robot_effort:
+    type: double_array
+    default_value: [0.001]
+    description: Weights for control cost.
+  w_pose:
+    type: double_array
+    default_value: [0.1]
+    description: Weights for end-effector position cost.

@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<robot name="box">
-    <handle name="hole_01" clearance="0.05">
-        <position xyz="0 -0.1835 0.20" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
-        <link name="pylone_link"/>
-        <mask>1 1 1 1 1 1</mask>
-    </handle>
-</robot>

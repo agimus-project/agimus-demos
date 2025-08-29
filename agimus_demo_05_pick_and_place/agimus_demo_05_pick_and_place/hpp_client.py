@@ -30,17 +30,17 @@ from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-from agimus_demo_05_pick_and_place.utils import concatenatePaths
+from agimus_demos_common.orchestrator.utils import (
+    concatenatePaths,
+    split_path,
+    BaseObject,
+    get_obj_goal_handles,
+)
 import numpy as np
 from hpp_idl.hpp.core_idl import Path as HPPPath
 
 import time
 
-from agimus_demo_05_pick_and_place.utils import (
-    split_path,
-    BaseObject,
-    get_obj_goal_handles,
-)
 from agimus_demos_common.orchestrator.corba import CorbaServer
 from hpp.rostools import process_xacro, retrieve_resource
 import pinocchio

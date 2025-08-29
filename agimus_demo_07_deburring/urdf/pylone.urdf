@@ -1,17 +1,21 @@
 <?xml version="1.0" ?>
 <robot name="pylone">
+   <material name="grey">
+        <color rgba=".5 .5 .5 1" />
+    </material>
+
    <link name="pylone_link">
       <visual>
          <geometry>
-            <mesh filename="package://agimus_demo_06_deburring/urdf/meshes/pylone.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://agimus_demo_07_deburring/urdf/meshes/pylone.stl" scale="1.0 1.0 1.0"/>
          </geometry>
-         <material name="mat_part0">
+         <material name="grey">
             <color rgba="0.0 0.9 0.9 1.0"/>
          </material>
       </visual>
       <collision>
          <geometry>
-            <mesh filename="package://agimus_demo_06_deburring/urdf/meshes/pylone.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://agimus_demo_07_deburring/urdf/meshes/pylone.stl" scale="1.0 1.0 1.0"/>
          </geometry>
       </collision>
       <inertial>
