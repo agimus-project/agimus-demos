@@ -52,6 +52,7 @@ def launch_setup(
     rviz_config_path = LaunchConfiguration("rviz_config_path")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
     ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
+    ee_id = LaunchConfiguration("ee_id")
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
     gz_world_path = LaunchConfiguration("gz_world_path")
@@ -66,6 +67,7 @@ def launch_setup(
     use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
     use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
     ft_sensor_ip_empty = context.perform_substitution(ft_sensor_ip) == ""
+    ee_id_str = context.perform_substitution(ee_id)
     on_aux_computer_bool = (
         context.perform_substitution(on_aux_computer).lower() == "true"
     )
@@ -141,6 +143,12 @@ def launch_setup(
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with "
             "non empty `ft_sensor_ip` and `use_gazebo:=true`."
+        )
+
+    if not use_ft_sensor_bool and ee_id_str == "ati_mini45_with_camera":
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with "
+            "`use_ft_sensor:=false` and `ee_id:=ati_mini45_with_camera`."
         )
 
     wait_for_non_zero_joints_node = Node(
@@ -308,6 +316,7 @@ def launch_setup(
             "gz_headless": gz_headless,
             "gz_world_path": gz_world_path,
             "use_ft_sensor": use_ft_sensor,
+            "ee_id": ee_id,
         }.items(),
         condition=IfCondition(use_gazebo),
     )
@@ -321,7 +330,7 @@ def launch_setup(
         "use_fake_hardware": "false",
         "fake_sensor_commands": "false",
         "gazebo": use_gazebo,
-        "ee_id": "franka_hand",
+        "ee_id": ee_id,
         "gazebo_effort": "true",
         "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,

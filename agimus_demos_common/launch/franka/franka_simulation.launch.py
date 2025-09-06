@@ -24,11 +24,13 @@ def launch_setup(
     gz_headless = LaunchConfiguration("gz_headless")
     gz_world_path = LaunchConfiguration("gz_world_path")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
+    ee_id = LaunchConfiguration("ee_id")
 
     gz_verbose_bool = context.perform_substitution(gz_verbose).lower() == "true"
     gz_headless_bool = context.perform_substitution(gz_headless).lower() == "true"
     gz_world_path_str = context.perform_substitution(gz_world_path)
     use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
+    ee_id_str = context.perform_substitution(ee_id).lower()
 
     gz_gui_config_path_str = context.perform_substitution(
         PathJoinSubstitution(
@@ -86,11 +88,12 @@ def launch_setup(
         output="screen",
     )
 
-    controllers = ["joint_state_broadcaster", "gripper_action_controller"]
+    controllers = ["joint_state_broadcaster"]
+    if ee_id_str == "franka_hand":
+        controllers.append("gripper_action_controller")
+
     if use_ft_sensor_bool:
-        controllers.append(
-            "force_torque_sensor_broadcaster",
-        )
+        controllers.append("force_torque_sensor_broadcaster")
 
     spawn_default_controllers = generate_controllers_spawner_launch_description(
         controllers
@@ -139,6 +142,11 @@ def generate_launch_description():
             default_value="false",
             description="Enable or disable use of force-torque sensor",
             choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "ee_id",
+            default_value="franka_hand",
+            description="Name of the end effector used.",
         ),
     ]
     return LaunchDescription(

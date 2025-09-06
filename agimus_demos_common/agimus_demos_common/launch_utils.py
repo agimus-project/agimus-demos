@@ -91,6 +91,11 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             description="Hostname or IP address of the force-torque sensor.",
         ),
         DeclareLaunchArgument(
+            "ee_id",
+            default_value="franka_hand",
+            description="Name of the end effector used.",
+        ),
+        DeclareLaunchArgument(
             "gz_verbose",
             default_value="false",
             description="Whether to set verbosity level of Gazebo to 3.",
