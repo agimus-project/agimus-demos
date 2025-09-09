@@ -336,8 +336,8 @@ def launch_setup(
         "franka_controllers_params": franka_controllers_params,
         "use_ft_sensor": use_ft_sensor,
         "ft_sensor_ip": ft_sensor_ip,
-        "rdt_sampling_rate": "7000",
-        "internal_filter_rate": "2",
+        "rdt_sampling_rate": str(int(7000 / 6)),
+        "internal_filter_rate": "1",
         "use_hardware_biasing": "true",
     }
 
