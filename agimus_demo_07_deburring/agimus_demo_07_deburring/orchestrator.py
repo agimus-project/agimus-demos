@@ -47,6 +47,7 @@ class Orchestrator:
             self._params.w_qddot,
             self._params.w_robot_effort,
             self._params.w_pose,
+            w_collision_avoidance=0.0,
         )
 
         self.state_client = AsyncSubscriber(
@@ -140,7 +141,7 @@ class Orchestrator:
         q = [0.0, 0.1865, 0.0, -2.4, 0.0, 2.5915, 0.7863]
         for i, position in enumerate(q):
             self._hpp_interface.update_joint_state(f"fer_joint{i + 1}", position)
-        self._hpp_interface.update_pylone_pose([1.2, -0.5, 0.0], [1.0, 0.0, 0.0, 0.0])
+        self._hpp_interface.update_pylone_pose([0.5, 0.0, 0.5], [0.0, 0.0, 0.0, 1.0])
 
     # def publish(self, path_vector):
     #     q_array, dq_array, ddq_array = get_q_dq_ddq_arrays_from_path(path_vector)

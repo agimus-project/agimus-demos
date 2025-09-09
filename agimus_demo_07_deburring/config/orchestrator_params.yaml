@@ -5,7 +5,7 @@ deburring_orchestrator:
     buffer_size_topic_name: /agimus_pytroller/buffer_size
     update_frequency: 0.02
     buffer_size: 50
-    pylone_used_handles: [pylone/hole_02, pylone/hole_03, pylone/hole_01]
+    pylone_used_handles: [pylone/hole_back_left_2, pylone/hole_back_left_3, pylone/hole_back_left_1]
     ee_frame_name: fer_hand
     gripper_name: panda_gripper
     w_q: [1.0]
