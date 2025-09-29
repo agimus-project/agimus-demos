@@ -1,0 +1,74 @@
+---
+deburring_path_planner_node:
+  ros__parameters:
+    handles_srdf_path: $(find-pkg-share agimus_demo_07_deburring)/environment/pylone.srdf
+    device: cpu
+    rate: 2.0
+    tool_frame_id: fer_ati_mini45_with_camera_tool
+    measurement_frame_id: ati_mini45_measurement_reference
+    world_frame_id: fer_link0
+    hpp_handle_to_ee_rot: [0.0, 1.570796327, 0.0]
+    visualization:
+      publish_path: true
+      marker_size: 0.01
+      marker_color: [1.0, 0.0, 0.0, 0.5]
+    # Velocities based on the datasheet. Values are eight of the maximum velocity
+    max_joint_velocity: [0.327, 0.327, 0.327, 0.327, 0.393, 0.393, 0.393]
+    ocp_dt: 0.002
+    ocp_buffer_size: 100
+    moving_joints:
+    - fer_joint1
+    - fer_joint2
+    - fer_joint3
+    - fer_joint4
+    - fer_joint5
+    - fer_joint6
+    - fer_joint7
+    desired_force: 30.0
+    force_ramp: 3.0
+    generators_params:
+      main_generator: hpp
+      # TODO implement when diffusion is finalized
+      diffusion_generator:
+        weights_path: ''
+        sequence_length: 49
+      hpp_generator:
+        handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
+      grasp_generator:
+        max_linear_vel: 0.05
+        max_angular_vel: 0.25
+      deburring_generator:
+        angle: 0.1309 # 7.5 degrees
+        frequency: 0.5
+        slope_circles: 1
+        n_circles: 3
+    weights:
+      schedule:
+        interpolation_time: 3.0
+      follow_joint_trajectory:
+        w_robot_configuration: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.05]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
+        w_frame_rotation: [1.0, 1.0, 1.0]
+        w_frame_translation: [0.1, 0.1, 0.1]
+        w_frame_angular_velocity: [0.0, 0.0, 0.0]
+        w_frame_linear_velocity: [0.0, 0.0, 0.0]
+        w_desired_force: [0.0, 0.0, 0.0]
+      insert_retract_tool:
+        w_robot_configuration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
+        w_frame_rotation: [10.5, 10.5, 0.0]
+        w_frame_translation: [100.0, 100.0, 100.0]
+        w_frame_angular_velocity: [0.0, 0.0, 0.0]
+        w_frame_linear_velocity: [0.0, 0.0, 0.0]
+        w_desired_force: [0.0, 0.0, 0.0]
+      deburring_motion:
+        w_robot_configuration: [0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.1]
+        w_robot_velocity: [0.01, 0.01, 0.001, 0.001, 0.001, 0.001, 0.5]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.04, 0.07, 0.03]
+        w_frame_rotation: [1.5, 1.5, 0.0]
+        w_frame_translation: [0.0, 0.0, 0.0]
+        w_frame_angular_velocity: [0.0, 0.0, 0.0]
+        w_frame_linear_velocity: [0.0, 0.0, 0.0]
+        w_desired_force: [0.000004, 0.000004, 0.000004]

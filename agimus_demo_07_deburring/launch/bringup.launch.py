@@ -1,16 +1,18 @@
 from agimus_demos_common.launch_utils import (
+    ament_prefix_to_ros_package,
     generate_default_franka_args,
     generate_include_launch,
+    get_use_sim_time,
 )
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import ExecuteProcess, OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
@@ -75,12 +77,47 @@ def launch_setup(
         remappings=[("robot_description", "environment_description")],
         parameters=[{"robot_description": environment_description}],
     )
+
     tf_node = static_transform_publisher_node(
         frame_id="fer_link0",
         child_frame_id="env_ref_frame",
     )
 
-    return [franka_robot_launch, environment_publisher_node, tf_node]
+    deburring_path_planner_params = (
+        PathJoinSubstitution(
+            [
+                FindPackageShare("agimus_demo_07_deburring"),
+                "config",
+                "deburring_path_planner_params.yaml",
+            ]
+        ),
+    )
+
+    deburring_path_planner = Node(
+        package="agimus_demo_07_deburring",
+        executable="deburring_path_planner",
+        name="deburring_path_planner_node",
+        output="both",
+        parameters=[
+            get_use_sim_time(),
+            ParameterFile(param_file=deburring_path_planner_params, allow_substs=True),
+        ],
+    )
+
+    hpp_corba_server = ExecuteProcess(
+        cmd=["hppcorbaserver"],
+        # Extra env variable for HPP to discover packages correctly
+        additional_env=ament_prefix_to_ros_package(context),
+        output="screen",
+    )
+
+    return [
+        franka_robot_launch,
+        environment_publisher_node,
+        tf_node,
+        deburring_path_planner,
+        hpp_corba_server,
+    ]
 
 
 def generate_launch_description():

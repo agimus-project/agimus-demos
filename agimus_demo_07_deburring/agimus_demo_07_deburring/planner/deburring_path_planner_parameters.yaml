@@ -1,0 +1,269 @@
+---
+deburring_path_planner:
+  handles_srdf_path:
+    type: string
+    description: Path to definition of handles used by HPP to define all possible end configurations
+      for the robot.
+    read_only: true
+  device:
+    type: string
+    description: Device to which the models will be loaded.
+    default_value: cpu
+    read_only: true
+  rate:
+    type: double
+    description: Frequency [Hz] at which inference will be rerun.
+    default_value: 2.0
+    read_only: true
+    validation:
+      gt<>: [0.0]
+  hpp_handle_to_ee_rot:
+    type: double_array
+    description: Rotation [rad] used to translate HPP handles to robot EE frame.
+    default_value: [0.0, 0.0, 0.0]
+    read_only: true
+    validation:
+      fixed_size<>: [3]
+      element_bounds<>: [-3.141592655, 3.141592655]
+  tool_frame_id:
+    type: string
+    description: Name of the frame associated with the tool.
+    read_only: true
+  measurement_frame_id:
+    type: string
+    description: Name of the frame associated with force measurement.
+    read_only: true
+  world_frame_id:
+    type: string
+    description: Name of the frame used axs a world reference.
+    read_only: true
+  ocp_buffer_size:
+    type: int
+    default_value: 50
+    description: Size of the trajectory buffer to be kept for the OCP.
+    read_only: true
+    validation:
+      gt<>: 1
+  moving_joints:
+    type: string_array
+    description: Names of the joints that are moving.
+    read_only: true
+  visualization:
+    publish_path:
+      type: bool
+      description: Whether to publish the path.
+      default_value: true
+      read_only: true
+    marker_size:
+      type: double
+      description: Size of the marker [m].
+      default_value: 0.05
+      read_only: true
+    marker_color:
+      type: double_array
+      description: RGBA color of the markers.
+      default_value: [0.0, 0.0, 1.0, 0.5]
+      read_only: true
+      validation:
+        fixed_size<>: [4]
+        element_bounds<>: [0.0, 1.0]
+  max_joint_velocity:
+    type: double_array
+    description: Maximum angular velocity [rad/s] for each joint of the robot.
+    read_only: true
+    validation:
+      lower_element_bounds<>: [0.0]
+  ocp_dt:
+    type: double
+    description: Time step used by OCP.
+    default_value: 0.01
+    validation:
+      gt<>: [0.0]
+  desired_force:
+    type: double
+    description: Desired force [N] applied by `frame_of_interest` in the direction of the
+      handle.
+    validation:
+      gt_eq<>: [0.0]
+  force_ramp:
+    type: double
+    description: Time [s] to ramp up and down forces.
+    validation:
+      gt_eq<>: [0.0]
+  generators_params:
+    main_generator:
+      type: string
+      description: Which trajecotry generator to use.
+      read_only: true
+      validation:
+        one_of<>: [[diffusion, hpp]]
+    diffusion_generator:
+      weights_path:
+        type: string
+        description: Path to the weights used by diffusion model.
+        default_value: ''
+        read_only: true
+      sequence_length:
+        type: int
+        description: Output path length for diffusion model.
+        default_value: 49
+        read_only: true
+    hpp_generator:
+      handle_configs_path:
+        type: string
+        description: Path to the weights used by diffusion model.
+        default_value: ''
+        read_only: true
+    grasp_generator:
+      max_linear_vel:
+        type: double
+        description: Maximum linear velocity when performing a grasp.
+        read_only: true
+      max_angular_vel:
+        type: double
+        description: Maximum angular velocity when performing a grasp.
+        read_only: true
+    deburring_generator:
+      angle:
+        type: double
+        description: Angle at which the circle is generated.
+        default_value: 5.0
+        validation:
+          gt_eq<>: [0.0]
+      frequency:
+        type: double
+        description: Frequency at which circle is performed.
+        default_value: 0.1
+        validation:
+          gt_eq<>: [0.0]
+      slope_circles:
+        type: int
+        description: Number of circle to slope up with the deburring angle.
+        default_value: 1
+        validation:
+          gt_eq<>: [1]
+      n_circles:
+        type: int
+        description: Number of circles to draw.
+        default_value: 2
+        validation:
+          gt<>: [2]
+  weights:
+    schedule:
+      interpolation_time:
+        type: double
+        description: Time to interpolate between weights.
+        default_value: 1.0
+        validation:
+          gt_eq<>: [0.0]
+    follow_joint_trajectory:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+    insert_retract_tool:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+    deburring_motion:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
