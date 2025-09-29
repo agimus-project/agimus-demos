@@ -1,78 +1,78 @@
 <robot name="big_box">
   <material name="red">
-    <color rgba=".9 .1 .1 1"/>
+    <color rgba=".9 .1 .1 1" />
   </material>
   <link name="base_link">
     <inertial>
-      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
-      <mass value="0.6"/>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.6" />
       <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-	       iyy="0.001" iyz="0.0"
-	       izz="0.001" />
+        iyy="0.001" iyz="0.0"
+        izz="0.001" />
     </inertial>
     <visual>
       <origin xyz="0 0 0.0155" rpy="0 0 0" />
       <geometry>
-        <box size="0.597 0.397 0.001"/>
+        <box size="0.597 0.397 0.001" />
       </geometry>
-      <material name="red"/>
+      <material name="red" />
     </visual>
     <collision>
       <origin xyz="0 0 0.0155" rpy="0 0 0" />
       <geometry>
-        <box size="0.597 0.397 0.001"/>
+        <box size="0.597 0.397 0.001" />
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0.1835 0.12"/>
+      <origin xyz="0 0.1835 0.12" />
       <geometry>
-        <box size="0.567 0.001 0.22"/>
+        <box size="0.567 0.001 0.22" />
       </geometry>
-      <material name="red"/>
+      <material name="red" />
     </visual>
     <collision>
-      <origin xyz="0 0.1835 0.12"/>
+      <origin xyz="0 0.1835 0.12" />
       <geometry>
-        <box size="0.567 0.001 0.22"/>
+        <box size="0.567 0.001 0.22" />
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 -0.1835 0.12"/>
+      <origin xyz="0 -0.1835 0.12" />
       <geometry>
-        <box size="0.567 0.001 0.22"/>
+        <box size="0.567 0.001 0.22" />
       </geometry>
-      <material name="red"/>
+      <material name="red" />
     </visual>
     <collision>
-      <origin xyz="0 -0.1835 0.12"/>
+      <origin xyz="0 -0.1835 0.12" />
       <geometry>
-        <box size="0.567 0.001 0.22"/>
+        <box size="0.567 0.001 0.22" />
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0.2835 0 0.12"/>
+      <origin xyz="0.2835 0 0.12" />
       <geometry>
-        <box size="0.001 0.367 0.22"/>
+        <box size="0.001 0.367 0.22" />
       </geometry>
-      <material name="red"/>
+      <material name="red" />
     </visual>
     <collision>
-      <origin xyz="0.2835 0 0.12"/>
+      <origin xyz="0.2835 0 0.12" />
       <geometry>
-        <box size="0.001 0.367 0.22"/>
+        <box size="0.001 0.367 0.22" />
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.2835 0 0.12"/>
+      <origin xyz="-0.2835 0 0.12" />
       <geometry>
-        <box size="0.001 0.367 0.22"/>
+        <box size="0.001 0.367 0.22" />
       </geometry>
-      <material name="red"/>
+      <material name="red" />
     </visual>
     <collision>
-      <origin xyz="-0.2835 0 0.12"/>
+      <origin xyz="-0.2835 0 0.12" />
       <geometry>
-        <box size="0.001 0.367 0.22"/>
+        <box size="0.001 0.367 0.22" />
       </geometry>
     </collision>
   </link>

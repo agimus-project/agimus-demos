@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
+  <xacro:include filename="$(find franka_description)/robots/fer/fer.urdf.xacro">
+    <!-- <xacro:arg name="with_sc" value="True" /> -->
+  </xacro:include>
+  <xacro:include filename="$(find agimus_demo_06_regrasp)/urdf/support.urdf.xacro"/>
+
+  <xacro:support/>
+
+  <joint name="attach_robot_joint" type="fixed">
+    <parent link="robot_attachment_link" />
+    <child link="base" />
+</joint>
+</robot>

@@ -129,8 +129,8 @@ agimus_pytroller:
       topic_type: std_msgs/msg/Int64
       python_msg_getter_name: get_buffer_size
     pytroller_python_params:
-      p_gains: [5.0, 5.0, 5.0, 5.0, 1.0, 1.0, 1.0]
-      d_gains: [0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1]
+      p_gains: [50.0, 50.0, 50.0, 50.0, 1.0, 1.0, 1.0]
+      d_gains: [20.0, 20.0, 20.0, 20.0, 0.1, 0.1, 0.1]
       cost_plotter:
         use_cost_plotter: true
         cost_plotter_url: 127.0.0.1:2137

@@ -26,22 +26,21 @@
 
 import typing as T
 from math import sqrt
+from agimus_demo_05_pick_and_place.corba import CorbaServer
 from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
 from hpp.gepetto.manipulation import ViewerFactory
 from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-from agimus_demos_common.orchestrator.utils import (
-    concatenatePaths,
-    split_path,
-    BaseObject,
-    get_obj_goal_handles,
-)
+from agimus_demo_05_pick_and_place.utils import concatenatePaths, split_path
 import numpy as np
 from hpp_idl.hpp.core_idl import Path as HPPPath
 
 import time
 
-from agimus_demos_common.orchestrator.corba import CorbaServer
+from agimus_demo_05_pick_and_place.utils import (
+    BaseObject,
+    get_obj_goal_handles,
+)
 from hpp.rostools import process_xacro, retrieve_resource
 import pinocchio
 
@@ -85,8 +84,8 @@ class HPPInterface:
         self._goal_obj_pose = None
         self.gripper_open_value = gripper_open_value
 
-        self._goal_gripper_clearance = 0.3
-        self._after_picking_clearance = 0.3
+        self._goal_gripper_clearance = 0.4
+        self._after_picking_clearance = 0.4
         self._point_cloud_res = 0.001
 
         self.default_obstacle_pose = source_bin_pose
@@ -183,7 +182,7 @@ class HPPInterface:
             # TODO Should we always use SimpleTimeParameterization?
             self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
+        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
         self.ps.setParameter("BiRRT*/maxStepLength", 0.5 * float(np.sqrt(7)))
 
@@ -418,18 +417,15 @@ class HPPInterface:
         # Resolving the path to the object
         print("[INFO] Object found with no collision")
         print("Solving ...")
-        res, p = self.binPicking.solve(q_start_solve)
+        res, paths = self.binPicking.solve(q_start_solve)
         if res:
-            print("Pick and place path", p)
-            print(p.length())
             grasp_path, placing_path, freefly_path = split_path(
-                p, self.binPicking.c_robot()
+                paths, self.binPicking.c_robot()
             )
             if path_to_start is not None:
-                p = path_to_start.asVector()
-                p.appendPath(grasp_path)
-                grasp_path = p
-                freefly_path.appendPath(path_to_start.reverse())
+                grasp_path = concatenatePaths(
+                    [path_to_start, grasp_path], self.binPicking.c_robot()
+                )
             self.ps.client.basic.problem.addPath(grasp_path)
             self.ps.client.basic.problem.addPath(placing_path)
             self.ps.client.basic.problem.addPath(freefly_path)
@@ -437,7 +433,7 @@ class HPPInterface:
             return grasp_path, placing_path, freefly_path
         else:
             # In this case, p is a string containing the error message
-            print("No solution", p)
+            print("No solution", paths)
             return None
 
     def plan_free_motion(

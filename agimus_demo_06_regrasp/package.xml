@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>agimus_demo_06_regrasp</name>
+  <version>0.0.0</version>
+  <description>
+    The purpose of this demo is to use the AGIMUS architecture to regrasp an object.
+  </description>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
+
+  <license>BSD-2</license>
+  <url type="website">https://www.agimus-project.eu/</url>
+  <url type="repository">https://github.com/agimus-project/agimus-demos</url>
+  <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
+
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <exec_depend>agimus_demos_common</exec_depend>
+  <exec_depend>linear_feedback_controller</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>xterm</exec_depend>
+  <exec_depend>ipython3</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

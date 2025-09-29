@@ -3,12 +3,12 @@ ci:
   autoupdate_branch: humble-devel
 repos:
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v20.1.4
+  rev: v21.1.1
   hooks:
   - id: clang-format
     args: [--style=Google]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  rev: v6.0.0
   hooks:
   - id: check-added-large-files
     exclude: agimus_demo_07_deburring/urdf/meshes/*
@@ -27,7 +27,7 @@ repos:
   - id: mixed-line-ending
   - id: trailing-whitespace
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.9
+  rev: v0.13.1
   hooks:
   - id: ruff
     args:

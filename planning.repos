@@ -1,0 +1,93 @@
+---
+repositories:
+  vcs_planning/proxsuite:
+    type: git
+    url: https://github.com/Simple-Robotics/proxsuite
+    version: v0.7.1
+
+  # HPP packages are waiting for a release containing update package.xml
+  # Releases after v6.0.0 will contain required changes.
+  vcs_planning/hpp-util:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-util
+    version: devel
+
+  vcs_planning/hpp-template-corba:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-template-corba
+    version: d092dfb7feb45e3095b1b4129e522d45ff4e858e
+
+  vcs_planning/hpp-statistics:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-statistics
+    version: 7e9b5888ff22ee19dd93175091ec90f86c3955b9
+
+  vcs_planning/hpp-environments:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-environments
+    version: 1a06e1a11ecdc90b8bac323bb0ec087178327c1a
+
+  vcs_planning/hpp-pinocchio:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-pinocchio
+    version: 15cfa0905a203d9aa49a669e9a4f12edf7df9e62
+
+  vcs_planning/hpp-constraints:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-constraints
+    version: 67748cebb6b5ef3dc304a63eed3b37171df63534
+
+  vcs_planning/hpp-core:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-core
+    version: ea6a49ced9a54e7fed16f2c72478079e453aade5
+
+  vcs_planning/hpp-corbaserver:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-corbaserver
+    version: febc842284e8df1b93e12a78080d7b1133dcb29b
+
+  vcs_planning/hpp-manipulation:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-manipulation
+    version: eb85906cb34f7a90f81c1c72808f9d8d2501168e
+
+  vcs_planning/hpp-manipulation-urdf:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-manipulation-urdf
+    version: 646cfa832b03bd91ffeba799af979686eff903c9
+
+  vcs_planning/hpp-manipulation-corba:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-manipulation-corba
+    version: d5efe0d5b1b789b315417ed071b6cc9d37e00fe0
+
+  vcs_planning/gepetto-viewer:
+    type: git
+    url: https://github.com/gepetto/gepetto-viewer
+    version: 977431fa29c20afef473e372db9d3f19b6914e59
+
+  vcs_planning/gepetto-viewer-corba:
+    type: git
+    url: https://github.com/gepetto/gepetto-viewer-corba
+    version: 1bd5202aad4c9c60a2e04566a75de99dbdaf9d0f
+
+  vcs_planning/hpp-gepetto-viewer:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-gepetto-viewer
+    version: f6ab9c49b95ca827df9b66af3ee7f53ec88b98c8
+
+  vcs_planning/hpp-plot:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-plot
+    version: 891aded3e02501b4f219b87e3326b04101bfd197
+
+  vcs_planning/hpp-gui:
+    type: git
+    url: https://github.com/humanoid-path-planner/hpp-gui
+    version: d404cceadfc99a24fca30d6113d64850250d6551
+
+  vcs_planning/hpp-bin-picking:
+    type: git
+    url: https://github.com/florent-lamiraux/hpp-bin-picking
+    version: devel
