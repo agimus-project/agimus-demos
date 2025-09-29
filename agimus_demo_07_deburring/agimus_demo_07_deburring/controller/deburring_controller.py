@@ -79,7 +79,7 @@ class ControllerImpl(ControllerImplBase):
         add_modules(get_globals())
         yaml_file = cfg["ocp_definition_file"]
         ocp = OCPCrocoForceFeedbackGeneric(
-            self._robot_models, self._ocp_params, yaml_file
+            self._robot_models, self._ocp_params, yaml_file, expect_rolling_buffer=True
         )
 
         traj_buffer = TrajectoryBuffer(dt_factor_n_seq)
@@ -135,7 +135,6 @@ class ControllerImpl(ControllerImplBase):
         return Int64(data=len(self.mpc._buffer))
 
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
-        # return self._u_zeros
         now = time.time()
         nq = self._robot_models.robot_model.nq
         nv = self._robot_models.robot_model.nv

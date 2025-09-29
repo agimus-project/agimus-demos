@@ -149,13 +149,17 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
   }
 
   std_msgs::msg::String robot_description_msg;
+  // Create temporary ROS node to be able to spin it
+  auto robot_description_node = std::make_shared<rclcpp::Node>(
+      get_node()->get_name() + std::string("_robot_description"));
   auto robot_description_sub =
-      get_node()->create_subscription<std_msgs::msg::String>(
+      robot_description_node->create_subscription<std_msgs::msg::String>(
           "/robot_description", rclcpp::QoS(1).transient_local(),
           [](const std::shared_ptr<const std_msgs::msg::String>) {});
 
   const std::size_t retires = 10;
   for (std::size_t i = 0; i < retires; i++) {
+    rclcpp::spin_some(robot_description_node);
     if (rclcpp::wait_for_message(robot_description_msg, robot_description_sub,
                                  get_node()->get_node_options().context(),
                                  std::chrono::seconds(1))) {
