@@ -1,0 +1,9 @@
+<library path="agimus_demos_controllers">
+    <class name="agimus_demos_controllers/FTCalibrationFilter"
+          type="agimus_demos_controllers::FTCalibrationFilter"
+          base_class_type="controller_interface::ControllerInterface">
+    <description>
+        Sensor applying mass calibration to a force-torque sensor
+    </description>
+    </class>
+  </library>

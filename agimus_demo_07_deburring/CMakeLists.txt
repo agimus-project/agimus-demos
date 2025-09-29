@@ -15,11 +15,6 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS scripts/deburring_orchestrator_node
-        DESTINATION lib/${PROJECT_NAME})
-
-generate_parameter_module(orchestrator_parameters
-                          agimus_demo_07_deburring/orchestrator_parameters.yaml)
 
 #
 # Unit tests
@@ -35,4 +30,4 @@ endif()
 #
 # Installation
 #
-ament_auto_package(INSTALL_TO_SHARE config launch urdf srdf rviz)
+ament_auto_package(INSTALL_TO_SHARE config launch rviz urdf srdf)
