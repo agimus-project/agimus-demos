@@ -18,7 +18,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_init() {
     param_listener_ =
         std::make_shared<ft_calibration_filter::ParamListener>(get_node());
     params_ = param_listener_->get_params();
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     fprintf(stderr, "Exception thrown during init stage with message: %s \n",
             e.what());
     return controller_interface::CallbackReturn::ERROR;
@@ -48,7 +48,7 @@ FTCalibrationFilter::state_interface_configuration() const {
 }
 
 controller_interface::CallbackReturn FTCalibrationFilter::on_configure(
-    const rclcpp_lifecycle::State & /*previous_state*/) {
+    const rclcpp_lifecycle::State& /*previous_state*/) {
   try {
     // register ft sensor data publisher
     sensor_state_publisher_ =
@@ -56,7 +56,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_configure(
             "~/wrench", rclcpp::SystemDefaultsQoS());
     realtime_wrench_publisher_ =
         std::make_unique<StatePublisher>(sensor_state_publisher_);
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     fprintf(stderr,
             "Exception thrown during publisher creation at configure stage "
             "with message : %s \n",
@@ -75,7 +75,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_configure(
         "~/contact", rclcpp::SystemDefaultsQoS());
     realtime_contact_publisher_ =
         std::make_unique<ContactPublisher>(contact_publisher_);
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     fprintf(stderr,
             "Exception thrown during publisher creation at configure stage "
             "with message : %s \n",
@@ -97,7 +97,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_configure(
 }
 
 controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
-    const rclcpp_lifecycle::State & /*previous_state*/) {
+    const rclcpp_lifecycle::State& /*previous_state*/) {
   params_ = param_listener_->get_params();
 
   if (!controller_interface::get_ordered_interfaces(
@@ -132,8 +132,8 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
 
   if (params_.contact_detection.augment_state) {
     bool found = false;
-    const auto &name = params_.contact_detection.command_interface_name;
-    for (auto &interface : command_interfaces_) {
+    const auto& name = params_.contact_detection.command_interface_name;
+    for (auto& interface : command_interfaces_) {
       if (name == interface.get_name()) {
         ordered_command_interfaces_.push_back(std::ref(interface));
         found = true;
@@ -212,7 +212,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
   g_ = Eigen::Map<Eigen::Vector3d, Eigen::Unaligned>(
       params_.gravity_vector.data(), params_.gravity_vector.size());
 
-  auto &calib = params_.calibration.measurement_frame;
+  auto& calib = params_.calibration.measurement_frame;
   Eigen::Vector3d rpy = Eigen::Map<Eigen::Vector3d, Eigen::Unaligned>(
       calib.rpy.data(), calib.rpy.size());
   Eigen::Vector3d xyz = Eigen::Map<Eigen::Vector3d, Eigen::Unaligned>(
@@ -222,7 +222,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
       Eigen::Matrix3d::Identity();
   calibration_trans_.template bottomLeftCorner<3, 3>() = pinocchio::skew(xyz);
 
-  const auto &frame_name = params_.measurement_frame_id;
+  const auto& frame_name = params_.measurement_frame_id;
   if (!robot_model_.existFrame(frame_name)) {
     RCLCPP_ERROR(get_node()->get_logger(),
                  "Filed to find find with a name '%s' in the URDF!",
@@ -236,7 +236,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
   avg_bias_ = pinocchio::Force::Zero();
 
   for (std::size_t i = 0; i < 6; i++) {
-    const auto &filter_params = params_.state_force_interfaces_names_map.at(
+    const auto& filter_params = params_.state_force_interfaces_names_map.at(
         params_.state_force_interfaces_names[i]);
 
     std::array<double, 2> a;
@@ -260,7 +260,7 @@ controller_interface::CallbackReturn FTCalibrationFilter::on_activate(
 }
 
 controller_interface::CallbackReturn FTCalibrationFilter::on_deactivate(
-    const rclcpp_lifecycle::State & /*previous_state*/) {
+    const rclcpp_lifecycle::State& /*previous_state*/) {
   ordered_state_force_interfaces_.clear();
   ordered_state_robot_position_interfaces_.clear();
   ordered_command_interfaces_.clear();
@@ -305,7 +305,7 @@ void FTCalibrationFilter::calibrate_sensor_cb(
 }
 
 controller_interface::return_type FTCalibrationFilter::update(
-    const rclcpp::Time &time, const rclcpp::Duration & /*period*/) {
+    const rclcpp::Time& time, const rclcpp::Duration& /*period*/) {
   if (param_listener_->is_old(params_)) {
     params_ = param_listener_->get_params();
     contact_detector_.set_hysteresis_samples(
