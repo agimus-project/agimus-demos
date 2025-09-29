@@ -7,7 +7,7 @@
 namespace agimus_demos_controllers {
 class ButterworthFilter {
  public:
-  ButterworthFilter(std::array<double, 2> &a, std::array<double, 3> &b) {
+  ButterworthFilter(std::array<double, 2>& a, std::array<double, 3>& b) {
     raw_ = Eigen::Vector3d::Zero(3);
     filtered_ = Eigen::Vector2d::Zero(2);
     a_reverse_ =

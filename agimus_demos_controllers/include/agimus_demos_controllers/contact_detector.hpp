@@ -8,7 +8,7 @@ class ContactDetector {
  public:
   ContactDetector() {}
 
-  void update(const pinocchio::Force &force) {
+  void update(const pinocchio::Force& force) {
     // Use lower threshold in case robot is in contact.
     // Otherwise require higher force to enter this state.
     const double thresh =
@@ -53,7 +53,7 @@ class ContactDetector {
 
   double get_upper_threshold() const { return upper_threshold_; }
 
-  void set_axis_mask(const std::string &axis_mask) {
+  void set_axis_mask(const std::string& axis_mask) {
     const std::string axies = "xyz";
     for (std::size_t i = 0; i < 3; i++) {
       mask_[i] = axis_mask.find(axies[i]) != std::string::npos ? 1.0 : 0.0;
