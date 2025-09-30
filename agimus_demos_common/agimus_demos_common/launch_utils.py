@@ -96,6 +96,12 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             description="Name of the end effector used.",
         ),
         DeclareLaunchArgument(
+            "use_camera",
+            default_value="true",
+            description="Enable or disable RealSense d435i in the URDF.",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
             "gz_verbose",
             default_value="false",
             description="Whether to set verbosity level of Gazebo to 3.",

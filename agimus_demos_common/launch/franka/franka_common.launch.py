@@ -53,6 +53,7 @@ def launch_setup(
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
     ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
     ee_id = LaunchConfiguration("ee_id")
+    use_camera = LaunchConfiguration("use_camera")
     gz_verbose = LaunchConfiguration("gz_verbose")
     gz_headless = LaunchConfiguration("gz_headless")
     gz_world_path = LaunchConfiguration("gz_world_path")
@@ -317,6 +318,7 @@ def launch_setup(
             "gz_world_path": gz_world_path,
             "use_ft_sensor": use_ft_sensor,
             "ee_id": ee_id,
+            "use_camera": use_camera,
         }.items(),
         condition=IfCondition(use_gazebo),
     )
