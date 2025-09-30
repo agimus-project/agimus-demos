@@ -79,11 +79,12 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
             (pkg / "environment" / "demo.srdf").as_posix(),
         )
 
-        ps = ProblemSolver(robot)
-        ps.loadPlugin("manipulation-spline-gradient-based.so")
+        self._ps = ProblemSolver(robot)
+        self._ps.loadPlugin("manipulation-spline-gradient-based.so")
 
-        vf = ViewerFactory(ps)
+        vf = ViewerFactory(self._ps)
         vf.loadObjectModel(pylone_object, pylone_object.name)
+        self._v = vf.createViewer()
 
         robot.setJointBounds(
             f"{pylone_object.name}/root_joint", [-1.0, 1.0, -1.0, 1.0, 0.0, 2.2]
@@ -91,16 +92,16 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         shrinkJointRange(robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
 
         # Set problem solver params
-        ps.setErrorThreshold(1e-3)
-        ps.setMaxIterProjection(40)
+        self._ps.setErrorThreshold(1e-3)
+        self._ps.setMaxIterProjection(40)
 
         # Load plugins
-        ps.addPathOptimizer("RandomShortcut")
+        self._ps.addPathOptimizer("RandomShortcut")
 
-        ps.addPathOptimizer("SimpleTimeParameterization")
-        ps.setParameter("SimpleTimeParameterization/order", 2)
-        ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
-        ps.setParameter("SimpleTimeParameterization/safety", 0.05)
+        self._ps.addPathOptimizer("SimpleTimeParameterization")
+        self._ps.setParameter("SimpleTimeParameterization/order", 2)
+        self._ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
+        self._ps.setParameter("SimpleTimeParameterization/safety", 0.05)
 
         cg = ConstraintGraph(robot, "graph")
         factory = ConstraintGraphFactory(cg)
@@ -131,7 +132,9 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
             1.0,
         ]
 
-        self._path_planner = PathPlanner(ps, cg, "panda/panda_gripper")
+        self._v(self._q_init)
+
+        self._path_planner = PathPlanner(self._ps, cg, "panda/panda_gripper")
 
     def get_path(
         self,
@@ -141,6 +144,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         T_init: pin.SE3 | None = None,
     ) -> list[npt.ArrayLike]:
         self._q_init[: self._nq] = q0
+        self._v(self._q_init)
         if not self._path_planner.checkConfigurationValid(self._q_init):
             raise RuntimeError("Invalid initial configuration!")
 
@@ -155,6 +159,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         # Solution was not found
         if p is None:
             raise RuntimeError("Failed to find path!")
+        self._ps.client.basic.problem.addPath(p)
 
         length = p.length()
         n_traj_points = int(np.ceil(length / self._ocp_dt)) * 4

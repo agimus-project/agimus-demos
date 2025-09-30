@@ -3,8 +3,8 @@ running_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [5000, 5000, 5000]
-    Kv: [1000, 1000, 1000]
+    Kp: [6000, 6000, 6000]
+    Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]
     with_gravity_torque_reg: true
@@ -48,8 +48,8 @@ terminal_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [5000, 5000, 5000]
-    Kv: [1000, 1000, 1000]
+    Kp: [6000, 6000, 6000]
+    Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]
     with_gravity_torque_reg: false
@@ -89,3 +89,13 @@ terminal_model:
         residual:
           class: ResidualModelFrameTranslationStatic
           frame_id: fer_ati_mini45_with_camera_tool
+    # constraints:
+    #   - name: collision_0
+    #     active: true
+    #     constraint:
+    #       class: ConstraintModelResidual
+    #       lower: 0.0 # cm
+    #       upper: inf
+    #       residual:
+    #         class: ResidualDistanceCollision
+    #         collision_pair: [fer_link5_sc_capsule_0, pylone_sc_link_capsule_4]

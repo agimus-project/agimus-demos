@@ -74,7 +74,7 @@ agimus_pytroller:
     type: agimus_pytroller/AgimusPytroller
     python_module: agimus_demo_07_deburring.controller.deburring_controller
     python_downsample_factor: 2
-    error_on_no_data: false
+    error_on_no_data: true
     interpolate_trajectory: true
     input_interfaces:
     - fer_joint1/position
@@ -164,7 +164,7 @@ agimus_pytroller:
         dt: 0.002
         horizon_size: 10
         solver_iters: 3
-        callbacks: true
+        callbacks: false
         qp_iters: 25
         use_debug_data: false
         n_threads: 8

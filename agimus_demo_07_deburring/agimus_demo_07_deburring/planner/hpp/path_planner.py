@@ -71,7 +71,7 @@ class PathPlanner(object):
             "TransitionPlanner", self.cproblem, self.croadmap
         )
         self.transitionPlanner.setPathProjector("Progressive", 0.02)
-        self.transitionPlanner.maxIterations(1000)
+        self.transitionPlanner.maxIterations(10000)
         self.transitionPlanner.addPathOptimizer("RandomShortcut")
         self.transitionPlanner.addPathOptimizer("SplineGradientBased_bezier3")
         self.transitionPlanner.setEdge(cg.edges["Loop | f"])

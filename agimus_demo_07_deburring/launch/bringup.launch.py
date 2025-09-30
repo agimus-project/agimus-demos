@@ -1,5 +1,4 @@
 from agimus_demos_common.launch_utils import (
-    ament_prefix_to_ros_package,
     generate_default_franka_args,
     generate_include_launch,
     get_use_sim_time,
@@ -12,7 +11,7 @@ from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchContext, LaunchDescription
-from launch.actions import ExecuteProcess, OpaqueFunction
+from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
@@ -104,19 +103,19 @@ def launch_setup(
         ],
     )
 
-    hpp_corba_server = ExecuteProcess(
-        cmd=["hppcorbaserver"],
-        # Extra env variable for HPP to discover packages correctly
-        additional_env=ament_prefix_to_ros_package(context),
-        output="screen",
-    )
+    # hpp_corba_server = ExecuteProcess(
+    #     cmd=["hppcorbaserver"],
+    #     # Extra env variable for HPP to discover packages correctly
+    #     additional_env=ament_prefix_to_ros_package(context),
+    #     output="screen",
+    # )
 
     return [
         franka_robot_launch,
         environment_publisher_node,
         tf_node,
         deburring_path_planner,
-        hpp_corba_server,
+        # hpp_corba_server,
     ]
 
 
