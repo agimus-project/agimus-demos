@@ -13,7 +13,7 @@
   </contact> -->
   <gripper name="panda_gripper" clearance="0.0">
     <position xyz="0 0 0.025" xyzw="0 -0.7071067811865476 0 0.7071067811865476"/>
-    <link name="fer_ati_mini45_with_camera_tool"/>
+    <link name="fer_ati_mini45_no_camera_tool"/>
   </gripper>
 
   <!--
@@ -36,7 +36,7 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link0" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link0" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link0" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link1" link2="fer_link2"
@@ -51,7 +51,7 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link1" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link1" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link1" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link2" link2="fer_link3"
@@ -64,7 +64,7 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link2" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link2" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link2" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link3" link2="fer_link4"
@@ -75,7 +75,7 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link3" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link3" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link3" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link4" link2="fer_link5"
@@ -84,22 +84,22 @@
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link4" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link4" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link4" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link5" link2="fer_link6"
                       reason="self-collision handled separately"/>
   <disable_collisions link1="fer_link5" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link5" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link5" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <disable_collisions link1="fer_link6" link2="fer_link7"
                       reason="self-collision handled separately"/>
-  <disable_collisions link1="fer_link6" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link6" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
-  <disable_collisions link1="fer_link7" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link7" link2="fer_ati_mini45_no_camera_tool"
                       reason="self-collision handled separately"/>
 
   <!-- remove collision between environment and self-collision geometries -->
@@ -118,7 +118,7 @@
                       reason="handled otherwise"/>
   <disable_collisions link1="pylone_link" link2="fer_link7_sc"
                       reason="handled otherwise"/>
-  <disable_collisions link1="pylone_link" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="pylone_link" link2="fer_ati_mini45_no_camera_tool"
                       reason="handled otherwise"/>
 
   <!-- remove self-collision pairs between adjacent links -->
@@ -145,9 +145,9 @@
                       reason="adjacent"/>
   <disable_collisions link1="fer_link6_sc" link2="fer_link7_sc"
                       reason="adjacent"/>
-  <disable_collisions link1="fer_link6_sc" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link6_sc" link2="fer_ati_mini45_no_camera_tool"
                       reason="adjacent"/>
-  <disable_collisions link1="fer_link7_sc" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link7_sc" link2="fer_ati_mini45_no_camera_tool"
                       reason="adjacent"/>
 
   <!-- remove collision between regular and self-collision geometries -->
@@ -168,7 +168,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link0" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link0" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link0" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link1" link2="fer_link0_sc"
@@ -187,7 +187,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link1" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link1" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link1" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link2" link2="fer_link0_sc"
@@ -206,7 +206,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link2" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link2" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link2" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link3" link2="fer_link0_sc"
@@ -225,7 +225,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link3" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link3" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link3" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link4" link2="fer_link0_sc"
@@ -244,7 +244,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link4" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link4" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link4" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link5" link2="fer_link0_sc"
@@ -263,7 +263,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link5" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link5" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link5" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link6" link2="fer_link0_sc"
@@ -282,7 +282,7 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link6" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link6" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link6" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
   <disable_collisions link1="fer_link7" link2="fer_link0_sc"
@@ -301,26 +301,26 @@
                       reason="regular and self-collision"/>
   <disable_collisions link1="fer_link7" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_link7" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_link7" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link0_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link0_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link1_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link1_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link2_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link2_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link3_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link3_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link4_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link4_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link5_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link5_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link6_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link6_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_link7_sc"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_link7_sc"
                       reason="regular and self-collision"/>
-  <disable_collisions link1="fer_ati_mini45_with_camera_tool" link2="fer_ati_mini45_with_camera_tool"
+  <disable_collisions link1="fer_ati_mini45_no_camera_tool" link2="fer_ati_mini45_no_camera_tool"
                       reason="regular and self-collision"/>
 
 </robot>

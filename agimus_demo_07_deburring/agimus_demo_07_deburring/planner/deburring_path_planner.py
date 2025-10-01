@@ -242,7 +242,7 @@ class DeburringPathPlanner(Node):
 
     def _target_handle_cb(self, msg: String) -> None:
         if msg.data not in self._handles.keys():
-            self.get_logger().error(f"Invalid handle name '{self._handles}'")
+            self.get_logger().error(f"Invalid handle name '{msg.data}'")
             return
 
         self._target_handle_name = msg.data
@@ -352,78 +352,85 @@ class DeburringPathPlanner(Node):
                 throttle_duration_sec=5.0,
             )
             return
-        target_handle = self._T_pylone * self._handles[self._target_handle_name]
 
-        joint_map = [
-            self._joint_states.name.index(joint_name)
-            for joint_name in self._params.moving_joints
-        ]
-        robot_configuration = np.array(self._joint_states.position)[joint_map]
+        try:
+            target_handle = self._T_pylone * self._handles[self._target_handle_name]
 
-        trajecotry = self._path_generators["follow_joint_trajectory"][
-            "generator"
-        ].get_path(robot_configuration, target_handle, self._target_handle_name)
-        weighted_trajecotry = [
-            WeightedTrajectoryPoint(
-                point=p,
-                weights=copy.copy(
-                    self._path_generators["follow_joint_trajectory"]["weights"]
-                ),
+            joint_map = [
+                self._joint_states.name.index(joint_name)
+                for joint_name in self._params.moving_joints
+            ]
+            robot_configuration = np.array(self._joint_states.position)[joint_map]
+
+            trajecotry = self._path_generators["follow_joint_trajectory"][
+                "generator"
+            ].get_path(robot_configuration, target_handle, self._target_handle_name)
+            weighted_trajecotry = [
+                WeightedTrajectoryPoint(
+                    point=p,
+                    weights=copy.copy(
+                        self._path_generators["follow_joint_trajectory"]["weights"]
+                    ),
+                )
+                for p in trajecotry
+            ]
+
+            self._trajectory_buffer.clear()
+            self._trajectory_buffer.extend(weighted_trajecotry)
+
+            q = self._trajectory_buffer[-1].point.robot_configuration
+            T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
+                self._params.tool_frame_id
+            ]
+
+            # Insert into the hole
+            self._insert_sequence_to_buffer(
+                "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
             )
-            for p in trajecotry
-        ]
+            # Perform deburring
+            q = self._trajectory_buffer[-1].point.robot_configuration
+            self._insert_sequence_to_buffer(
+                "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
+            )
+            # Retract from the hole
+            q = self._trajectory_buffer[-1].point.robot_configuration
+            self._insert_sequence_to_buffer(
+                "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
+            )
 
-        self._trajectory_buffer.clear()
-        self._trajectory_buffer.extend(weighted_trajecotry)
+            # Publish visualization for the path
+            if self._params.visualization.publish_path:
+                now = self.get_clock().now().to_msg()
 
-        q = self._trajectory_buffer[-1].point.robot_configuration
-        T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
-            self._params.tool_frame_id
-        ]
+                # Keep the markers avlive for the time of validity of the path
+                lifetime = len(self._trajectory_buffer) * self._params.ocp_dt * 1.25
 
-        # Insert into the hole
-        self._insert_sequence_to_buffer(
-            "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
-        )
-        # Perform deburring
-        q = self._trajectory_buffer[-1].point.robot_configuration
-        self._insert_sequence_to_buffer(
-            "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
-        )
-        # Retract from the hole
-        q = self._trajectory_buffer[-1].point.robot_configuration
-        self._insert_sequence_to_buffer(
-            "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
-        )
+                def _crate_marker(id: int, point: TrajectoryPoint) -> Marker:
+                    pose = pin.SE3ToXYZQUAT(
+                        point.end_effector_poses[self._params.tool_frame_id]
+                    )
+                    marker = copy.deepcopy(self._marker_base)
+                    marker.id = id
+                    marker.header.stamp = now
+                    marker.pose = Pose(
+                        position=Point(**dict(zip("xyz", pose[:3]))),
+                        orientation=Quaternion(**dict(zip("xyzw", pose[3:]))),
+                    )
+                    marker.lifetime = Duration(seconds=lifetime).to_msg()
+                    return marker
 
-        # Publish visualization for the path
-        if self._params.visualization.publish_path:
-            now = self.get_clock().now().to_msg()
-
-            # Keep the markers avlive for the time of validity of the path
-            lifetime = len(self._trajectory_buffer) * self._params.ocp_dt * 1.25
-
-            def _crate_marker(id: int, point: TrajectoryPoint) -> Marker:
-                pose = pin.SE3ToXYZQUAT(
-                    point.end_effector_poses[self._params.tool_frame_id]
+                self._path_publisher.publish(
+                    MarkerArray(
+                        markers=[
+                            _crate_marker(i, point.point)
+                            for i, point in enumerate(self._trajectory_buffer)
+                        ],
+                    )
                 )
-                marker = copy.deepcopy(self._marker_base)
-                marker.id = id
-                marker.header.stamp = now
-                marker.pose = Pose(
-                    position=Point(**dict(zip("xyz", pose[:3]))),
-                    orientation=Quaternion(**dict(zip("xyzw", pose[3:]))),
-                )
-                marker.lifetime = Duration(seconds=lifetime).to_msg()
-                return marker
-
-            self._path_publisher.publish(
-                MarkerArray(
-                    markers=[
-                        _crate_marker(i, point.point)
-                        for i, point in enumerate(self._trajectory_buffer)
-                    ],
-                )
+        except Exception as e:
+            self.get_logger().error(
+                f"Failed to plan a trajectory to a handle '{self._target_handle_name}'. "
+                f"Reason: {str(e)}"
             )
         self._target_handle_name = None
 

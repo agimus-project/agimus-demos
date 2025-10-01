@@ -15,6 +15,7 @@ from hpp.corbaserver.manipulation import (
     ProblemSolver,
     Robot,
     Rule,
+    SecurityMargins,
     loadServerPlugin,
 )  # noqa: F811
 from hpp.gepetto.manipulation import ViewerFactory
@@ -113,6 +114,13 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         )
         factory.setRules([Rule([".*"], [".*"], True)])
         factory.generate()
+
+        sm = SecurityMargins(self._ps, factory, ["panda", "pylone"])
+        sm.setSecurityMarginBetween("panda", "pylone", 0.005)
+        sm.setSecurityMarginBetween("panda", "panda", 0)
+        sm.defaultMargin = 0.01
+        sm.apply()
+
         cg.initialize()
 
         self._q_init = [
