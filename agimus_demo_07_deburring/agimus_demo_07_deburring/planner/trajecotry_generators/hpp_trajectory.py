@@ -116,7 +116,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         factory.generate()
 
         sm = SecurityMargins(self._ps, factory, ["panda", "pylone"])
-        sm.setSecurityMarginBetween("panda", "pylone", 0.005)
+        sm.setSecurityMarginBetween("panda", "pylone", 0.01)
         sm.setSecurityMarginBetween("panda", "panda", 0)
         sm.defaultMargin = 0.01
         sm.apply()
