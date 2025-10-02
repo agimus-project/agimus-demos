@@ -13,7 +13,7 @@ deburring_path_planner_node:
       marker_size: 0.01
       marker_color: [1.0, 0.0, 0.0, 0.5]
     # Velocities based on the datasheet. Values are eight of the maximum velocity
-    max_joint_velocity: [0.327, 0.327, 0.327, 0.327, 0.393, 0.393, 0.393]
+    max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
     ocp_dt: 0.002
     ocp_buffer_size: 100
     moving_joints:
@@ -35,25 +35,26 @@ deburring_path_planner_node:
       hpp_generator:
         handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
       grasp_generator:
-        max_linear_vel: 0.05
+        max_linear_vel: 0.125
         max_angular_vel: 0.25
       deburring_generator:
         angle: 0.1309 # 7.5 degrees
-        frequency: 0.5
+        frequency: 1.0
         slope_circles: 1
-        n_circles: 3
+        n_circles: 2
     weights:
       schedule:
-        interpolation_time: 3.0
+        interpolation_time: 5.0
       follow_joint_trajectory:
-        w_robot_configuration: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
-        w_robot_velocity: [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.05]
-        w_robot_effort: [0.0008, 0.0008, 0.0008, 0.0008, 0.03, 0.06, 0.03]
-        w_frame_rotation: [0.5, 0.5, 0.5]
-        w_frame_translation: [2.0, 2.0, 2.0]
+        w_robot_configuration: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003]
+        w_frame_rotation: [0.0, 0.0, 0.0]
+        w_frame_translation: [0.0, 0.0, 0.0]
         w_frame_angular_velocity: [0.0, 0.0, 0.0]
         w_frame_linear_velocity: [0.0, 0.0, 0.0]
         w_desired_force: [0.0, 0.0, 0.0]
+        w_collision_avoidance: 0.004
       insert_retract_tool:
         w_robot_configuration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1]
         w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
@@ -63,8 +64,9 @@ deburring_path_planner_node:
         w_frame_angular_velocity: [0.0, 0.0, 0.0]
         w_frame_linear_velocity: [0.0, 0.0, 0.0]
         w_desired_force: [0.0, 0.0, 0.0]
+        w_collision_avoidance: 0.0
       deburring_motion:
-        w_robot_configuration: [0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.1]
+        w_robot_configuration: [0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.1]
         w_robot_velocity: [0.01, 0.01, 0.001, 0.001, 0.001, 0.001, 0.5]
         w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.04, 0.07, 0.03]
         w_frame_rotation: [1.5, 1.5, 0.0]
@@ -72,3 +74,4 @@ deburring_path_planner_node:
         w_frame_angular_velocity: [0.0, 0.0, 0.0]
         w_frame_linear_velocity: [0.0, 0.0, 0.0]
         w_desired_force: [0.000015, 0.000015, 0.000015]
+        w_collision_avoidance: 0.0

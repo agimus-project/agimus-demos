@@ -1,6 +1,7 @@
 import copy
 import xml.etree.ElementTree as ET
 from collections import deque
+
 from pathlib import Path
 
 import numpy as np
@@ -161,6 +162,8 @@ class DeburringPathPlanner(Node):
             self._params.ocp_dt / 10.0, self._publish_mpc_input_cb
         )
 
+        self._last_handle = "none"
+
         self.get_logger().info("Node initialized!")
 
     def _update_params(self, first_call: bool = False) -> None:
@@ -195,7 +198,6 @@ class DeburringPathPlanner(Node):
                             stage_weights.w_robot_configuration
                         ),
                         w_robot_effort=np.array(stage_weights.w_robot_effort),
-                        w_collision_avoidance=0.0,
                         w_end_effector_poses={
                             self._params.tool_frame_id: np.concatenate(
                                 (
@@ -213,6 +215,7 @@ class DeburringPathPlanner(Node):
                                 )
                             )
                         },
+                        w_collision_avoidance=stage_weights.w_collision_avoidance,
                     )
                 )
 
@@ -362,9 +365,69 @@ class DeburringPathPlanner(Node):
             ]
             robot_configuration = np.array(self._joint_states.position)[joint_map]
 
+            # trajectories_folder = Path(
+            #     "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_07_deburring/trajectories"
+            # )
+            # trajectory_filename = (
+            #     trajectories_folder
+            #     / f"{self._last_handle}_to_{self._target_handle_name}.pickle"
+            # )
+
             trajecotry = self._path_generators["follow_joint_trajectory"][
                 "generator"
             ].get_path(robot_configuration, target_handle, self._target_handle_name)
+            # if self._last_handle == "none" or not trajectory_filename.is_file():
+            #     self.get_logger().info(f"Saving new trajectory: {trajectory_filename}")
+            #     if self._last_handle != "none":
+            #         with open(trajectory_filename, "wb") as handle:
+            #             pickle.dump(
+            #                 trajecotry, handle, protocol=pickle.HIGHEST_PROTOCOL
+            #             )
+            # else:
+            #     with open(trajectory_filename, "rb") as handle:
+            #         trajecotry = pickle.load(handle)
+
+            #     tool_frame_id_pin_frame = self._robot_model.getFrameId(
+            #         self._params.tool_frame_id
+            #     )
+
+            #     def _create_trajectory_point(i: int) -> TrajectoryPoint:
+            #         q = pin.interpolate(
+            #             self._robot_model,
+            #             robot_configuration,
+            #             trajecotry[0].robot_configuration,
+            #             i / 500.0
+            #         )
+
+            #         pin.framesForwardKinematics(
+            #             self._robot_model, self._robot_data, q
+            #         )
+            #         pin.updateFramePlacement(
+            #             self._robot_model,
+            #             self._robot_data,
+            #             tool_frame_id_pin_frame,
+            #         )
+
+            #         return TrajectoryPoint(
+            #             id=i,
+            #             time_ns=0,
+            #             robot_configuration=q,
+            #             robot_velocity=np.zeros_like(q),
+            #             robot_acceleration=np.zeros(self._nv),
+            #             robot_effort=np.zeros(self._nv),
+            #             forces={},
+            #             end_effector_poses={
+            #                 self._params.tool_frame_id: copy.copy(
+            #                     self._robot_data.oMf[tool_frame_id_pin_frame]
+            #                 )
+            #             },
+            #         )
+
+            #     interpolated = [
+            #         _create_trajectory_point(i) for i in range(1500)
+            #     ]
+            #     trajecotry = interpolated + trajecotry
+
             weighted_trajecotry = [
                 WeightedTrajectoryPoint(
                     point=p,
@@ -432,6 +495,7 @@ class DeburringPathPlanner(Node):
                 f"Failed to plan a trajectory to a handle '{self._target_handle_name}'. "
                 f"Reason: {str(e)}"
             )
+        self._last_handle = copy.copy(self._target_handle_name)
         self._target_handle_name = None
 
     def _publish_mpc_input_cb(self) -> None:

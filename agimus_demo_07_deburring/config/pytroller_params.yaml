@@ -163,8 +163,8 @@ agimus_pytroller:
       ocp_params:
         dt: 0.002
         horizon_size: 10
-        solver_iters: 3
+        solver_iters: 5
         callbacks: false
-        qp_iters: 25
+        qp_iters: 100
         use_debug_data: false
         n_threads: 8

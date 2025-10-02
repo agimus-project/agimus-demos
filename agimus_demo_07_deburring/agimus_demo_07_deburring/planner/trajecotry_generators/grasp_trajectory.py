@@ -81,16 +81,16 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         diff = start_pose.inverse() * T_final
         rot_vel = pin.log3(diff.rotation)
 
-        max_ang = np.max(pin.rpy.matrixToRpy(diff.rotation))
+        # max_ang = np.max(pin.rpy.matrixToRpy(diff.rotation))
         dist = np.linalg.norm(diff.translation)
 
-        ang_time = max_ang / self._max_angular_vel
+        # ang_time = max_ang / self._max_angular_vel
         lin_time = dist / self._max_linear_vel
 
         # Time for the interpolation is slightly larger than needed
         # to account for accelerations and decelerations, plus
         # to presume safety a margin
-        interp_time = max(ang_time, lin_time) * 1.25
+        interp_time = lin_time * 1.25
         n_interp = int(np.ceil(interp_time / self._ocp_dt))
         # TODO not use global
         global previous_q

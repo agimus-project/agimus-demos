@@ -147,7 +147,7 @@ deburring_path_planner:
         description: Number of circles to draw.
         default_value: 2
         validation:
-          gt<>: [2]
+          gt_eq<>: [2]
   weights:
     schedule:
       interpolation_time:
@@ -193,6 +193,11 @@ deburring_path_planner:
         validation:
           fixed_size<>: [3]
           lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]
     insert_retract_tool:
       w_robot_configuration:
         type: double_array
@@ -230,6 +235,11 @@ deburring_path_planner:
         validation:
           fixed_size<>: [3]
           lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]
     deburring_motion:
       w_robot_configuration:
         type: double_array
@@ -267,3 +277,8 @@ deburring_path_planner:
         validation:
           fixed_size<>: [3]
           lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]

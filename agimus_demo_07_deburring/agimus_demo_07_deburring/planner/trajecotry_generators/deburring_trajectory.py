@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
@@ -121,8 +120,7 @@ class DeburringPathGenerator(GenericTrajectoryGenerator):
             )
 
         t1 = [_generate_force_ramp(i, ascend=True) for i in range(self._ramp_samples)]
-        t2 = [copy.copy(t1[-1]) for _ in range(int(1.0 / self._ocp_dt))]
-        t3 = [_generate_sequence(i) for i in range(self._n_samples)]
-        t4 = [_generate_force_ramp(i, ascend=False) for i in range(self._ramp_samples)]
+        t2 = [_generate_sequence(i) for i in range(self._n_samples)]
+        t3 = [_generate_force_ramp(i, ascend=False) for i in range(self._ramp_samples)]
 
-        return t1 + t2 + t3 + t4
+        return t1 + t2 + t3

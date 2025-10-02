@@ -70,8 +70,8 @@ class PathPlanner(object):
         self.transitionPlanner = ps.client.basic.problem.createPathPlanner(
             "TransitionPlanner", self.cproblem, self.croadmap
         )
-        self.transitionPlanner.setPathProjector("Progressive", 0.02)
-        self.transitionPlanner.maxIterations(10000)
+        self.transitionPlanner.setPathProjector("Progressive", 0.05)
+        self.transitionPlanner.maxIterations(15000)
         self.transitionPlanner.addPathOptimizer("RandomShortcut")
         self.transitionPlanner.addPathOptimizer("SplineGradientBased_bezier3")
         self.transitionPlanner.setEdge(cg.edges["Loop | f"])
@@ -111,7 +111,7 @@ class PathPlanner(object):
     ):
         prefix = f"{self.gripper} > {handle} | f"
         init_guesses = q_guesses + [
-            self.ps.robot.shootRandomConfig() for i in range(1000)
+            self.ps.robot.shootRandomConfig() for i in range(10000)
         ]
         for q in init_guesses:
             edge = prefix + "_01"

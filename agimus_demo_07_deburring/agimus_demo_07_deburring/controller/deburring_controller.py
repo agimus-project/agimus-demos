@@ -32,6 +32,8 @@ from std_msgs.msg import Int64, String
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
 
+from pinocchio.visualize import MeshcatVisualizer
+
 try:
     import crocoddyl_plotter
 
@@ -75,6 +77,15 @@ class ControllerImpl(ControllerImplBase):
         self._robot_models = RobotModels(robot_params)
         self._robot_data = self._robot_models.robot_model.createData()
 
+        self._viz = MeshcatVisualizer(
+            self._robot_models.robot_model,
+            self._robot_models.collision_model,
+            self._robot_models.visual_model,
+        )
+        self._viz.initViewer(zmq_url="tcp://127.0.0.1:6001")
+        self._viz.loadViewerModel()
+        self._viz.displayCollisions(True)
+
         dt_factor_n_seq = DTFactorsNSeq(**cfg["dt_factor_n_seq"])
         self._ocp_params = OCPParamsBaseCroco(
             dt_factor_n_seq=dt_factor_n_seq, **cfg["ocp_params"]
@@ -106,6 +117,15 @@ class ControllerImpl(ControllerImplBase):
         self._in_pd_mode = True
         self._p_gains = cfg["p_gains"]
         self._d_gains = cfg["d_gains"]
+        # self._q_init = np.array([
+        #     1.0,
+        #     -0.786230040825029,
+        #     2.4146296898501803e-15,
+        #     -2.361347497262299,
+        #     -4.293684611985774e-14,
+        #     1.5710360526889648,
+        #     0.7853981633974547,
+        # ])
         self._q_init = None
 
         self._publish_debug_data = cfg["ocp_params"]["use_debug_data"]
@@ -115,9 +135,9 @@ class ControllerImpl(ControllerImplBase):
 
         plotter_cfg = cfg["cost_plotter"]
         self._use_cost_plotter = False
+        self._iteration_counter = 0
         if with_cost_plotter and plotter_cfg["use_cost_plotter"]:
             self._use_cost_plotter = True
-            self._iteration_counter = 0
             self._cost_plotter_server = crocoddyl_plotter.CrocoddylPlotterServer(
                 plotter_cfg["cost_plotter_url"]
             )
@@ -138,6 +158,7 @@ class ControllerImpl(ControllerImplBase):
         return Int64(data=len(self.mpc._buffer))
 
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
+        # return self._u_zeros
         now = time.time()
         nq = self._robot_models.robot_model.nq
         nv = self._robot_models.robot_model.nv
@@ -157,6 +178,7 @@ class ControllerImpl(ControllerImplBase):
         # On first call, initialize warmstart and return zero control
         if self._first_call:
             self._q_init = q.copy()
+            self._viz.display(self._q_init)
             pin.computeJointJacobians(rmodel, self._robot_data, q)
             frame_of_interest_id = rmodel.getFrameId(self.mpc._ocp.frame_id)
             oMc = self._robot_data.oMf[frame_of_interest_id]
@@ -223,5 +245,6 @@ class ControllerImpl(ControllerImplBase):
             self._cost_plotter_server.send(
                 self.mpc._ocp._solver.problem, self._iteration_counter
             )
-            self._iteration_counter += 1
+        self._iteration_counter += 1
+
         self.mpc.update_references()

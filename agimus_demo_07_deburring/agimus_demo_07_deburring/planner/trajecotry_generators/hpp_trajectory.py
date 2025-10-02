@@ -93,8 +93,10 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         shrinkJointRange(robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
 
         # Set problem solver params
-        self._ps.setErrorThreshold(1e-3)
-        self._ps.setMaxIterProjection(40)
+        self._ps.setErrorThreshold(1e-2)
+        self._ps.setMaxIterProjection(20)
+
+        self._ps.setParameter("StatesPathFinder/maxDepth", 2)
 
         # Load plugins
         self._ps.addPathOptimizer("RandomShortcut")
@@ -102,7 +104,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         self._ps.addPathOptimizer("SimpleTimeParameterization")
         self._ps.setParameter("SimpleTimeParameterization/order", 2)
         self._ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
-        self._ps.setParameter("SimpleTimeParameterization/safety", 0.05)
+        # self._ps.setParameter("SimpleTimeParameterization/safety", 0.005)
 
         cg = ConstraintGraph(robot, "graph")
         factory = ConstraintGraphFactory(cg)
@@ -118,7 +120,8 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         sm = SecurityMargins(self._ps, factory, ["panda", "pylone"])
         sm.setSecurityMarginBetween("panda", "pylone", 0.01)
         sm.setSecurityMarginBetween("panda", "panda", 0)
-        sm.defaultMargin = 0.01
+        sm.setSecurityMarginBetween("panda", "base_box", 0.03)
+        sm.defaultMargin = 0.005
         sm.apply()
 
         cg.initialize()
@@ -176,7 +179,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         )
         p.deleteThis()
 
-        velocities = np.gradient(trajecotry, axis=0) / self._ocp_dt
+        # velocities = np.gradient(trajecotry, axis=0) / self._ocp_dt
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             q = trajecotry[i, :]
@@ -186,7 +189,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
                 id=i,
                 time_ns=0,
                 robot_configuration=q,
-                robot_velocity=velocities[i, :],
+                robot_velocity=np.zeros_like(q),
                 robot_acceleration=np.zeros(self._nv),
                 robot_effort=np.zeros(self._nv),
                 forces={},
