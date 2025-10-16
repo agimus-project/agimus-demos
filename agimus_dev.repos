@@ -31,4 +31,4 @@ repositories:
   vcs_agimus/agimus_pytroller:
     type: git
     url: https://github.com/agimus-project/agimus_pytroller
-    version: test/environment-subscriber
+    version: main
