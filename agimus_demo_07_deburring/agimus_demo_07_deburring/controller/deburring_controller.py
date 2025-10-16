@@ -28,7 +28,7 @@ from agimus_controller_ros.ros_utils import (
 from agimus_msgs.msg import MpcDebug, MpcInputArray
 from agimus_pytroller_py.agimus_pytroller_base import ControllerImplBase
 from ament_index_python.packages import get_package_share_directory
-from std_msgs.msg import Int64
+from std_msgs.msg import Int64, String
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
 
@@ -41,7 +41,10 @@ except ImportError:
 
 
 class ControllerImpl(ControllerImplBase):
-    def __init__(self, robot_description: str, environment_description: str) -> None:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def setup(self, robot_description: String, environment_description: String):
         self._topic_map = {}
         package_share_directory = Path(
             get_package_share_directory("agimus_demo_07_deburring")
@@ -64,8 +67,8 @@ class ControllerImpl(ControllerImplBase):
                     sub_cfg[key] = np.asarray(sub_cfg[key], dtype=np.float64)
 
         robot_params = RobotModelParameters(
-            robot_urdf=robot_description,
-            env_urdf=environment_description,
+            robot_urdf=robot_description.data,
+            env_urdf=environment_description.data,
             **cfg["robot_model_params"],
         )
 
@@ -215,7 +218,7 @@ class ControllerImpl(ControllerImplBase):
 
         return ocp_res.feed_forward_terms[0] - tau_g
 
-    def on_post_update(self) -> None:
+    def on_post_update(self):
         if self._use_cost_plotter and self._iteration_counter % 100:
             self._cost_plotter_server.send(
                 self.mpc._ocp._solver.problem, self._iteration_counter
