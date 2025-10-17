@@ -1,12 +1,13 @@
 import copy
 from pathlib import Path
+import tempfile
+import os
 
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
 import yaml
 from agimus_controller.trajectory import TrajectoryPoint
-from ament_index_python.packages import get_package_share_directory
 from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import (
     Client,
@@ -21,7 +22,7 @@ from hpp.corbaserver.manipulation import (
 from hpp.gepetto.manipulation import ViewerFactory
 
 from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
-from agimus_demo_07_deburring.planner.trajecotry_generators.trajectory_generator import (
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     GenericTrajectoryGenerator,
 )
 
@@ -43,9 +44,18 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         self,
         handles_configurations_path: Path,
         robot_description: str,
+        environment_description: str,
         ocp_dt: float,
         tool_frame_id: str,
         robot_model: pin.Model,
+        robot_self_collision_config: Path,
+        handles_srdf_path: Path,
+        demo_config: Path,
+        robot_name: str,
+        gripper_name: str,
+        deburred_object_name: str,
+        joints_to_shrink: list[str],
+        joint_shrink_range: float,
     ) -> None:
         self._ocp_dt = ocp_dt
         self._nq = robot_model.nq
@@ -59,38 +69,55 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
             self._tool_frame_id_name
         )
 
+        self._deburred_object_name = deburred_object_name
+
         # Load the robot
-        pkg = Path(get_package_share_directory("agimus_demo_07_deburring"))
         Robot.urdfString = robot_description
-        Robot.srdfString = (pkg / "environment" / "panda.srdf").read_text()
+        Robot.srdfString = robot_self_collision_config.read_text()
 
         with open(handles_configurations_path, "r") as stream:
             self._handles_q_guesses = yaml.safe_load(stream)
 
+        # Create temporary file with a content of the environment URDF
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            prefix=f"{deburred_object_name}_urdf_",
+            suffix=".urdf",
+            delete=False,
+        ) as f:
+            f.write(environment_description)
+            self._tmp_deburred_object_urdf_file = Path(f.name)
+
         # Load the object
-        pylone_object = BaseObject(
-            urdf_path=(pkg / "environment" / "pylone.urdf").as_posix(),
-            srdf_path=(pkg / "environment" / "pylone.srdf").as_posix(),
-            name="pylone",
+        deburred_object_object = BaseObject(
+            urdf_path=self._tmp_deburred_object_urdf_file.as_posix(),
+            srdf_path=handles_srdf_path.as_posix(),
+            name=deburred_object_name,
         )
 
-        robot = Robot("robot", "panda", rootJointType="anchor")
+        robot = Robot("robot", robot_name, rootJointType="anchor")
         robot.client.manipulation.robot.insertRobotSRDFModel(
-            "panda",
-            (pkg / "environment" / "demo.srdf").as_posix(),
+            robot_name,
+            demo_config.as_posix(),
         )
 
         self._ps = ProblemSolver(robot)
         self._ps.loadPlugin("manipulation-spline-gradient-based.so")
 
         vf = ViewerFactory(self._ps)
-        vf.loadObjectModel(pylone_object, pylone_object.name)
+        vf.loadObjectModel(deburred_object_object, deburred_object_object.name)
         self._v = vf.createViewer()
 
         robot.setJointBounds(
-            f"{pylone_object.name}/root_joint", [-1.0, 1.0, -1.0, 1.0, 0.0, 2.2]
+            f"{deburred_object_object.name}/root_joint",
+            [-1.0, 1.0, -1.0, 1.0, 0.0, 2.2],
         )
-        shrinkJointRange(robot, [f"panda/fer_joint{i}" for i in range(1, 8)], 0.95)
+
+        shrinkJointRange(
+            robot,
+            [f"{robot_name}/{joint_name}" for joint_name in joints_to_shrink],
+            joint_shrink_range,
+        )
 
         # Set problem solver params
         self._ps.setErrorThreshold(1e-2)
@@ -108,20 +135,24 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
 
         cg = ConstraintGraph(robot, "graph")
         factory = ConstraintGraphFactory(cg)
-        factory.setGrippers(["panda/panda_gripper"])
+        factory.setGrippers([f"{robot_name}/{gripper_name}"])
         factory.setObjects(
-            [pylone_object.name],
-            [[f"pylone/{handle}" for handle in self._handles_q_guesses.keys()]],
+            [deburred_object_name],
+            [
+                [
+                    f"{deburred_object_name}/{handle}"
+                    for handle in self._handles_q_guesses.keys()
+                ]
+            ],
             [[]],
         )
         factory.setRules([Rule([".*"], [".*"], True)])
         factory.generate()
 
-        sm = SecurityMargins(self._ps, factory, ["panda", "pylone"])
-        sm.setSecurityMarginBetween("panda", "pylone", 0.01)
-        sm.setSecurityMarginBetween("panda", "panda", 0)
-        sm.setSecurityMarginBetween("panda", "base_box", 0.03)
-        sm.defaultMargin = 0.005
+        sm = SecurityMargins(self._ps, factory, [robot_name, deburred_object_name])
+        sm.setSecurityMarginBetween(robot_name, deburred_object_name, 0.01)
+        sm.setSecurityMarginBetween(robot_name, robot_name, 0)
+        sm.defaultMargin = 0.03
         sm.apply()
 
         cg.initialize()
@@ -145,7 +176,19 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
 
         self._v(self._q_init)
 
-        self._path_planner = PathPlanner(self._ps, cg, "panda/panda_gripper")
+        self._path_planner = PathPlanner(self._ps, cg, f"{robot_name}/{gripper_name}")
+
+    def __del__(self):
+        # Remove temp file with the URDF
+        try:
+            os.unlink(self._tmp_deburred_object_urdf_file)
+        except FileNotFoundError:
+            pass
+
+    def update_deburred_object_pose(self, T_deburred_object: pin.SE3) -> None:
+        xyzquat = pin.SE3ToXYZQUAT(T_deburred_object)
+        self._q_init[-7:-4] = xyzquat[:3]
+        self._q_init[-4:] = xyzquat[3:]
 
     def get_path(
         self,
@@ -165,7 +208,7 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
         q_guess = self._q_init.copy()
         q_guess[: self._nq] = self._handles_q_guesses[handle_name]
         p = self._path_planner.planPregrasp(
-            f"pylone/{handle_name}", self._q_init, [q_guess]
+            f"{self._deburred_object_name}/{handle_name}", self._q_init, [q_guess]
         )
         # Solution was not found
         if p is None:
@@ -174,15 +217,15 @@ class HPPPathGenerator(GenericTrajectoryGenerator):
 
         length = p.length()
         n_traj_points = int(np.ceil(length / self._ocp_dt)) * 4
-        trajecotry = np.array(
+        trajectory = np.array(
             [p.call(i * self._ocp_dt / 4)[0][: self._nq] for i in range(n_traj_points)]
         )
         p.deleteThis()
 
-        # velocities = np.gradient(trajecotry, axis=0) / self._ocp_dt
+        # velocities = np.gradient(trajectory, axis=0) / self._ocp_dt
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
-            q = trajecotry[i, :]
+            q = trajectory[i, :]
             pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
 
             return TrajectoryPoint(

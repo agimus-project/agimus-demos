@@ -10,7 +10,7 @@ from agimus_controller.trajectory import TrajectoryPoint
 from agimus_demo_07_deburring.planner.diffusion.diffusion_model import (
     DiffusionModel,
 )
-from agimus_demo_07_deburring.planner.trajecotry_generators.trajectory_generator import (
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     GenericTrajectoryGenerator,
 )
 
@@ -42,6 +42,9 @@ class DiffusionPathGenerator(GenericTrajectoryGenerator):
         self._tool_frame_id_pin_frame = self._robot_model.getFrameId(
             self._tool_frame_id_name
         )
+
+    def update_deburred_object_pose(self, T_deburred_object: pin.SE3) -> None:
+        pass
 
     def get_path(
         self,

@@ -130,7 +130,7 @@ terminal_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision
-          collision_pair: [fer_ati_mini45_no_camera_sc_capsule_0, base_box_0]
+          collision_pair: [fer_ati_mini45_no_camera_sc_capsule_0, base_box_link_0]
     - name: collision_21
       active: true
       constraint:
@@ -139,7 +139,7 @@ terminal_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision
-          collision_pair: [fer_ati_mini45_no_camera_tool_capsule_0, base_box_0]
+          collision_pair: [fer_ati_mini45_no_camera_tool_capsule_0, base_box_link_0]
       # ft sensor the pylone
     - name: collision_2
       active: true

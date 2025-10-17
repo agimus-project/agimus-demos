@@ -5,7 +5,7 @@ import numpy.typing as npt
 import pinocchio as pin
 from agimus_controller.trajectory import TrajectoryPoint
 
-from agimus_demo_07_deburring.planner.trajecotry_generators.trajectory_generator import (
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     GenericTrajectoryGenerator,
 )
 
@@ -16,13 +16,11 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         robot_model: pin.Model,
         ocp_dt: float,
         max_linear_vel: float,
-        max_angular_vel: float,
         tool_frame_id: str,
     ) -> None:
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
 
-        self._max_angular_vel = max_angular_vel
         self._max_linear_vel = max_linear_vel
 
         self._nq = robot_model.nq
@@ -81,10 +79,8 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         diff = start_pose.inverse() * T_final
         rot_vel = pin.log3(diff.rotation)
 
-        # max_ang = np.max(pin.rpy.matrixToRpy(diff.rotation))
         dist = np.linalg.norm(diff.translation)
 
-        # ang_time = max_ang / self._max_angular_vel
         lin_time = dist / self._max_linear_vel
 
         # Time for the interpolation is slightly larger than needed
@@ -92,9 +88,6 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         # to presume safety a margin
         interp_time = lin_time * 1.25
         n_interp = int(np.ceil(interp_time / self._ocp_dt))
-        # TODO not use global
-        global previous_q
-        previous_q = q0
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             t = i / n_interp
@@ -105,11 +98,6 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
             start_t = start_pose.translation
             end_t = T_final.translation
             target.translation = (1.0 - t) * start_t + (t) * end_t
-
-            # global previous_q
-            # q_target = self._ik(previous_q, target)
-            # v_target = (q_target - previous_q) / self._ocp_dt
-            # previous_q = q_target
 
             return TrajectoryPoint(
                 id=i,

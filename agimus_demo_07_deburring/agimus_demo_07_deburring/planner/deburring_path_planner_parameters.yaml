@@ -36,7 +36,11 @@ deburring_path_planner:
   world_frame_id:
     type: string
     description: Name of the frame used axs a world reference.
-    read_only: true
+    read_only:
+  deburred_object_frame_id:
+    type: string
+    description: Name of the frame associated to the deburred object.
+    read_only:
   ocp_buffer_size:
     type: int
     default_value: 50
@@ -93,7 +97,7 @@ deburring_path_planner:
   generators_params:
     main_generator:
       type: string
-      description: Which trajecotry generator to use.
+      description: Which trajectory generator to use.
       read_only: true
       validation:
         one_of<>: [[diffusion, hpp]]
@@ -111,17 +115,52 @@ deburring_path_planner:
     hpp_generator:
       handle_configs_path:
         type: string
-        description: Path to the weights used by diffusion model.
+        description: Path to precomputed final configurations of the robot used for planning.
         default_value: ''
         read_only: true
+      robot_self_collision_config:
+        type: string
+        description: Path to srdf file with robot self collisions.
+        default_value: ''
+        read_only: true
+      demo_config:
+        type: string
+        description: Path to srdf file describing the demo.
+        default_value: ''
+        read_only: true
+      joints_to_shrink:
+        type: string_array
+        description: List of joints of which ranges should be shrunk.
+        default_value: ['']
+        read_only: true
+      joint_shrink_range:
+        type: double
+        description: Range to which ranges of joints should be reduced.
+        default_value: 1.0
+        read_only: true
+        validation:
+          gt<>: [0.0]
+          lt_eq<>: [1.0]
+      robot_name:
+        type: string
+        description: Name of the robot used by HPP.
+        default_value: ''
+        read_only: true
+      gripper_name:
+        type: string
+        description: Name of the gripper used by the demo.
+        default_value: ''
+        read_only: true
+      deburred_object_name:
+        type: string
+        description: Name of the object to which handles will be attached.
+        default_value: ''
+        read_only: true
+
     grasp_generator:
       max_linear_vel:
         type: double
         description: Maximum linear velocity when performing a grasp.
-        read_only: true
-      max_angular_vel:
-        type: double
-        description: Maximum angular velocity when performing a grasp.
         read_only: true
     deburring_generator:
       angle:

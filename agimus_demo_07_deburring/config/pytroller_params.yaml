@@ -120,7 +120,7 @@ agimus_pytroller:
       topic_type: std_msgs/msg/String
       transient_local: true
     environment_description:
-      topic_name: /environment_description
+      topic_name: /environment_description_with_collision
       topic_type: std_msgs/msg/String
       transient_local: true
     subscribed_topics: [mpc_input]

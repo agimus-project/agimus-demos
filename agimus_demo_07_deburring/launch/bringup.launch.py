@@ -16,6 +16,36 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
 
+def create_env_publisher(with_sc: bool) -> Node:
+    environment_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("agimus_demo_07_deburring"),
+                        "urdf",
+                        "environment.urdf.xacro",
+                    ]
+                ),
+                " ",
+                f"with_sc:={str(with_sc).lower()}",
+            ]
+        ),
+        value_type=str,
+    )
+    postfix = "_with_collision" if with_sc else "_without_collision"
+    return Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="environment_publisher" + postfix,
+        output="screen",
+        remappings=[("robot_description", "environment_description" + postfix)],
+        parameters=[{"robot_description": environment_description}],
+    )
+
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -51,37 +81,8 @@ def launch_setup(
         },
     )
 
-    environment_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demo_07_deburring"),
-                        "urdf",
-                        "environment.urdf.xacro",
-                    ]
-                ),
-                " ",
-                "with_sc:=true",
-            ]
-        ),
-        value_type=str,
-    )
-    environment_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="environment_publisher",
-        output="screen",
-        remappings=[("robot_description", "environment_description")],
-        parameters=[{"robot_description": environment_description}],
-    )
-
-    tf_node = static_transform_publisher_node(
-        frame_id="fer_link0",
-        child_frame_id="env_ref_frame",
-    )
+    environment_publisher_node_with_sc = create_env_publisher(True)
+    environment_publisher_node_without_sc = create_env_publisher(False)
 
     deburring_path_planner_params = (
         PathJoinSubstitution(
@@ -104,19 +105,20 @@ def launch_setup(
         ],
     )
 
-    # hpp_corba_server = ExecuteProcess(
-    #     cmd=["hppcorbaserver"],
-    #     # Extra env variable for HPP to discover packages correctly
-    #     additional_env=ament_prefix_to_ros_package(context),
-    #     output="screen",
-    # )
+    # TODO remove once vision module is working
+    tf_node_pylone_link = static_transform_publisher_node(
+        frame_id="fer_link0",
+        child_frame_id="pylone_link",
+        xyz=["0.45", "-0.116", "0.739"],
+        rot_xyzw=["0.0, 0.0, 0.0, 1.0"],
+    )
 
     return [
         franka_robot_launch,
-        environment_publisher_node,
-        tf_node,
+        environment_publisher_node_with_sc,
+        environment_publisher_node_without_sc,
         deburring_path_planner,
-        # hpp_corba_server,
+        tf_node_pylone_link,
     ]
 
 

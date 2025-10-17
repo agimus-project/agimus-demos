@@ -3,7 +3,7 @@ import numpy.typing as npt
 import pinocchio as pin
 from agimus_controller.trajectory import TrajectoryPoint
 
-from agimus_demo_07_deburring.planner.trajecotry_generators.trajectory_generator import (
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     GenericTrajectoryGenerator,
 )
 

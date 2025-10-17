@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
-import rclpy
 from agimus_controller.trajectory import (
     TrajectoryPoint,
     TrajectoryPointWeights,
@@ -17,6 +16,7 @@ from agimus_controller.trajectory import (
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 from agimus_msgs.msg import MpcInputArray
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Vector3
+import rclpy
 from rclpy.duration import Duration
 from rclpy.exceptions import ParameterException
 from rclpy.node import Node
@@ -29,19 +29,23 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA, Header, Int64, String
 from visualization_msgs.msg import Marker, MarkerArray
 
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+
 from agimus_demo_07_deburring.deburring_path_planner_parameters import (
     deburring_path_planner,
 )
-from agimus_demo_07_deburring.planner.trajecotry_generators.deburring_trajectory import (
+from agimus_demo_07_deburring.planner.trajectory_generators.deburring_trajectory import (
     DeburringPathGenerator,
 )
-from agimus_demo_07_deburring.planner.trajecotry_generators.diffusion_trajectory import (
+from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
     DiffusionPathGenerator,
 )
-from agimus_demo_07_deburring.planner.trajecotry_generators.grasp_trajectory import (
+from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory import (
     GraspPathGenerator,
 )
-from agimus_demo_07_deburring.planner.trajecotry_generators.hpp_trajectory import (
+from agimus_demo_07_deburring.planner.trajectory_generators.hpp_trajectory import (
     HPPPathGenerator,
 )
 
@@ -68,14 +72,11 @@ class DeburringPathPlanner(Node):
         self._nv = len(self._params.moving_joints)
         self._nq = len(self._params.moving_joints)
         self._robot_description: str | None = None
+        self._environment_description: str | None = None
         # Rotation used as a conversion between TCP coordinates and HPP handles
         self._R_insert = pin.SE3(
             pin.rpy.rpyToMatrix(np.array(self._params.hpp_handle_to_ee_rot)),
             np.array([0.0, 0.0, 0.0]),
-        )
-        self._T_pylone = pin.SE3(
-            pin.Quaternion(np.array([0.0, 0.0, 0.0, 1.0])),
-            np.array([0.45, -0.116, 0.739]),
         )
 
         self._path_generators = {
@@ -106,11 +107,25 @@ class DeburringPathPlanner(Node):
 
         self._update_params(first_call=True)
 
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self)
+
         # Subscribers
         self._robot_description_sub = self.create_subscription(
             String,
             "/robot_description",
             self._robot_description_cb,
+            qos_profile=QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+
+        self._environment_description_sub = self.create_subscription(
+            String,
+            "/environment_description_without_collision",
+            self._environment_description_cb,
             qos_profile=QoSProfile(
                 depth=1,
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -237,6 +252,9 @@ class DeburringPathPlanner(Node):
         self._robot_model = pin.buildModelFromXML(self._robot_description)
         self._robot_data = self._robot_model.createData()
 
+    def _environment_description_cb(self, msg: String) -> None:
+        self._environment_description = msg.data
+
     def _joint_state_cb(self, msg: JointState) -> None:
         self._joint_states = msg
 
@@ -266,26 +284,27 @@ class DeburringPathPlanner(Node):
         gain_schedule_points = int(
             np.ceil(self._params.weights.schedule.interpolation_time / dt)
         )
-        weighted_trajecotry = [
+        weighted_trajectory = [
             WeightedTrajectoryPoint(
                 point=copy.copy(point), weights=interpolate_weights(w1, w2, i * dt)
             )
             for i in range(gain_schedule_points)
         ]
-        self._trajectory_buffer.extend(weighted_trajecotry)
+        self._trajectory_buffer.extend(weighted_trajectory)
 
-        # Compute and insert actual trajecotry
-        trajecotry = generator["generator"].get_path(q, T_taget, T_init=T_init)
-        weighted_trajecotry = [
-            WeightedTrajectoryPoint(point=p, weights=copy.copy(w2)) for p in trajecotry
+        # Compute and insert actual trajectory
+        trajectory = generator["generator"].get_path(q, T_taget, T_init=T_init)
+        weighted_trajectory = [
+            WeightedTrajectoryPoint(point=p, weights=copy.copy(w2)) for p in trajectory
         ]
-        self._trajectory_buffer.extend(weighted_trajecotry)
+        self._trajectory_buffer.extend(weighted_trajectory)
 
     def _planner_cb(self) -> None:
         self._update_params()
 
         for topic_name, object in (
             (self._robot_description_sub.topic, self._robot_model),
+            (self._environment_description_sub.topic, self._environment_description),
             (self._joint_states_sub.topic, self._joint_states),
             (self._buffer_size_sub.topic, self._buffer_size),
         ):
@@ -309,15 +328,27 @@ class DeburringPathPlanner(Node):
                     )
                 )
             else:
+                gen_params = self._params.generators_params.hpp_generator
                 self._path_generators["follow_joint_trajectory"]["generator"] = (
                     HPPPathGenerator(
                         handles_configurations_path=Path(
-                            self._params.generators_params.hpp_generator.handle_configs_path
+                            gen_params.handle_configs_path
                         ),
                         robot_description=self._robot_description,
+                        environment_description=self._environment_description,
                         ocp_dt=self._params.ocp_dt,
                         tool_frame_id=self._params.tool_frame_id,
                         robot_model=self._robot_model,
+                        robot_self_collision_config=Path(
+                            gen_params.robot_self_collision_config
+                        ),
+                        handles_srdf_path=Path(self._params.handles_srdf_path),
+                        demo_config=Path(gen_params.demo_config),
+                        robot_name=gen_params.robot_name,
+                        gripper_name=gen_params.gripper_name,
+                        deburred_object_name=gen_params.deburred_object_name,
+                        joints_to_shrink=gen_params.joints_to_shrink,
+                        joint_shrink_range=gen_params.joint_shrink_range,
                     )
                 )
             self._path_generators["insert_retract_tool"]["generator"] = (
@@ -326,7 +357,6 @@ class DeburringPathPlanner(Node):
                     ocp_dt=self._params.ocp_dt,
                     tool_frame_id=self._params.tool_frame_id,
                     max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
-                    max_angular_vel=self._params.generators_params.grasp_generator.max_angular_vel,
                 )
             )
             self._path_generators["deburring_motion"]["generator"] = (
@@ -349,6 +379,27 @@ class DeburringPathPlanner(Node):
             )
             self._path_generators_initialized = True
 
+        try:
+            T_msg = self._tf_buffer.lookup_transform(
+                self._params.world_frame_id,
+                self._params.deburred_object_frame_id,
+                rclpy.time.Time(),
+            ).transform
+            T_pylone = pin.SE3(
+                pin.Quaternion(np.array([getattr(T_msg.rotation, v) for v in "xyzw"])),
+                np.array([getattr(T_msg.translation, v) for v in "xyz"]),
+            )
+            self._path_generators["follow_joint_trajectory"][
+                "generator"
+            ].update_deburred_object_pose(T_pylone)
+        except TransformException:
+            self.get_logger().info(
+                "Waiting for transformation between "
+                f"'{self._params.world_frame_id}' and '{self._params.pylone_frame_id}'...",
+                throttle_duration_sec=5.0,
+            )
+            return
+
         if self._target_handle_name is None:
             self.get_logger().info(
                 f"Waiting for goal message on topic '{self._target_handle_sub.topic}'...",
@@ -357,7 +408,7 @@ class DeburringPathPlanner(Node):
             return
 
         try:
-            target_handle = self._T_pylone * self._handles[self._target_handle_name]
+            target_handle = T_pylone * self._handles[self._target_handle_name]
 
             joint_map = [
                 self._joint_states.name.index(joint_name)
@@ -365,81 +416,22 @@ class DeburringPathPlanner(Node):
             ]
             robot_configuration = np.array(self._joint_states.position)[joint_map]
 
-            # trajectories_folder = Path(
-            #     "/home/gepetto/ros2_ws/src/agimus-demos/agimus_demo_07_deburring/trajectories"
-            # )
-            # trajectory_filename = (
-            #     trajectories_folder
-            #     / f"{self._last_handle}_to_{self._target_handle_name}.pickle"
-            # )
-
-            trajecotry = self._path_generators["follow_joint_trajectory"][
+            trajectory = self._path_generators["follow_joint_trajectory"][
                 "generator"
             ].get_path(robot_configuration, target_handle, self._target_handle_name)
-            # if self._last_handle == "none" or not trajectory_filename.is_file():
-            #     self.get_logger().info(f"Saving new trajectory: {trajectory_filename}")
-            #     if self._last_handle != "none":
-            #         with open(trajectory_filename, "wb") as handle:
-            #             pickle.dump(
-            #                 trajecotry, handle, protocol=pickle.HIGHEST_PROTOCOL
-            #             )
-            # else:
-            #     with open(trajectory_filename, "rb") as handle:
-            #         trajecotry = pickle.load(handle)
 
-            #     tool_frame_id_pin_frame = self._robot_model.getFrameId(
-            #         self._params.tool_frame_id
-            #     )
-
-            #     def _create_trajectory_point(i: int) -> TrajectoryPoint:
-            #         q = pin.interpolate(
-            #             self._robot_model,
-            #             robot_configuration,
-            #             trajecotry[0].robot_configuration,
-            #             i / 500.0
-            #         )
-
-            #         pin.framesForwardKinematics(
-            #             self._robot_model, self._robot_data, q
-            #         )
-            #         pin.updateFramePlacement(
-            #             self._robot_model,
-            #             self._robot_data,
-            #             tool_frame_id_pin_frame,
-            #         )
-
-            #         return TrajectoryPoint(
-            #             id=i,
-            #             time_ns=0,
-            #             robot_configuration=q,
-            #             robot_velocity=np.zeros_like(q),
-            #             robot_acceleration=np.zeros(self._nv),
-            #             robot_effort=np.zeros(self._nv),
-            #             forces={},
-            #             end_effector_poses={
-            #                 self._params.tool_frame_id: copy.copy(
-            #                     self._robot_data.oMf[tool_frame_id_pin_frame]
-            #                 )
-            #             },
-            #         )
-
-            #     interpolated = [
-            #         _create_trajectory_point(i) for i in range(1500)
-            #     ]
-            #     trajecotry = interpolated + trajecotry
-
-            weighted_trajecotry = [
+            weighted_trajectory = [
                 WeightedTrajectoryPoint(
                     point=p,
                     weights=copy.copy(
                         self._path_generators["follow_joint_trajectory"]["weights"]
                     ),
                 )
-                for p in trajecotry
+                for p in trajectory
             ]
 
             self._trajectory_buffer.clear()
-            self._trajectory_buffer.extend(weighted_trajecotry)
+            self._trajectory_buffer.extend(weighted_trajectory)
 
             q = self._trajectory_buffer[-1].point.robot_configuration
             T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
