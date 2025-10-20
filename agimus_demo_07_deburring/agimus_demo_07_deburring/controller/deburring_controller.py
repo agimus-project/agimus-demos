@@ -115,9 +115,9 @@ class ControllerImpl(ControllerImplBase):
 
         plotter_cfg = cfg["cost_plotter"]
         self._use_cost_plotter = False
+        self._iteration_counter = 0
         if with_cost_plotter and plotter_cfg["use_cost_plotter"]:
             self._use_cost_plotter = True
-            self._iteration_counter = 0
             self._cost_plotter_server = crocoddyl_plotter.CrocoddylPlotterServer(
                 plotter_cfg["cost_plotter_url"]
             )
@@ -138,6 +138,7 @@ class ControllerImpl(ControllerImplBase):
         return Int64(data=len(self.mpc._buffer))
 
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
+        # return self._u_zeros
         now = time.time()
         nq = self._robot_models.robot_model.nq
         nv = self._robot_models.robot_model.nv
@@ -223,5 +224,6 @@ class ControllerImpl(ControllerImplBase):
             self._cost_plotter_server.send(
                 self.mpc._ocp._solver.problem, self._iteration_counter
             )
-            self._iteration_counter += 1
+        self._iteration_counter += 1
+
         self.mpc.update_references()

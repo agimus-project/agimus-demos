@@ -14,7 +14,13 @@ ament_auto_find_build_dependencies()
 #
 # Build Python package.
 #
-ament_python_install_package(${PROJECT_NAME})
+
+generate_parameter_module(
+  deburring_path_planner_parameters
+  agimus_demo_07_deburring/planner/deburring_path_planner_parameters.yaml)
+
+ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
+                             lib/${PROJECT_NAME})
 
 #
 # Unit tests
@@ -30,4 +36,4 @@ endif()
 #
 # Installation
 #
-ament_auto_package(INSTALL_TO_SHARE config launch rviz urdf srdf)
+ament_auto_package(INSTALL_TO_SHARE config launch rviz urdf environment)

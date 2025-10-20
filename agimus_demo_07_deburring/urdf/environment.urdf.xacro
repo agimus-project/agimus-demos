@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="simple_deburring_scene">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="pylone">
 
   <!-- Include the pylone urdf -->
   <xacro:include filename="$(find agimus_demo_07_deburring)/urdf/pylone.urdf.xacro"/>
@@ -18,10 +18,8 @@
     <color rgba="0.1 0.1 0.8 0.5"/>
   </material>
 
-  <link name="env_ref_frame" />
-
   <!-- table (under the robot) -->
-  <link name="table">
+  <link name="table_link">
     <visual>
       <geometry>
         <box size="2.0 1.0 0.05"/>
@@ -41,16 +39,16 @@
   </link>
 
   <!-- Side box (for the pylone) -->
-  <link name="base_box">
+  <link name="base_box_link">
     <visual>
       <geometry>
-        <box size="0.55 0.52 0.532"/>
+        <box size="0.55 0.52 0.435"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.55 0.52 0.532"/>
+        <box size="0.55 0.52 0.435"/>
       </geometry>
     </collision>
     <inertial>
@@ -60,25 +58,18 @@
     </inertial>
   </link>
 
-  <!-- Joint connecting table to fer robot base (on top of table) -->
-  <joint name="env_ref_frame_table_joint" type="fixed">
-    <parent link="env_ref_frame"/>
-    <child link="table"/>
-    <origin xyz="0.45 0 -0.025" rpy="0 0 0"/>
-  </joint>
-
-  <!-- Joint connecting table to side box (on top of table) -->
-  <joint name="env_ref_frame_box_joint" type="fixed">
-    <parent link="env_ref_frame"/>
-    <child link="base_box"/>
-    <origin xyz="0.45 -0.1 0.266" rpy="0 0 0"/>
-  </joint>
-
   <!-- Joint connecting side box to pylone (on top of side box) -->
-  <joint name="side_to_pylone" type="fixed">
-    <parent link="base_box"/>
-    <child link="pylone_link"/>
-    <origin xyz="0 -0.015 0.55" rpy="0 0 0.02"/>
+  <joint name="pylone_to_box_joint" type="fixed">
+    <parent link="pylone_link"/>
+    <child link="base_box_link"/>
+    <origin xyz="0 0.015 -0.50" rpy="0 0 -0.02"/>
+  </joint>
+
+  <!-- Joint connecting table to fer robot base (on top of table) -->
+  <joint name="base_box_to_table_joint" type="fixed">
+    <parent link="base_box_link"/>
+    <child link="table_link"/>
+    <origin xyz="0.0 0.1 -0.291" rpy="0 0 0"/>
   </joint>
 
   <xacro:pylone with_sc="$(arg with_sc)" />

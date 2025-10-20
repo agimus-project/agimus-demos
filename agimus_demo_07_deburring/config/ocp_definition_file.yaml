@@ -3,8 +3,8 @@ running_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [5000, 5000, 5000]
-    Kv: [1000, 1000, 1000]
+    Kp: [6000, 6000, 6000]
+    Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]
     with_gravity_torque_reg: true
@@ -32,7 +32,7 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameRotationStatic
-          frame_id: fer_ati_mini45_with_camera_tool
+          frame_id: fer_ati_mini45_no_camera_tool
     - name: frame_pose_tracking_tool
       update: true
       weight: 1.0
@@ -43,13 +43,13 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameTranslationStatic
-          frame_id: fer_ati_mini45_with_camera_tool
+          frame_id: fer_ati_mini45_no_camera_tool
 terminal_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [5000, 5000, 5000]
-    Kv: [1000, 1000, 1000]
+    Kp: [6000, 6000, 6000]
+    Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]
     with_gravity_torque_reg: false
@@ -77,7 +77,7 @@ terminal_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameRotationStatic
-          frame_id: fer_ati_mini45_with_camera_tool
+          frame_id: fer_ati_mini45_no_camera_tool
     - name: frame_pose_tracking_tool
       update: true
       weight: 1.0
@@ -88,4 +88,221 @@ terminal_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameTranslationStatic
-          frame_id: fer_ati_mini45_with_camera_tool
+          frame_id: fer_ati_mini45_no_camera_tool
+    - name: soft_collision_0
+      update: true
+      weight: 1.0
+      publish_residual: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelExp
+          alpha: 4e-2
+          exponent: 2
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ati_mini45_no_camera_tool_capsule_0, pylone_sc_link_18]
+    constraints:
+      # FT sensor to side
+    - name: collision_0
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.005   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ati_mini45_no_camera_tool_capsule_0, pylone_sc_link_capsule_4]
+    - name: collision_7
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.005   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ati_mini45_no_camera_sc_capsule_0, pylone_sc_link_capsule_4]
+    - name: collision_20
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.01   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ati_mini45_no_camera_sc_capsule_0, base_box_link_0]
+    - name: collision_21
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.01   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ati_mini45_no_camera_tool_capsule_0, base_box_link_0]
+      # ft sensor the pylone
+    - name: collision_2
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_0, pylone_sc_link_capsule_0]
+    - name: collision_3
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_0, pylone_sc_link_capsule_1]
+    - name: collision_4
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_0, pylone_sc_link_capsule_2]
+    - name: collision_5
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_0, pylone_sc_link_capsule_3]
+    - name: collision_6
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.005   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_0, pylone_sc_link_capsule_4]
+      # Link 7
+    - name: collision_8
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_1, pylone_sc_link_capsule_0]
+    - name: collision_9
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_1, pylone_sc_link_capsule_1]
+    - name: collision_10
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_1, pylone_sc_link_capsule_2]
+    - name: collision_11
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_1, pylone_sc_link_capsule_3]
+    - name: collision_1
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.005   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link7_sc_capsule_1, pylone_sc_link_capsule_4]
+      # Link 6 capsule 0
+    - name: collision_12
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, pylone_sc_link_capsule_0]
+    - name: collision_14
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, pylone_sc_link_capsule_1]
+    - name: collision_15
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, pylone_sc_link_capsule_2]
+    - name: collision_16
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, pylone_sc_link_capsule_3]
+    - name: collision_13
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link6_sc_capsule_0, pylone_sc_link_capsule_4]
+      # Link 5 capsule 1
+    - name: collision_17
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_1, pylone_sc_link_capsule_0]
+    - name: collision_18
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_1, pylone_sc_link_capsule_1]
+    - name: collision_19
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.0   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_link5_sc_capsule_1, pylone_sc_link_capsule_2]

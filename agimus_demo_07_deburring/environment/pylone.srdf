@@ -825,7 +825,7 @@
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_left_inside_34" clearance="0.05">
+	<handle name="hole_left_inside_34" clearance="0.03">
 		<position xyz="0.060 0.192 -0.050" xyzw="0.707 0.707 -0.000 0.000"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
@@ -1020,102 +1020,102 @@
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_1" clearance="0.05">
+	<handle name="hole_back_left_1" clearance="0.03">
 		<position xyz="-0.169 0.150 -0.189" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_1" clearance="0.05">
+	<handle name="hole_back_left_inside_1" clearance="0.03">
 		<position xyz="-0.147 0.150 -0.191" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_2" clearance="0.05">
+	<handle name="hole_back_left_2" clearance="0.03">
 		<position xyz="-0.165 0.150 -0.151" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_2" clearance="0.05">
+	<handle name="hole_back_left_inside_2" clearance="0.03">
 		<position xyz="-0.143 0.150 -0.153" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_3" clearance="0.05">
+	<handle name="hole_back_left_3" clearance="0.03">
 		<position xyz="-0.162 0.150 -0.112" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_3" clearance="0.05">
+	<handle name="hole_back_left_inside_3" clearance="0.03">
 		<position xyz="-0.140 0.150 -0.114" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_4" clearance="0.05">
+	<handle name="hole_back_left_4" clearance="0.03">
 		<position xyz="-0.159 0.150 -0.073" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_4" clearance="0.05">
+	<handle name="hole_back_left_inside_4" clearance="0.03">
 		<position xyz="-0.137 0.150 -0.075" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_5" clearance="0.05">
+	<handle name="hole_back_left_5" clearance="0.03">
 		<position xyz="-0.155 0.150 -0.034" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_5" clearance="0.05">
+	<handle name="hole_back_left_inside_5" clearance="0.03">
 		<position xyz="-0.133 0.150 -0.036" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_6" clearance="0.05">
+	<handle name="hole_back_left_6" clearance="0.03">
 		<position xyz="-0.152 0.150 0.004" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_6" clearance="0.05">
+	<handle name="hole_back_left_inside_6" clearance="0.03">
 		<position xyz="-0.130 0.150 0.002" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_7" clearance="0.05">
+	<handle name="hole_back_left_7" clearance="0.03">
 		<position xyz="-0.148 0.150 0.043" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_7" clearance="0.05">
+	<handle name="hole_back_left_inside_7" clearance="0.03">
 		<position xyz="-0.126 0.150 0.041" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_8" clearance="0.05">
+	<handle name="hole_back_left_8" clearance="0.03">
 		<position xyz="-0.145 0.150 0.082" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_8" clearance="0.05">
+	<handle name="hole_back_left_inside_8" clearance="0.03">
 		<position xyz="-0.123 0.150 0.080" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_9" clearance="0.05">
+	<handle name="hole_back_left_9" clearance="0.03">
 		<position xyz="-0.142 0.150 0.120" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_9" clearance="0.05">
+	<handle name="hole_back_left_inside_9" clearance="0.03">
 		<position xyz="-0.120 0.150 0.119" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_10" clearance="0.05">
+	<handle name="hole_back_left_10" clearance="0.03">
 		<position xyz="-0.138 0.150 0.159" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_back_left_inside_10" clearance="0.05">
+	<handle name="hole_back_left_inside_10" clearance="0.03">
 		<position xyz="-0.116 0.150 0.157" xyzw="0.000 0.999 0.000 -0.044"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
@@ -1131,7 +1131,7 @@
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
 	<handle name="hole_back_right_2" clearance="0.05">
-		<position xyz="-0.165 -0.150 -0.151" xyzw="0.000 0.044 0.000 0.999"/>
+		<position xyz="-0.165 -0.150 -0.156" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
@@ -1181,7 +1181,7 @@
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
 	<handle name="hole_back_right_7" clearance="0.05">
-		<position xyz="-0.148 -0.150 0.043" xyzw="0.000 0.044 0.000 0.999"/>
+		<position xyz="-0.148 -0.150 0.0415" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>

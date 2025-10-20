@@ -33,16 +33,6 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-    ocp_definition_file = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_04_visual_servoing"),
-            "config",
-            "ocp_definition_file.yaml",
-        ]
-    )
-    extra_params = {
-        "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
-    }
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -52,7 +42,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml, extra_params],
+        parameters=[get_use_sim_time(), agimus_controller_yaml],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )

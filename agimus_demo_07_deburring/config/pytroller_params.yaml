@@ -74,7 +74,7 @@ agimus_pytroller:
     type: agimus_pytroller/AgimusPytroller
     python_module: agimus_demo_07_deburring.controller.deburring_controller
     python_downsample_factor: 2
-    error_on_no_data: false
+    error_on_no_data: true
     interpolate_trajectory: true
     input_interfaces:
     - fer_joint1/position
@@ -120,7 +120,7 @@ agimus_pytroller:
       topic_type: std_msgs/msg/String
       transient_local: true
     environment_description:
-      topic_name: /environment_description
+      topic_name: /environment_description_with_collision
       topic_type: std_msgs/msg/String
       transient_local: true
     subscribed_topics: [mpc_input]
@@ -163,8 +163,8 @@ agimus_pytroller:
       ocp_params:
         dt: 0.002
         horizon_size: 10
-        solver_iters: 3
-        callbacks: true
-        qp_iters: 25
+        solver_iters: 5
+        callbacks: false
+        qp_iters: 100
         use_debug_data: false
         n_threads: 8
