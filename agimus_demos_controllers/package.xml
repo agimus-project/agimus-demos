@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>agimus_demos_controllers</name>
+  <version>0.0.1</version>
+  <description>Implementations of ros2_control controllers used in Agimus demos.</description>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
+  <license>BSD-2</license>
+
+  <author email="krzysztof.wojciechowski@laas.fr">Krzysztof Wojciechowski</author>
+
+  <url type="website">https://www.agimus-project.eu/</url>
+  <url type="repository">https://github.com/agimus-project/agimus-demos</url>
+  <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
+
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <!-- ROS2 dependencies. -->
+  <build_depend>generate_parameter_library</build_depend>
+  <build_depend>eigen</build_depend>
+
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>pinocchio</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <depend>agimus_demos</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

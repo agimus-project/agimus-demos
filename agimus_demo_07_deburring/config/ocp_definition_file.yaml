@@ -1,0 +1,91 @@
+---
+running_model:
+  class: IAMSoftContactAugmented
+  differential:
+    class: DAMSoftContactAugmentedFwdDynamics
+    Kp: [5000, 5000, 5000]
+    Kv: [1000, 1000, 1000]
+    frame_id: ati_mini45_measurement_reference
+    oPc: [0.0, 0.0, -0.073915]
+    with_gravity_torque_reg: true
+    enabled_directions: [true, true, true]
+    ref: LOCAL_WORLD_ALIGNED
+    cost_ref: LOCAL_WORLD_ALIGNED
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: frame_rot_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: fer_ati_mini45_with_camera_tool
+    - name: frame_pose_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: fer_ati_mini45_with_camera_tool
+terminal_model:
+  class: IAMSoftContactAugmented
+  differential:
+    class: DAMSoftContactAugmentedFwdDynamics
+    Kp: [5000, 5000, 5000]
+    Kv: [1000, 1000, 1000]
+    frame_id: ati_mini45_measurement_reference
+    oPc: [0.0, 0.0, -0.073915]
+    with_gravity_torque_reg: false
+    enabled_directions: [true, true, true]
+    ref: LOCAL_WORLD_ALIGNED
+    cost_ref: LOCAL_WORLD_ALIGNED
+    costs:
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: frame_rot_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: fer_ati_mini45_with_camera_tool
+    - name: frame_pose_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: fer_ati_mini45_with_camera_tool

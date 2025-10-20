@@ -89,17 +89,16 @@ def launch_setup(
         output="screen",
         # If set to `true`, change values to custom ones. If `false` use default.
         # Robot remembers previous parameters, so we need to change values every time.
-        parameters=(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demos_common"),
-                        "config",
-                        franka_safety_params_file,
-                    ]
-                )
-            ]
-        ),
+        parameters=[
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "config",
+                    "franka",
+                    franka_safety_params_file,
+                ]
+            )
+        ],
     )
 
     return [

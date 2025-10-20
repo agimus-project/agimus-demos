@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="simple_deburring_scene">
+
+  <!-- Include the pylone urdf -->
+  <xacro:include filename="$(find agimus_demo_07_deburring)/urdf/pylone.urdf.xacro"/>
+
+  <!-- Include the fer robot xacro -->
+  <xacro:include filename="$(find franka_description)/robots/common/franka_robot.xacro"/>
+
+  <xacro:arg name="with_sc" default="false" />
+
+  <!-- Materials -->
+  <material name="brown">
+    <color rgba="0.6 0.3 0.1 0.5"/>
+  </material>
+
+  <material name="blue">
+    <color rgba="0.1 0.1 0.8 0.5"/>
+  </material>
+
+  <link name="env_ref_frame" />
+
+  <!-- table (under the robot) -->
+  <link name="table">
+    <visual>
+      <geometry>
+        <box size="2.0 1.0 0.05"/>
+      </geometry>
+      <material name="brown"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="2.0 1.0 0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="10.0"/>
+      <inertia ixx="1.67" ixy="0" ixz="0" iyy="1.67" iyz="0" izz="1.67"/>
+    </inertial>
+  </link>
+
+  <!-- Side box (for the pylone) -->
+  <link name="base_box">
+    <visual>
+      <geometry>
+        <box size="0.55 0.52 0.532"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.55 0.52 0.532"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="5.0"/>
+      <inertia ixx="0.52" ixy="0" ixz="0" iyy="0.52" iyz="0" izz="0.52"/>
+    </inertial>
+  </link>
+
+  <!-- Joint connecting table to fer robot base (on top of table) -->
+  <joint name="env_ref_frame_table_joint" type="fixed">
+    <parent link="env_ref_frame"/>
+    <child link="table"/>
+    <origin xyz="0.45 0 -0.025" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Joint connecting table to side box (on top of table) -->
+  <joint name="env_ref_frame_box_joint" type="fixed">
+    <parent link="env_ref_frame"/>
+    <child link="base_box"/>
+    <origin xyz="0.45 -0.1 0.266" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Joint connecting side box to pylone (on top of side box) -->
+  <joint name="side_to_pylone" type="fixed">
+    <parent link="base_box"/>
+    <child link="pylone_link"/>
+    <origin xyz="0 -0.015 0.55" rpy="0 0 0.02"/>
+  </joint>
+
+  <xacro:pylone with_sc="$(arg with_sc)" />
+
+</robot>

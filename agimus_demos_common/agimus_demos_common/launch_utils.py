@@ -1,6 +1,8 @@
 from pathlib import Path
 
+from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -87,6 +89,11 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             "ft_sensor_ip",
             default_value="",
             description="Hostname or IP address of the force-torque sensor.",
+        ),
+        DeclareLaunchArgument(
+            "ee_id",
+            default_value="franka_hand",
+            description="Name of the end effector used.",
         ),
         DeclareLaunchArgument(
             "gz_verbose",
@@ -349,3 +356,18 @@ def get_use_sim_time() -> dict[str, LaunchConfiguration]:
         `use_gazebo` launch argument to `use_sim_time` param.
     """
     return {"use_sim_time": LaunchConfiguration("use_gazebo")}
+
+
+def ament_prefix_to_ros_package(context: LaunchContext) -> dict[str, str]:
+    """Converts `AMENT_PREFIX_PATH` to match old `ROS_PACKAGE_PATH` as it is required by HPP
+
+    Args:
+        context (LaunchContext): launch context used to evaluate environment variables
+
+    Returns:
+        dict[str, str]: Dictionary with `ROS_PACKAGE_PATH`
+    """
+    ament_prefix = context.perform_substitution(
+        EnvironmentVariable("AMENT_PREFIX_PATH")
+    )
+    return {"ROS_PACKAGE_PATH": ":".join(v + "/share" for v in ament_prefix.split(":"))}
