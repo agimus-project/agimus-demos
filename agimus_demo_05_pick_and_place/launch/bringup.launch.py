@@ -46,20 +46,10 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    ocp_definition_file = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_05_pick_and_place"),
-            "config",
-            "ocp_definition_file.yaml",
-        ]
-    )
-    extra_params = {
-        "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
-    }
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml, extra_params],
+        parameters=[get_use_sim_time(), agimus_controller_yaml],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )

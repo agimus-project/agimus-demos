@@ -47,16 +47,7 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-    ocp_definition_file = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-            "config",
-            "ocp_definition_file.yaml",
-        ]
-    )
-    extra_params = {
-        "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
-    }
+
     trajectory_weights_yaml = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
@@ -110,7 +101,6 @@ def launch_setup(
         parameters=[
             get_use_sim_time(),
             agimus_controller_yaml,
-            extra_params,
         ],
         output="screen",
         # remappings=[("robot_description", "robot_description_with_collision")],

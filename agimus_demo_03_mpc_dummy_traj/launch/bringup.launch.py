@@ -42,15 +42,10 @@ def launch_setup(
     )
 
     if use_collision_detection:
-        ocp_definition_file = PathJoinSubstitution(
-            [
-                FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
-                "config",
-                "ocp_definition_file.yaml",
-            ]
-        )
         extra_params = {
-            "ocp": {"definition_yaml_file": ocp_definition_file.perform(context)}
+            "ocp": {
+                "definition_yaml_file": "package://agimus_demo_03_mpc_dummy_traj/config/ocp_definition_file.yaml"
+            }
         }
     else:
         extra_params = {}
