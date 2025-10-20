@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
 import yaml
+import resource_retriever as r
 from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
 from agimus_controller.mpc_data import OCPResults
 from agimus_controller.ocp.ocp_croco_generic import (
@@ -80,7 +81,7 @@ class ControllerImpl(ControllerImplBase):
             dt_factor_n_seq=dt_factor_n_seq, **cfg["ocp_params"]
         )
         add_modules(get_globals())
-        yaml_file = cfg["ocp_definition_file"]
+        yaml_file = r.get_filename(cfg["ocp_definition_file"], use_protocol=False)
         ocp = OCPCrocoForceFeedbackGeneric(
             self._robot_models, self._ocp_params, yaml_file, expect_rolling_buffer=True
         )
