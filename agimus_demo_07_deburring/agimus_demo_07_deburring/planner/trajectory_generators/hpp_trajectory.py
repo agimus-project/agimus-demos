@@ -23,7 +23,7 @@ from hpp.gepetto.manipulation import ViewerFactory
 
 from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
-    GenericTrajectoryGenerator,
+    JointSpaceMotionGenerator,
 )
 
 loadServerPlugin("corbaserver", "manipulation-corba.so")
@@ -39,7 +39,7 @@ class BaseObject(object):
         self.name = name
 
 
-class HPPPathGenerator(GenericTrajectoryGenerator):
+class HPPPathGenerator(JointSpaceMotionGenerator):
     def __init__(
         self,
         handles_configurations_path: Path,

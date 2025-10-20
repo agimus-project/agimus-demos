@@ -11,11 +11,11 @@ from agimus_demo_07_deburring.planner.diffusion.diffusion_model import (
     DiffusionModel,
 )
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
-    GenericTrajectoryGenerator,
+    JointSpaceMotionGenerator,
 )
 
 
-class DiffusionPathGenerator(GenericTrajectoryGenerator):
+class DiffusionPathGenerator(JointSpaceMotionGenerator):
     def __init__(
         self,
         wights_path: Path,
