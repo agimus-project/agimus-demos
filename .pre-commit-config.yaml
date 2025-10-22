@@ -46,12 +46,10 @@ repos:
     args: [--write-changes, --check-filenames]
     additional_dependencies:
     - tomli
-    exclude: ^deprecated/
 - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
   rev: 0.2.3
   hooks:
   - id: yamlfmt
     args: [--mapping, '2', --sequence, '2', --offset, '0', --width, '88']
-    exclude: ^deprecated/
     files: \.(yml|yaml|repos)$
     types: [file]
