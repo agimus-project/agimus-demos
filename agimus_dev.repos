@@ -1,12 +1,9 @@
 ---
 repositories:
-  # TODO waiting for release with
-  # https://github.com/agimus-project/colmpc/pull/38
-  # https://github.com/agimus-project/colmpc/pull/39
   vcs_agimus/colmpc:
     type: git
     url: https://github.com/agimus-project/colmpc
-    version: main
+    version: v0.3.0
 
   vcs_agimus/linear-feedback-controller:
     type: git

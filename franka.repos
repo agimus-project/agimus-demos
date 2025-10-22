@@ -15,8 +15,7 @@ repositories:
     url: https://github.com/agimus-project/franka_description
     version: humble-devel
 
-  # Waiting for merge of https://github.com/gbartyzel/ros2_net_ft_driver/pull/22
   vcs_repos/ros2_net_ft_driver:
     type: git
-    url: https://github.com/Kotochleb/ros2_net_ft_driver
-    version: bugfix/move-all-dependencies-to-rosdep
+    url: https://github.com/gbartyzel/ros2_net_ft_driver
+    version: rolling
