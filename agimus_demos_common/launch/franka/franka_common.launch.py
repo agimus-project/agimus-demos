@@ -318,7 +318,6 @@ def launch_setup(
             "gz_world_path": gz_world_path,
             "use_ft_sensor": use_ft_sensor,
             "ee_id": ee_id,
-            "use_camera": use_camera,
         }.items(),
         condition=IfCondition(use_gazebo),
     )
@@ -333,6 +332,7 @@ def launch_setup(
         "fake_sensor_commands": "false",
         "gazebo": use_gazebo,
         "ee_id": ee_id,
+        "use_camera": use_camera,
         "gazebo_effort": "true",
         "with_sc": "false",
         "franka_controllers_params": franka_controllers_params,
