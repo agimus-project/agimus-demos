@@ -39,14 +39,8 @@ from agimus_demo_07_deburring.deburring_path_planner_parameters import (
 from agimus_demo_07_deburring.planner.trajectory_generators.deburring_trajectory import (
     DeburringPathGenerator,
 )
-from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
-    DiffusionPathGenerator,
-)
 from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory import (
     GraspPathGenerator,
-)
-from agimus_demo_07_deburring.planner.trajectory_generators.hpp_trajectory import (
-    HPPPathGenerator,
 )
 
 
@@ -316,68 +310,85 @@ class DeburringPathPlanner(Node):
                 return
 
         if not self._path_generators_initialized:
-            if self._params.generators_params.main_generator == "diffusion":
-                self._path_generators["follow_joint_trajectory"]["generator"] = (
-                    DiffusionPathGenerator(
-                        wights_path=self._params.generators_params.diffusion_generator.weights_path,
-                        sequence_length=self._params.generators_params.diffusion_generator.sequence_length,
+            try:
+                if self._params.generators_params.main_generator == "diffusion":
+                    from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
+                        DiffusionPathGenerator,
+                    )
+
+                    self._path_generators["follow_joint_trajectory"]["generator"] = (
+                        DiffusionPathGenerator(
+                            wights_path=self._params.generators_params.diffusion_generator.weights_path,
+                            sequence_length=self._params.generators_params.diffusion_generator.sequence_length,
+                            robot_model=self._robot_model,
+                            ocp_dt=self._params.ocp_dt,
+                            max_joint_velocity=np.array(
+                                self._params.max_joint_velocity
+                            ),
+                            tool_frame_id=self._params.tool_frame_id,
+                        )
+                    )
+                else:
+                    from agimus_demo_07_deburring.planner.trajectory_generators.hpp_trajectory import (
+                        HPPPathGenerator,
+                    )
+
+                    gen_params = self._params.generators_params.hpp_generator
+                    self._path_generators["follow_joint_trajectory"]["generator"] = (
+                        HPPPathGenerator(
+                            handles_configurations_path=Path(
+                                gen_params.handle_configs_path
+                            ),
+                            robot_description=self._robot_description,
+                            environment_description=self._environment_description,
+                            ocp_dt=self._params.ocp_dt,
+                            tool_frame_id=self._params.tool_frame_id,
+                            robot_model=self._robot_model,
+                            robot_self_collision_config=Path(
+                                gen_params.robot_self_collision_config
+                            ),
+                            handles_srdf_path=Path(self._params.handles_srdf_path),
+                            demo_config=Path(gen_params.demo_config),
+                            robot_name=gen_params.robot_name,
+                            gripper_name=gen_params.gripper_name,
+                            deburred_object_name=gen_params.deburred_object_name,
+                            joints_to_shrink=gen_params.joints_to_shrink,
+                            joint_shrink_range=gen_params.joint_shrink_range,
+                        )
+                    )
+                self._path_generators["insert_retract_tool"]["generator"] = (
+                    GraspPathGenerator(
                         robot_model=self._robot_model,
                         ocp_dt=self._params.ocp_dt,
-                        max_joint_velocity=np.array(self._params.max_joint_velocity),
                         tool_frame_id=self._params.tool_frame_id,
+                        max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
                     )
                 )
-            else:
-                gen_params = self._params.generators_params.hpp_generator
-                self._path_generators["follow_joint_trajectory"]["generator"] = (
-                    HPPPathGenerator(
-                        handles_configurations_path=Path(
-                            gen_params.handle_configs_path
-                        ),
-                        robot_description=self._robot_description,
-                        environment_description=self._environment_description,
+                self._path_generators["deburring_motion"]["generator"] = (
+                    DeburringPathGenerator(
+                        robot_model=self._robot_model,
                         ocp_dt=self._params.ocp_dt,
                         tool_frame_id=self._params.tool_frame_id,
-                        robot_model=self._robot_model,
-                        robot_self_collision_config=Path(
-                            gen_params.robot_self_collision_config
-                        ),
-                        handles_srdf_path=Path(self._params.handles_srdf_path),
-                        demo_config=Path(gen_params.demo_config),
-                        robot_name=gen_params.robot_name,
-                        gripper_name=gen_params.gripper_name,
-                        deburred_object_name=gen_params.deburred_object_name,
-                        joints_to_shrink=gen_params.joints_to_shrink,
-                        joint_shrink_range=gen_params.joint_shrink_range,
+                        measurement_frame_id=self._params.measurement_frame_id,
+                        desired_force=self._params.desired_force,
+                        angle=self._params.generators_params.deburring_generator.angle,
+                        frequency=self._params.generators_params.deburring_generator.frequency,
+                        slope_circles=self._params.generators_params.deburring_generator.slope_circles,
+                        n_circles=self._params.generators_params.deburring_generator.n_circles,
+                        force_ramp=self._params.force_ramp,
                     )
                 )
-            self._path_generators["insert_retract_tool"]["generator"] = (
-                GraspPathGenerator(
-                    robot_model=self._robot_model,
-                    ocp_dt=self._params.ocp_dt,
-                    tool_frame_id=self._params.tool_frame_id,
-                    max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
+                self.get_logger().info(
+                    "Trajecotry generators initialized!",
+                    throttle_duration_sec=5.0,
                 )
-            )
-            self._path_generators["deburring_motion"]["generator"] = (
-                DeburringPathGenerator(
-                    robot_model=self._robot_model,
-                    ocp_dt=self._params.ocp_dt,
-                    tool_frame_id=self._params.tool_frame_id,
-                    measurement_frame_id=self._params.measurement_frame_id,
-                    desired_force=self._params.desired_force,
-                    angle=self._params.generators_params.deburring_generator.angle,
-                    frequency=self._params.generators_params.deburring_generator.frequency,
-                    slope_circles=self._params.generators_params.deburring_generator.slope_circles,
-                    n_circles=self._params.generators_params.deburring_generator.n_circles,
-                    force_ramp=self._params.force_ramp,
+                self._path_generators_initialized = True
+            except Exception as e:
+                # Log the exception as an error and forward it
+                self.get_logger().error(
+                    f"Failed to initialize generators! Reason: {str(e)}",
                 )
-            )
-            self.get_logger().info(
-                "Trajecotry generators initialized!",
-                throttle_duration_sec=5.0,
-            )
-            self._path_generators_initialized = True
+                raise e
 
         try:
             T_msg = self._tf_buffer.lookup_transform(
