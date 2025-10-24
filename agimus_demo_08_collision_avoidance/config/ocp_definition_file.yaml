@@ -1,0 +1,107 @@
+---
+running_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: control_reg
+      update: true
+      weight: 1.0
+      active: true
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelControlGrav
+    - name: state_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: target_pose_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: fer_hand
+    - name: target_rotation_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: fer_hand
+    constraints:
+    - name: collision
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.01   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision2
+          collision_pair: [fer_hand_sc_capsule_0, obstacle_0]
+
+terminal_model:
+  class: IntegratedActionModelEuler
+  differential:
+    class: DifferentialActionModelFreeFwdDynamics
+    costs:
+    - name: state_reg
+      update: true
+      weight: 0.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelState
+    - name: target_pose_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: fer_hand
+    - name: target_rotation_tracking
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: fer_hand
+    constraints:
+    - name: collision
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.01   # cm
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision2
+          collision_pair: [fer_hand_sc_capsule_0, obstacle_0]
