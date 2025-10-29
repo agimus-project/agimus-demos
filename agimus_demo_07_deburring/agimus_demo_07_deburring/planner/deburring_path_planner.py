@@ -286,7 +286,8 @@ class DeburringPathPlanner(Node):
         )
         weighted_trajectory = [
             WeightedTrajectoryPoint(
-                point=copy.copy(point), weights=interpolate_weights(w1, w2, i * dt)
+                point=copy.copy(point),
+                weights=interpolate_weights(w1, w2, i / gain_schedule_points),
             )
             for i in range(gain_schedule_points)
         ]
