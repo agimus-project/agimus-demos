@@ -108,7 +108,7 @@ deburring_path_planner:
       default_value: false
       read_only: true
     precomputed_trajectories_path:
-      type: str
+      type: string
       description: Path to a folder containing precomputed trajectories.
       default_value: ''
       read_only: true
