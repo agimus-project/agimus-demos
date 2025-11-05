@@ -15,7 +15,7 @@ repositories:
     url: https://github.com/agimus-project/franka_description
     version: humble-devel
 
-  vcs_repos/ros2_net_ft_driver:
+  vcs_franka/ros2_net_ft_driver:
     type: git
     url: https://github.com/gbartyzel/ros2_net_ft_driver
     version: rolling

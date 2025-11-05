@@ -32,3 +32,8 @@ repositories:
     type: git
     url: https://github.com/machines-in-motion/mim_solvers
     version: v0.1.0
+
+  vcs_control/colmpc:
+    type: git
+    url: https://github.com/agimus-project/colmpc
+    version: v0.3.0
