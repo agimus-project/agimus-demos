@@ -51,3 +51,8 @@ In another terminal session run:
 ros2 topic pub /target_handle std_msgs/msg/String "data: '<handle_name>'" --once
 ```
 Replace `handle_name` with a name of the handle you want to reach. Available handles can be found in a folder [hpp_handle_configs.yaml](config/hpp_handle_configs.yaml). In case robot correctly finds a path, a red path corresponding to robot's TCP will be displayed in RViz 2. In case error occurred corresponding error message will be displayed.
+
+Optionally there is a script with a default set of holes. To run it execute:
+```bash
+ros2 run agimus_demo_07_deburring sequencer_node
+```
