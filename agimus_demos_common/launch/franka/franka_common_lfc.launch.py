@@ -55,6 +55,8 @@ def launch_setup(
             "use_gazebo": LaunchConfiguration("use_gazebo"),
             "use_rviz": LaunchConfiguration("use_rviz"),
             "rviz_config_path": LaunchConfiguration("rviz_config_path"),
+            "use_plotjuggler": LaunchConfiguration("use_plotjuggler"),
+            "plotjuggler_config_path": LaunchConfiguration("plotjuggler_config_path"),
             "gz_verbose": LaunchConfiguration("gz_verbose"),
             "gz_headless": LaunchConfiguration("gz_headless"),
         }.items(),
@@ -101,6 +103,18 @@ def generate_launch_description():
                 ]
             ),
             description="Path to RViz configuration file",
+        ),
+        DeclareLaunchArgument(
+            "plotjuggler_config_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "plotjuggler",
+                    "franka",
+                    "plotjuggler_mpc_debug.xml",
+                ]
+            ),
+            description="Path to PlotJuggler configuration file",
         ),
     ]
 

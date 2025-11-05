@@ -36,4 +36,11 @@ endif()
 #
 # Installation
 #
-ament_auto_package(INSTALL_TO_SHARE config launch rviz urdf environment)
+ament_auto_package(
+  INSTALL_TO_SHARE
+  config
+  launch
+  rviz
+  plotjuggler
+  urdf
+  environment)
