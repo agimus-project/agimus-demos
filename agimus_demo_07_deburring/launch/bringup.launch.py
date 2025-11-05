@@ -57,6 +57,14 @@ def launch_setup(
         ]
     )
 
+    plotjuggler_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_07_deburring"),
+            "plotjuggler",
+            "plotjuggler_view.xml",
+        ]
+    )
+
     pytroller_params = (
         PathJoinSubstitution(
             [
@@ -75,6 +83,7 @@ def launch_setup(
             "external_controllers_names": str(agimus_pytroller_names),
             "external_controllers_params": pytroller_params,
             "rviz_config_path": rviz_config_path,
+            "plotjuggler_config_path": plotjuggler_config_path,
             "use_ft_sensor": "true",
             "use_camera": "false",
             "ee_id": "ati_mini45_no_camera",

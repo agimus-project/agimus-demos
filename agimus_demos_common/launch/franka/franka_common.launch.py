@@ -50,6 +50,8 @@ def launch_setup(
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
+    use_plotjuggler = LaunchConfiguration("use_plotjuggler")
+    plotjuggler_config_path = LaunchConfiguration("plotjuggler_config_path")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
     ft_sensor_ip = LaunchConfiguration("ft_sensor_ip")
     ee_id = LaunchConfiguration("ee_id")
@@ -66,6 +68,9 @@ def launch_setup(
         context.perform_substitution(disable_collision_safety).lower() == "true"
     )
     use_rviz_bool = context.perform_substitution(use_rviz).lower() == "true"
+    use_plotjuggler_bool = (
+        context.perform_substitution(use_plotjuggler).lower() == "true"
+    )
     use_ft_sensor_bool = context.perform_substitution(use_ft_sensor).lower() == "true"
     ft_sensor_ip_empty = context.perform_substitution(ft_sensor_ip) == ""
     ee_id_str = context.perform_substitution(ee_id)
@@ -129,6 +134,12 @@ def launch_setup(
         )
 
     if on_aux_computer_bool and use_rviz_bool:
+        raise RuntimeError(
+            "Incorrect launch configuration! Can not launch demo with both "
+            "`on_aux_computer:=true` and `use_rviz:=true`."
+        )
+
+    if on_aux_computer_bool and use_plotjuggler_bool:
         raise RuntimeError(
             "Incorrect launch configuration! Can not launch demo with both "
             "`on_aux_computer:=true` and `use_rviz:=true`."
@@ -452,6 +463,21 @@ def launch_setup(
         condition=IfCondition(use_rviz),
     )
 
+    plotjuggler_node = Node(
+        package="plotjuggler",
+        executable="plotjuggler",
+        name="plotjuggler_node",
+        arguments=[
+            "-l",
+            plotjuggler_config_path,
+            "--nosplash",
+            "--start_streamer",
+            "ros2",
+        ],
+        output="screen",
+        condition=IfCondition(use_plotjuggler),
+    )
+
     return [
         franka_hardware_launch,
         franka_remote_hardware_launch,
@@ -464,6 +490,7 @@ def launch_setup(
         robot_srdf_publisher_node,
         joint_state_publisher_node,
         rviz_node,
+        plotjuggler_node,
     ]
 
 
@@ -513,6 +540,18 @@ def generate_launch_description():
                 ]
             ),
             description="Path to RViz configuration file",
+        ),
+        DeclareLaunchArgument(
+            "plotjuggler_config_path",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("agimus_demos_common"),
+                    "plotjuggler",
+                    "franka",
+                    "plotjuggler_mpc_debug.xml",
+                ]
+            ),
+            description="Path to PlotJuggler configuration file",
         ),
     ]
 

@@ -80,6 +80,12 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
+            "use_plotjuggler",
+            default_value="false",
+            description="Visualize time series with PLotJuggler",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
             "use_ft_sensor",
             default_value="false",
             description="Enable or disable use of force-torque sensor",
