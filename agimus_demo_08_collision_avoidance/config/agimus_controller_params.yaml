@@ -8,9 +8,9 @@ agimus_controller_node:
         n_steps: [20, 10]
         factors: [1, 2]
       armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-      max_qp_iter: 200
+      max_qp_iter: 300
       max_iter: 20
-      activate_callback: true
+      activate_callback: false
       definition_yaml_file: package://agimus_demo_08_collision_avoidance/config/ocp_definition_file.yaml
     publish_debug_data: true
     constant_delay: false
@@ -21,7 +21,7 @@ agimus_controller_node:
     publish_buffer_size: true
     collision_pairs_names: [cp_1]
     cp_1:
-      first: fer_hand_sc_capsule_1
+      first: fer_hand_sc_capsule_0
       second: obstacle_0
     moving_geometries_names: [obstacle_0]
     robot_attachment_frame: universe

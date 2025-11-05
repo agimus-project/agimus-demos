@@ -11,28 +11,28 @@ goal_publisher_node:
     ocp_buffer_size: 100
     target_poses_names: [pose_left, pose_right]
     pose_left:
-      translation: [0.5, 0.2, 0.3]
+      translation: [0.5, 0.3, 0.35]
       rotation: [1.0, 0.0, 0.0, 0.0]
     pose_right:
-      translation: [0.5, -0.2, 0.3]
+      translation: [0.5, -0.3, 0.35]
       rotation: [1.0, 0.0, 0.0, 0.0]
-    joint_reg_pose: [-1.3104607281269263, 0.021126273288498035, 1.3153149518775196, -2.4086527064908014,
-      -0.021639742840852443, 2.4130281798827333, 0.7983431441328555]
+    # Configuration measured manually, corresponding to robot being in between left and right poses
+    joint_reg_pose: [-1.31, 0.021, 1.31, -2.40, 0.0, 2.41, 0.79]
     schedule:
-      first_motion_time: 5.0
-      start_to_final_time: 5.0
+      first_motion_time: 20.0
+      start_to_final_time: 15.0
       final_to_start_time: 0.1
-      wait_time: 5.0
+      wait_time: 2.0
     weights:
       motion_start_weights:
-        w_robot_configuration: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
-        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
-        w_frame_rotation: [0.1, 0.1, 0.1]
-        w_frame_translation: [5.0, 5.0, 5.0]
+        w_robot_configuration: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+        w_robot_velocity: [0.008, 0.008, 0.008, 0.008, 0.008, 0.01, 0.5]
+        w_robot_effort: [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005]
+        w_frame_rotation: [0.05, 0.05, 0.05]
+        w_frame_translation: [0.4, 0.4, 0.4]
       final_pose_weights:
-        w_robot_configuration: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
-        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
-        w_frame_rotation: [1.0, 1.0, 1.0]
-        w_frame_translation: [10.0, 10.0, 10.0]
+        w_robot_configuration: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+        w_robot_velocity: [0.008, 0.008, 0.008, 0.008, 0.008, 0.01, 0.5]
+        w_robot_effort: [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005]
+        w_frame_rotation: [0.2, 0.2, 0.2]
+        w_frame_translation: [3.0, 3.0, 3.0]
