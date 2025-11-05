@@ -42,5 +42,6 @@ ament_auto_package(
   launch
   rviz
   plotjuggler
+  precomputed_trajectories
   urdf
   environment)

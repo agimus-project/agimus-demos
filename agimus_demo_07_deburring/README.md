@@ -42,7 +42,8 @@ ros2 launch agimus_demo_07_deburring bringup.launch.py \
     ft_sensor_ip:=<ip of the FT sensor> \
     disable_collision_safety:=true \
     use_rviz:=true \
-    use_plotjuggler:=true
+    use_plotjuggler:=true \
+    use_precomputed_trajectories:=true
 ```
 
 ## Commanding the robot

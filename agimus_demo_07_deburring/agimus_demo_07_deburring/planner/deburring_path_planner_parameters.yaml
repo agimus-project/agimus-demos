@@ -101,6 +101,17 @@ deburring_path_planner:
       read_only: true
       validation:
         one_of<>: [[diffusion, hpp]]
+    use_precomputed_trajectories:
+      type: bool
+      description: Reuse precomputed trajectories between certain handles. Useful only for
+        demonstration cases.
+      default_value: false
+      read_only: true
+    precomputed_trajectories_path:
+      type: str
+      description: Path to a folder containing precomputed trajectories.
+      default_value: ''
+      read_only: true
     diffusion_generator:
       weights_path:
         type: string

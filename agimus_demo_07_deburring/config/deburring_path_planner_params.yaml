@@ -29,6 +29,8 @@ deburring_path_planner_node:
     force_ramp: 3.0
     generators_params:
       main_generator: hpp
+      use_precomputed_trajectories: $(var use_precomputed_trajectories)
+      precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories
       # TODO implement when diffusion is finalized
       diffusion_generator:
         weights_path: ''

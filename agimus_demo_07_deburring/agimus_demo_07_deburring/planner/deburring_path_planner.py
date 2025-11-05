@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from collections import deque
 
 from pathlib import Path
+import pickle
 
 import numpy as np
 import numpy.typing as npt
@@ -81,6 +82,23 @@ class DeburringPathPlanner(Node):
                 "deburring_motion",
             )
         }
+
+        self._use_precomputed_trajectories = (
+            self._params.generators_params.use_precomputed_trajectories
+        )
+        if self._use_precomputed_trajectories:
+            self._trajectories_folder = Path(
+                self._params.generators_params.precomputed_trajectories_path
+            )
+            if not self._trajectories_folder.is_dir():
+                e = ParameterException(
+                    "Folder containing precomputed trajectories does not exist.",
+                    ("generators_params.precomputed_trajectories_path"),
+                )
+                self.get_logger().error(str(e))
+                raise e
+        else:
+            self._trajectories_folder = None
 
         tree = ET.parse(self._params.handles_srdf_path)
         root = tree.getroot()
@@ -428,9 +446,55 @@ class DeburringPathPlanner(Node):
             ]
             robot_configuration = np.array(self._joint_states.position)[joint_map]
 
-            trajectory = self._path_generators["follow_joint_trajectory"][
-                "generator"
-            ].get_path(robot_configuration, target_handle, self._target_handle_name)
+            trajectory_filename = None
+            compute_new_trajectory = True
+            if self._use_precomputed_trajectories:
+                trajectory_filename = (
+                    self._trajectories_folder
+                    / f"{self._last_handle}_to_{self._target_handle_name}.pickle"
+                )
+                compute_new_trajectory = (
+                    self._last_handle == "none" or not trajectory_filename.is_file()
+                )
+
+            if compute_new_trajectory:
+                trajectory = self._path_generators["follow_joint_trajectory"][
+                    "generator"
+                ].get_path(robot_configuration, target_handle, self._target_handle_name)
+                if self._use_precomputed_trajectories:
+                    self.get_logger().info(
+                        f"Saving new trajectory: {trajectory_filename}"
+                    )
+                    with open(trajectory_filename, "wb") as handle:
+                        pickle.dump(
+                            trajectory, handle, protocol=pickle.HIGHEST_PROTOCOL
+                        )
+                else:
+                    with open(trajectory_filename, "rb") as handle:
+                        trajectory = pickle.load(handle)
+                    # Interpolate joint configuration between where robot is and
+                    # where the trajectory starts to avoid abrupt motion
+                    q0 = trajectory[0]
+                    dt = self._params.ocp_dt
+                    trajectory_vel = np.abs(q0 - robot_configuration) / dt
+                    # Get rescaling between computed velocities and maximum allowed values
+                    joint_lim = np.asarray(self._params.max_joint_velocity)
+                    velocity_scale = trajectory_vel / joint_lim
+                    # Compute minimum number of interpolation steps to not violate joint
+                    # velocity limits
+                    n_interp = np.ceil(velocity_scale / dt * trajectory.shape[0])
+                    # Choose minimum of already predicted steps for the interpolation
+                    n_interp = int(np.max(np.append(n_interp, trajectory.shape[0])))
+
+                    # Interpolate trajectories
+                    old_times = np.linspace(0, 1, trajectory.shape[0])
+                    new_times = np.linspace(0, 1, n_interp)
+                    interpolated = np.zeros((n_interp, self._nq))
+                    trajectory = interpolated + trajectory
+                    for i in range(self._nq):
+                        interpolated[:, i] = np.interp(
+                            new_times, old_times, trajectory[:, i]
+                        )
 
             weighted_trajectory = [
                 WeightedTrajectoryPoint(
