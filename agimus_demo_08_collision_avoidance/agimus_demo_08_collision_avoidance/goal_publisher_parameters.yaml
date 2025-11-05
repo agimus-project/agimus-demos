@@ -1,0 +1,152 @@
+---
+goal_publisher:
+  tool_frame_id:
+    type: string
+    description: Name of the frame associated with the tool.
+    read_only: true
+  world_frame_id:
+    type: string
+    description: Name of the frame used axs a world reference.
+    read_only:
+  ocp_buffer_size:
+    type: int
+    default_value: 50
+    description: Size of the trajectory buffer to be kept for the OCP.
+    read_only: true
+    validation:
+      gt<>: 1
+  visualization:
+    publish_target_marker:
+      type: bool
+      description: Whether to publish the path.
+      default_value: true
+      read_only: true
+    marker_size:
+      type: double
+      description: Size of the marker [m].
+      default_value: 0.05
+      read_only: true
+    marker_color:
+      type: double_array
+      description: RGBA color of the markers.
+      default_value: [0.0, 0.0, 1.0, 0.5]
+      read_only: true
+      validation:
+        fixed_size<>: [4]
+        element_bounds<>: [0.0, 1.0]
+  ocp_dt:
+    type: double
+    description: Time step used by OCP.
+    default_value: 0.01
+    validation:
+      gt<>: [0.0]
+  target_poses_names:
+    type: string_array
+    default_value: ['']
+    description: List of names of target poses.
+    read_only: true
+  __map_target_poses_names:
+    translation:
+      type: double_array
+      description: Translation in [m] between world frame and tool frame.
+      validation:
+        fixed_size<>: [3]
+    rotation:
+      type: double_array
+      description: Quaternion describing rotation between world frame and tool frame.
+      validation:
+        fixed_size<>: [4]
+  schedule:
+    first_motion_time:
+      type: double
+      description: Time to interpolate between starting ones to final gains on the very first
+        motion.
+      default_value: 1.0
+      validation:
+        gt_eq<>: [0.0]
+    start_to_final_time:
+      type: double
+      description: Time to interpolate between starting ones to final gains.
+      default_value: 1.0
+      validation:
+        gt_eq<>: [0.0]
+    final_to_start_time:
+      type: double
+      description: Time to interpolate between final weights to start gains.
+      default_value: 1.0
+      validation:
+        gt_eq<>: [0.0]
+    wait_time:
+      type: double
+      description: Time to wait at the target pose.
+      default_value: 1.0
+      validation:
+        gt_eq<>: [0.0]
+  joint_reg_pose:
+    type: double_array
+    description: Joint configuration around which the robot will be regularized.
+    validation:
+      not_empty<>: []
+  weights:
+    motion_start_weights:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+    final_pose_weights:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]

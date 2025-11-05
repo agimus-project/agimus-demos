@@ -1,0 +1,38 @@
+---
+goal_publisher_node:
+  ros__parameters:
+    tool_frame_id: fer_hand
+    world_frame_id: fer_link0
+    visualization:
+      publish_target_marker: true
+      marker_size: 0.01
+      marker_color: [1.0, 0.0, 0.0, 0.5]
+    ocp_dt: 0.01
+    ocp_buffer_size: 100
+    target_poses_names: [pose_left, pose_right]
+    pose_left:
+      translation: [0.5, 0.2, 0.3]
+      rotation: [1.0, 0.0, 0.0, 0.0]
+    pose_right:
+      translation: [0.5, -0.2, 0.3]
+      rotation: [1.0, 0.0, 0.0, 0.0]
+    joint_reg_pose: [-1.3104607281269263, 0.021126273288498035, 1.3153149518775196, -2.4086527064908014,
+      -0.021639742840852443, 2.4130281798827333, 0.7983431441328555]
+    schedule:
+      first_motion_time: 5.0
+      start_to_final_time: 5.0
+      final_to_start_time: 0.1
+      wait_time: 5.0
+    weights:
+      motion_start_weights:
+        w_robot_configuration: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
+        w_frame_rotation: [0.1, 0.1, 0.1]
+        w_frame_translation: [5.0, 5.0, 5.0]
+      final_pose_weights:
+        w_robot_configuration: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.5]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
+        w_frame_rotation: [1.0, 1.0, 1.0]
+        w_frame_translation: [10.0, 10.0, 10.0]
