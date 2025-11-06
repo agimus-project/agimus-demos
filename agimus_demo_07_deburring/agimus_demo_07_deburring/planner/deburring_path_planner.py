@@ -288,6 +288,13 @@ class DeburringPathPlanner(Node):
 
         self.get_logger().info(f"Received new goal handle point: {msg.data}")
 
+    def _get_remapped_joints(self) -> npt.ArrayLike:
+        joint_map = [
+            self._joint_states.name.index(joint_name)
+            for joint_name in self._params.moving_joints
+        ]
+        return np.array(self._joint_states.position)[joint_map]
+
     def _create_trajectory_point(self, i: int, q: npt.ArrayLike) -> TrajectoryPoint:
         pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
 
@@ -464,11 +471,7 @@ class DeburringPathPlanner(Node):
         try:
             target_handle = T_pylone * self._handles[self._target_handle_name]
 
-            joint_map = [
-                self._joint_states.name.index(joint_name)
-                for joint_name in self._params.moving_joints
-            ]
-            robot_configuration = np.array(self._joint_states.position)[joint_map]
+            robot_configuration = self._get_remapped_joints()
 
             trajectory_filename = None
             compute_new_trajectory = True
@@ -494,33 +497,40 @@ class DeburringPathPlanner(Node):
                             trajectory, handle, protocol=pickle.HIGHEST_PROTOCOL
                         )
             else:
+                self.get_logger().info(
+                    f"Loading trajectory from a file: {trajectory_filename}"
+                )
                 with open(trajectory_filename, "rb") as handle:
                     trajectory = pickle.load(handle)
-                # Interpolate joint configuration between where robot is and
-                # where the trajectory starts to avoid abrupt motion
-                q0 = trajectory[1].robot_configuration
-                dt = self._params.ocp_dt
-                # Compute scaling for each joint
-                trajectory_vel = np.abs(q0 - robot_configuration) / dt
-                joint_lim = np.asarray(self._params.max_joint_velocity)
-                velocity_scale = trajectory_vel / joint_lim
-                # Compute minimum number of interpolation steps
-                n_interp = np.ceil(velocity_scale / dt)
-                n_interp = int(np.max(np.append(n_interp, 2)))
 
-                interpolated = np.zeros((n_interp, self._nq))
-                # Perform linear interpolantion between configurations
-                for i in range(self._nq):
-                    interpolated[:, i] = np.linspace(
-                        robot_configuration[i], q0[i], n_interp
-                    )
+            # Update joint configuration after planning
+            robot_configuration = self._get_remapped_joints()
+            # Interpolate joint configuration between where robot is and
+            # where the trajectory starts to avoid abrupt motion
+            q0 = trajectory[0].robot_configuration
+            dt = self._params.ocp_dt
+            # Compute scaling for each joint
+            trajectory_vel = np.abs(q0 - robot_configuration)
+            joint_lim = np.asarray(self._params.max_joint_velocity)
+            velocity_scale = trajectory_vel / joint_lim
+            # Compute minimum number of interpolation steps
+            n_interp = np.ceil(velocity_scale / dt)
+            # Multiply by two just to make sure it is slow enough
+            n_interp = int(np.max(np.append(n_interp, 2))) * 2
 
-                interpolated = [
-                    self._create_trajectory_point(i, interpolated[i, :])
-                    for i in range(n_interp)
-                ]
+            interpolated = np.zeros((n_interp, self._nq))
+            # Perform linear interpolation between configurations
+            for i in range(self._nq):
+                interpolated[:, i] = np.linspace(
+                    robot_configuration[i], q0[i], n_interp
+                )
 
-                trajectory = interpolated + trajectory
+            interpolated = [
+                self._create_trajectory_point(i, interpolated[i, :])
+                for i in range(n_interp)
+            ]
+
+            trajectory = interpolated + trajectory
 
             weighted_trajectory = [
                 WeightedTrajectoryPoint(
