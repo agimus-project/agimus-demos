@@ -11,7 +11,7 @@ from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
@@ -132,6 +132,17 @@ def launch_setup(
 
 
 def generate_launch_description():
+    declared_arguments = [
+        DeclareLaunchArgument(
+            "use_precomputed_trajectories",
+            default_value="false",
+            description="Whether to use paths that were previously precomputed.",
+            choices=["true", "false"],
+        ),
+    ]
+
     return LaunchDescription(
-        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+        declared_arguments
+        + generate_default_franka_args()
+        + [OpaqueFunction(function=launch_setup)]
     )

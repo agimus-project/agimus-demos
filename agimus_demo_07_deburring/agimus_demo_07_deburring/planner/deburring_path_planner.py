@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from collections import deque
 
 from pathlib import Path
+import pickle
 
 import numpy as np
 import numpy.typing as npt
@@ -57,6 +58,8 @@ class DeburringPathPlanner(Node):
 
         self._robot_model: pin.Model | None = None
         self._robot_data: pin.Data | None = None
+        self._tool_frame_id_name: str = self._params.tool_frame_id
+        self._tool_frame_id_pin_frame: int | None = None
         self._joint_states: JointState | None = None
         self._marker_base: Marker | None = None
         self._buffer_size: int | None = None
@@ -81,6 +84,24 @@ class DeburringPathPlanner(Node):
                 "deburring_motion",
             )
         }
+
+        self._use_precomputed_trajectories = (
+            self._params.generators_params.use_precomputed_trajectories
+        )
+        if self._use_precomputed_trajectories:
+            self._trajectories_folder = Path(
+                self._params.generators_params.precomputed_trajectories_path
+            )
+            if not self._trajectories_folder.is_dir():
+                e = ParameterException(
+                    f"Folder '{self._trajectories_folder.as_posix()}' "
+                    "containing precomputed trajectories does not exist. ",
+                    ("generators_params.precomputed_trajectories_path"),
+                )
+                self.get_logger().error(str(e))
+                raise e
+        else:
+            self._trajectories_folder = None
 
         tree = ET.parse(self._params.handles_srdf_path)
         root = tree.getroot()
@@ -208,7 +229,7 @@ class DeburringPathPlanner(Node):
                         ),
                         w_robot_effort=np.array(stage_weights.w_robot_effort),
                         w_end_effector_poses={
-                            self._params.tool_frame_id: np.concatenate(
+                            self._tool_frame_id_name: np.concatenate(
                                 (
                                     np.asarray(stage_weights.w_frame_translation),
                                     np.asarray(stage_weights.w_frame_rotation),
@@ -245,6 +266,9 @@ class DeburringPathPlanner(Node):
         self._robot_description = msg.data
         self._robot_model = pin.buildModelFromXML(self._robot_description)
         self._robot_data = self._robot_model.createData()
+        self._tool_frame_id_pin_frame = self._robot_model.getFrameId(
+            self._tool_frame_id_name
+        )
 
     def _environment_description_cb(self, msg: String) -> None:
         self._environment_description = msg.data
@@ -263,6 +287,31 @@ class DeburringPathPlanner(Node):
         self._target_handle_name = msg.data
 
         self.get_logger().info(f"Received new goal handle point: {msg.data}")
+
+    def _get_remapped_joints(self) -> npt.ArrayLike:
+        joint_map = [
+            self._joint_states.name.index(joint_name)
+            for joint_name in self._params.moving_joints
+        ]
+        return np.array(self._joint_states.position)[joint_map]
+
+    def _create_trajectory_point(self, i: int, q: npt.ArrayLike) -> TrajectoryPoint:
+        pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
+
+        return TrajectoryPoint(
+            id=i,
+            time_ns=0,
+            robot_configuration=q,
+            robot_velocity=np.zeros_like(q),
+            robot_acceleration=np.zeros(self._nv),
+            robot_effort=np.zeros(self._nv),
+            forces={},
+            end_effector_poses={
+                self._tool_frame_id_name: copy.copy(
+                    self._robot_data.oMf[self._tool_frame_id_pin_frame]
+                )
+            },
+        )
 
     def _insert_sequence_to_buffer(
         self, generator_name: str, q: npt.ArrayLike, T_taget: pin.SE3, T_init: pin.SE3
@@ -326,7 +375,7 @@ class DeburringPathPlanner(Node):
                             max_joint_velocity=np.array(
                                 self._params.max_joint_velocity
                             ),
-                            tool_frame_id=self._params.tool_frame_id,
+                            tool_frame_id=self._tool_frame_id_name,
                         )
                     )
                 else:
@@ -343,7 +392,7 @@ class DeburringPathPlanner(Node):
                             robot_description=self._robot_description,
                             environment_description=self._environment_description,
                             ocp_dt=self._params.ocp_dt,
-                            tool_frame_id=self._params.tool_frame_id,
+                            tool_frame_id=self._tool_frame_id_name,
                             robot_model=self._robot_model,
                             robot_self_collision_config=Path(
                                 gen_params.robot_self_collision_config
@@ -361,7 +410,7 @@ class DeburringPathPlanner(Node):
                     GraspPathGenerator(
                         robot_model=self._robot_model,
                         ocp_dt=self._params.ocp_dt,
-                        tool_frame_id=self._params.tool_frame_id,
+                        tool_frame_id=self._tool_frame_id_name,
                         max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
                     )
                 )
@@ -369,7 +418,7 @@ class DeburringPathPlanner(Node):
                     DeburringPathGenerator(
                         robot_model=self._robot_model,
                         ocp_dt=self._params.ocp_dt,
-                        tool_frame_id=self._params.tool_frame_id,
+                        tool_frame_id=self._tool_frame_id_name,
                         measurement_frame_id=self._params.measurement_frame_id,
                         desired_force=self._params.desired_force,
                         angle=self._params.generators_params.deburring_generator.angle,
@@ -422,15 +471,66 @@ class DeburringPathPlanner(Node):
         try:
             target_handle = T_pylone * self._handles[self._target_handle_name]
 
-            joint_map = [
-                self._joint_states.name.index(joint_name)
-                for joint_name in self._params.moving_joints
-            ]
-            robot_configuration = np.array(self._joint_states.position)[joint_map]
+            robot_configuration = self._get_remapped_joints()
 
-            trajectory = self._path_generators["follow_joint_trajectory"][
-                "generator"
-            ].get_path(robot_configuration, target_handle, self._target_handle_name)
+            trajectory_filename = None
+            compute_new_trajectory = True
+            if self._use_precomputed_trajectories:
+                trajectory_filename = (
+                    self._trajectories_folder
+                    / f"{self._last_handle}_to_{self._target_handle_name}.pickle"
+                )
+                compute_new_trajectory = (
+                    self._last_handle == "none" or not trajectory_filename.is_file()
+                )
+
+            if compute_new_trajectory:
+                trajectory = self._path_generators["follow_joint_trajectory"][
+                    "generator"
+                ].get_path(robot_configuration, target_handle, self._target_handle_name)
+                if self._use_precomputed_trajectories and self._last_handle != "none":
+                    self.get_logger().info(
+                        f"Saving new trajectory: {trajectory_filename}"
+                    )
+                    with open(trajectory_filename, "wb") as handle:
+                        pickle.dump(
+                            trajectory, handle, protocol=pickle.HIGHEST_PROTOCOL
+                        )
+            else:
+                self.get_logger().info(
+                    f"Loading trajectory from a file: {trajectory_filename}"
+                )
+                with open(trajectory_filename, "rb") as handle:
+                    trajectory = pickle.load(handle)
+
+            # Update joint configuration after planning
+            robot_configuration = self._get_remapped_joints()
+            # Interpolate joint configuration between where robot is and
+            # where the trajectory starts to avoid abrupt motion
+            q0 = trajectory[0].robot_configuration
+            dt = self._params.ocp_dt
+            # Compute scaling for each joint
+            trajectory_vel = np.abs(q0 - robot_configuration)
+            joint_lim = np.asarray(self._params.max_joint_velocity)
+            velocity_scale = trajectory_vel / joint_lim
+            # Compute minimum number of interpolation steps
+            n_interp = np.ceil(velocity_scale / dt)
+            # Multiply by two just to make sure it is slow enough
+            n_interp = int(np.max(np.append(n_interp, 2))) * 2
+
+            interpolated = np.zeros((n_interp, self._nq))
+            # Perform linear interpolation between configurations
+            for i in range(self._nq):
+                interpolated[:, i] = np.linspace(
+                    robot_configuration[i], q0[i], n_interp
+                )
+
+            interpolated = [
+                self._create_trajectory_point(i, interpolated[i, :])
+                for i in range(n_interp)
+            ]
+
+            trajectory = interpolated + trajectory
 
             weighted_trajectory = [
                 WeightedTrajectoryPoint(
@@ -447,7 +547,7 @@ class DeburringPathPlanner(Node):
 
             q = self._trajectory_buffer[-1].point.robot_configuration
             T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
-                self._params.tool_frame_id
+                self._tool_frame_id_name
             ]
 
             # Insert into the hole
@@ -474,7 +574,7 @@ class DeburringPathPlanner(Node):
 
                 def _crate_marker(id: int, point: TrajectoryPoint) -> Marker:
                     pose = pin.SE3ToXYZQUAT(
-                        point.end_effector_poses[self._params.tool_frame_id]
+                        point.end_effector_poses[self._tool_frame_id_name]
                     )
                     marker = copy.deepcopy(self._marker_base)
                     marker.id = id
