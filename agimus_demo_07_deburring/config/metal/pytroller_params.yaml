@@ -72,7 +72,7 @@ ft_calibration_filter:
 agimus_pytroller:
   ros__parameters:
     type: agimus_pytroller/AgimusPytroller
-    python_module: agimus_demo_07_deburring.controller.deburring_controller
+    python_module: agimus_demo_07_deburring.controller.metal_deburring_controller_wrapper
     python_downsample_factor: 2
     error_on_no_data: true
     interpolate_trajectory: true
@@ -156,7 +156,7 @@ agimus_pytroller:
         collision_as_capsule: true
         self_collision: false
         armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-      ocp_definition_file: package://agimus_demo_07_deburring/config/ocp_definition_file.yaml
+      ocp_definition_file: package://agimus_demo_07_deburring/config/metal/ocp_definition_file.yaml
       dt_factor_n_seq:
         factors: [1]
         n_steps: [10]

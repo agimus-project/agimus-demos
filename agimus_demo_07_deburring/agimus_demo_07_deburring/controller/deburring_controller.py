@@ -28,7 +28,6 @@ from agimus_controller_ros.ros_utils import (
 )
 from agimus_msgs.msg import MpcDebug, MpcInputArray
 from agimus_pytroller_py.agimus_pytroller_base import ControllerImplBase
-from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import Int64, String
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
@@ -45,12 +44,12 @@ class ControllerImpl(ControllerImplBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def setup(self, robot_description: String, environment_description: String):
-        self._topic_map = {}
-        package_share_directory = Path(
-            get_package_share_directory("agimus_demo_07_deburring")
-        )
-        config_file = package_share_directory / "config" / "pytroller_params.yaml"
+    def setup(
+        self,
+        robot_description: String,
+        environment_description: String,
+        config_file: Path,
+    ):
         cfg = yaml.safe_load(config_file.read_text())["agimus_pytroller"][
             "ros__parameters"
         ]["pytroller_python_params"]
