@@ -148,9 +148,6 @@ def generate_launch_description():
             description="Whether to use paths that were previously precomputed.",
             choices=["true", "false"],
         ),
-    ]
-
-    declared_arguments = [
         DeclareLaunchArgument(
             "object_material",
             default_value="plastic",

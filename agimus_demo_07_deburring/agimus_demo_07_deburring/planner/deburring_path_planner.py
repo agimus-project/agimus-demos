@@ -364,7 +364,7 @@ class DeburringPathPlanner(Node):
 
         if not self._path_generators_initialized:
             try:
-                if self._params.generators_params.main_generator == "diffusion":
+                if self._params.generators_params.main_generator_type == "diffusion":
                     from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
                         DiffusionPathGenerator,
                     )
@@ -435,7 +435,7 @@ class DeburringPathPlanner(Node):
                             force_ramp=gen_params.force_ramp,
                         )
                     )
-                elif self._params.generators_params.deburring_generator_type == "metal":
+                else:
                     gen_params = (
                         self._params.generators_params.metal_deburring_generator
                     )

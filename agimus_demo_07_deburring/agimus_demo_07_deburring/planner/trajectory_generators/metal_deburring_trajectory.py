@@ -29,7 +29,6 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         measurement_frame_id: str,
     ) -> None:
         self._robot_model = robot_model
-        self._robot_data = robot_model.createData()
 
         self._tool_joint_end_angle = tool_joint_end_angle
         self._tool_joint_start_angle = tool_joint_start_angle
@@ -76,9 +75,6 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         self._nv = robot_model.nv
 
         self._tool_frame_id_name = tool_frame_id
-        self._tool_frame_id_pin_frame = self._robot_model.getFrameId(
-            self._tool_frame_id_name
-        )
         self._force_base = pin.Force(np.zeros(6))
         self._measurement_frame_id = measurement_frame_id
 
@@ -150,7 +146,6 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         force_ramp_down_time_steps = np.abs(
             ceil((force_end - force_target) / self._force_rate_down / dt)
         )
-        print(force_end - force_target)
 
         force_holding_time_steps = total_time_steps - (
             force_ramp_up_time_steps + force_ramp_down_time_steps
@@ -195,19 +190,19 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
                 end_effector_poses={self._tool_frame_id_name: T_final},
             )
 
-        dt = self._ocp_dt
         self._idx_cnt = -1
         # Move first joint to the limit
         dist = self._tool_joint_start_angle - q0[-1]
-        j_traj, j_vel = self._compute_position_s_curve(np.abs(dist)) * np.sign(dist)
+        dir = np.sign(dist)
+        j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
         forces = np.zeros_like(j_traj)
         t1 = [
             _generate_traj_points(q, dq, f)
-            for q, dq, f in zip(j_traj + q0[-1], j_vel, forces)
+            for q, dq, f in zip(q0[-1] + j_traj * dir, j_vel * dir, forces)
         ]
 
         # Increase the force to alignment one
-        time_steps = ceil(self._positioning_time / dt)
+        time_steps = ceil(self._positioning_time / self._ocp_dt)
         j_traj = np.ones(time_steps) * self._tool_joint_start_angle
         j_vel = np.zeros_like(j_vel)
         forces = self._compute_force_ramp(
@@ -225,7 +220,7 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         )
         t3 = [
             _generate_traj_points(q, dq, f)
-            for q, dq, f in zip(j_traj + self._tool_joint_end_angle, j_vel, forces)
+            for q, dq, f in zip(j_traj + self._tool_joint_start_angle, j_vel, forces)
         ]
 
         return t1 + t2 + t3

@@ -197,11 +197,13 @@ deburring_path_planner:
         type: double
         description: Desired force [N] applied by `frame_of_interest` in the direction of
           the handle.
+        default_value: 1.0
         validation:
           gt_eq<>: [0.0]
       force_ramp:
         type: double
         description: Time [s] to ramp up and down forces.
+        default_value: 2.0
         validation:
           gt_eq<>: [0.0]
     metal_deburring_generator:
@@ -226,24 +228,6 @@ deburring_path_planner:
         validation:
           gt_eq<>: [0.0]
           lt_eq<>: [10000.0]
-      positioning_force:
-        type: double
-        description: Force [N] exerted to position the tool in the hole.
-        default_value: 2.0
-        validation:
-          gt_eq<>: [0.0]
-      deburring_force:
-        type: double
-        description: Force [N] exerted when performing deburring.
-        default_value: 2.0
-        validation:
-          gt_eq<>: [0.0]
-      force_rate:
-        type: double
-        description: Force rate  [N/s] at which the force is increased and decreased.
-        default_value: 2.0
-        validation:
-          gt_eq<>: [0.0]
       tool_joint_start_angle:
         type: double
         description: Starting angle of the end effector.
@@ -256,6 +240,36 @@ deburring_path_planner:
         default_value: 2.8973
         validation:
           lt_eq<>: [2.8973]
+      positioning_time:
+        type: double
+        description: Time [s] to wait when positioning the tool before deburring.
+        default_value: 1.0
+        validation:
+          gt_eq<>: [0.0]
+      positioning_force:
+        type: double
+        description: Force [N] exerted to position the tool in the hole.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      deburring_force:
+        type: double
+        description: Force [N] exerted when performing deburring.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      force_rate_up:
+        type: double
+        description: Force rate  [N/s] at which the force is increased.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      force_rate_down:
+        type: double
+        description: Force rate  [N/s] at which the force is increased.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
   weights:
     schedule:
       interpolation_time:
