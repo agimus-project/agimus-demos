@@ -52,17 +52,13 @@ deburring_path_planner_node:
         joint_shrink_range: 0.95
       grasp_generator:
         max_linear_vel: 0.125
-      metal_deburring_generator:
-        tool_angular_vel: 1.0
-        tool_angular_acc: 10.0
-        tool_angular_jerk: 1000.0
-        tool_joint_start_angle: -2.8973
-        tool_joint_end_angle: 2.8973
-        positioning_time: 1.0
-        positioning_force: 2.0
-        deburring_force: 20.0
-        force_rate_up: 40.0
-        force_rate_down: 40.0
+      plastic_deburring_generator:
+        angle: 0.1309 # 7.5 degrees
+        frequency: 1.0
+        slope_circles: 1
+        n_circles: 2
+        desired_force: 30.0
+        force_ramp: 2.0
     weights:
       schedule:
         interpolation_time: 3.0
