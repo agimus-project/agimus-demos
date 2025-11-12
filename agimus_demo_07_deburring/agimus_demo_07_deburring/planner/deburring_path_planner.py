@@ -37,8 +37,11 @@ from tf2_ros.transform_listener import TransformListener
 from agimus_demo_07_deburring.deburring_path_planner_parameters import (
     deburring_path_planner,
 )
-from agimus_demo_07_deburring.planner.trajectory_generators.deburring_trajectory import (
-    DeburringPathGenerator,
+from agimus_demo_07_deburring.planner.trajectory_generators.plastic_deburring_trajectory import (
+    PlasticDeburringPathGenerator,
+)
+from agimus_demo_07_deburring.planner.trajectory_generators.metal_deburring_trajectory import (
+    MetalDeburringPathGenerator,
 )
 from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory import (
     GraspPathGenerator,
@@ -414,20 +417,46 @@ class DeburringPathPlanner(Node):
                         max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
                     )
                 )
-                self._path_generators["deburring_motion"]["generator"] = (
-                    DeburringPathGenerator(
-                        robot_model=self._robot_model,
-                        ocp_dt=self._params.ocp_dt,
-                        tool_frame_id=self._tool_frame_id_name,
-                        measurement_frame_id=self._params.measurement_frame_id,
-                        desired_force=self._params.desired_force,
-                        angle=self._params.generators_params.deburring_generator.angle,
-                        frequency=self._params.generators_params.deburring_generator.frequency,
-                        slope_circles=self._params.generators_params.deburring_generator.slope_circles,
-                        n_circles=self._params.generators_params.deburring_generator.n_circles,
-                        force_ramp=self._params.force_ramp,
+                if self._params.generators_params.deburring_generator_type == "plastic":
+                    gen_params = (
+                        self._params.generators_params.plastic_deburring_generator
                     )
-                )
+                    self._path_generators["deburring_motion"]["generator"] = (
+                        PlasticDeburringPathGenerator(
+                            robot_model=self._robot_model,
+                            ocp_dt=self._params.ocp_dt,
+                            tool_frame_id=self._tool_frame_id_name,
+                            measurement_frame_id=self._params.measurement_frame_id,
+                            desired_force=gen_params.desired_force,
+                            angle=gen_params.angle,
+                            frequency=gen_params.frequency,
+                            slope_circles=gen_params.slope_circles,
+                            n_circles=gen_params.n_circles,
+                            force_ramp=gen_params.force_ramp,
+                        )
+                    )
+                elif self._params.generators_params.deburring_generator_type == "metal":
+                    gen_params = (
+                        self._params.generators_params.metal_deburring_generator
+                    )
+                    self._path_generators["deburring_motion"]["generator"] = (
+                        MetalDeburringPathGenerator(
+                            robot_model=self._robot_model,
+                            ocp_dt=self._params.ocp_dt,
+                            tool_frame_id=self._tool_frame_id_name,
+                            measurement_frame_id=self._params.measurement_frame_id,
+                            tool_angular_vel=gen_params.tool_angular_vel,
+                            tool_angular_acc=gen_params.tool_angular_acc,
+                            tool_angular_jerk=gen_params.tool_angular_jerk,
+                            positioning_time=gen_params.positioning_time,
+                            positioning_force=gen_params.positioning_force,
+                            deburring_force=gen_params.deburring_force,
+                            force_rate_up=gen_params.force_rate_up,
+                            force_rate_down=gen_params.force_rate_down,
+                            tool_joint_start_angle=gen_params.tool_joint_start_angle,
+                            tool_joint_end_angle=gen_params.tool_joint_end_angle,
+                        )
+                    )
                 self.get_logger().info(
                     "Trajecotry generators initialized!",
                     throttle_duration_sec=5.0,

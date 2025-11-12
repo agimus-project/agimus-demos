@@ -13,7 +13,12 @@ from launch_ros.substitutions import FindPackageShare
 from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 
 
 def create_env_publisher(with_sc: bool) -> Node:
@@ -49,6 +54,8 @@ def create_env_publisher(with_sc: bool) -> Node:
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    object_material = LaunchConfiguration("object_material")
+
     rviz_config_path = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_07_deburring"),
@@ -70,6 +77,7 @@ def launch_setup(
             [
                 FindPackageShare("agimus_demo_07_deburring"),
                 "config",
+                object_material,
                 "pytroller_params.yaml",
             ]
         ),
@@ -98,6 +106,7 @@ def launch_setup(
             [
                 FindPackageShare("agimus_demo_07_deburring"),
                 "config",
+                object_material,
                 "deburring_path_planner_params.yaml",
             ]
         ),
@@ -138,6 +147,15 @@ def generate_launch_description():
             default_value="false",
             description="Whether to use paths that were previously precomputed.",
             choices=["true", "false"],
+        ),
+    ]
+
+    declared_arguments = [
+        DeclareLaunchArgument(
+            "object_material",
+            default_value="plastic",
+            description="Which deburred material setup to use.",
+            choices=["plastic", "metal"],
         ),
     ]
 

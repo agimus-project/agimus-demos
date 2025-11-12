@@ -83,24 +83,19 @@ deburring_path_planner:
     default_value: 0.01
     validation:
       gt<>: [0.0]
-  desired_force:
-    type: double
-    description: Desired force [N] applied by `frame_of_interest` in the direction of the
-      handle.
-    validation:
-      gt_eq<>: [0.0]
-  force_ramp:
-    type: double
-    description: Time [s] to ramp up and down forces.
-    validation:
-      gt_eq<>: [0.0]
   generators_params:
-    main_generator:
+    main_generator_type:
       type: string
       description: Which trajectory generator to use.
       read_only: true
       validation:
         one_of<>: [[diffusion, hpp]]
+    deburring_generator_type:
+      type: string
+      description: Which deburring motion generator to use.
+      read_only: plastic
+      validation:
+        one_of<>: [[plastic, metal]]
     use_precomputed_trajectories:
       type: bool
       description: Reuse precomputed trajectories between certain handles. Useful only for
@@ -173,7 +168,7 @@ deburring_path_planner:
         type: double
         description: Maximum linear velocity when performing a grasp.
         read_only: true
-    deburring_generator:
+    plastic_deburring_generator:
       angle:
         type: double
         description: Angle at which the circle is generated.
@@ -198,6 +193,69 @@ deburring_path_planner:
         default_value: 2
         validation:
           gt_eq<>: [2]
+      desired_force:
+        type: double
+        description: Desired force [N] applied by `frame_of_interest` in the direction of
+          the handle.
+        validation:
+          gt_eq<>: [0.0]
+      force_ramp:
+        type: double
+        description: Time [s] to ramp up and down forces.
+        validation:
+          gt_eq<>: [0.0]
+    metal_deburring_generator:
+      tool_angular_vel:
+        type: double
+        description: Angular velocity of the end effector.
+        default_value: 1.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [2.6100]
+      tool_angular_acc:
+        type: double
+        description: Angular acceleration of the end effector.
+        default_value: 10.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [20.0]
+      tool_angular_jerk:
+        type: double
+        description: Angular acceleration of the end effector.
+        default_value: 1000.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [10000.0]
+      positioning_force:
+        type: double
+        description: Force [N] exerted to position the tool in the hole.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      deburring_force:
+        type: double
+        description: Force [N] exerted when performing deburring.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      force_rate:
+        type: double
+        description: Force rate  [N/s] at which the force is increased and decreased.
+        default_value: 2.0
+        validation:
+          gt_eq<>: [0.0]
+      tool_joint_start_angle:
+        type: double
+        description: Starting angle of the end effector.
+        default_value: -2.8973
+        validation:
+          gt_eq<>: [-2.8973]
+      tool_joint_end_angle:
+        type: double
+        description: End angle of the end effector.
+        default_value: 2.8973
+        validation:
+          lt_eq<>: [2.8973]
   weights:
     schedule:
       interpolation_time:
