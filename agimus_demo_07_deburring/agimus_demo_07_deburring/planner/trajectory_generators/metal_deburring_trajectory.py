@@ -25,6 +25,7 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         force_rate_down: float,
         tool_joint_start_angle: float,
         tool_joint_end_angle: float,
+        n_repeat: int,
         tool_frame_id: str,
         measurement_frame_id: str,
     ) -> None:
@@ -35,6 +36,8 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         self._tool_angular_vel = tool_angular_vel
         self._tool_angular_acc = tool_angular_acc
         self._tool_angular_jerk = tool_angular_jerk
+
+        self._n_repeat = n_repeat
 
         self._positioning_force = positioning_force
         self._deburring_force = deburring_force
@@ -191,36 +194,59 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
             )
 
         self._idx_cnt = -1
+        j0 = q0[-1]
+        f_final = self._positioning_force
+        traj = []
+        for i in range(self._n_repeat):
+            # Move first joint to the limit
+            dist = self._tool_joint_start_angle - j0
+            dir = np.sign(dist)
+            j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
+            if i == 0:
+                forces = np.zeros_like(j_traj)
+            else:
+                forces = np.ones_like(j_traj) * self._positioning_force
+            traj += [
+                _generate_traj_points(q, dq, f)
+                for q, dq, f in zip(j0 + j_traj * dir, j_vel * dir, forces)
+            ]
+
+            if i == 0:
+                # Increase the force to alignment one
+                time_steps = ceil(self._positioning_time / self._ocp_dt)
+                j_traj = np.ones(time_steps) * self._tool_joint_start_angle
+                j_vel = np.zeros_like(j_vel)
+                forces = self._compute_force_ramp(
+                    0.0, self._positioning_force, self._positioning_force, time_steps
+                )
+                traj += [
+                    _generate_traj_points(q, dq, f)
+                    for q, dq, f in zip(j_traj, j_vel, forces)
+                ]
+
+            # Start moving while increasing the force. Handle force profile is slower than motion!
+            dist = self._tool_joint_end_angle - self._tool_joint_start_angle
+            j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
+            forces = self._compute_force_ramp(
+                self._positioning_force, self._deburring_force, f_final, j_traj.shape[0]
+            )
+            traj += [
+                _generate_traj_points(q, dq, f)
+                for q, dq, f in zip(
+                    self._tool_joint_start_angle + j_traj, j_vel, forces
+                )
+            ]
+            j0 = self._tool_joint_end_angle
+            if i == self._n_repeat - 2:
+                f_final = 0.0
+
         # Move first joint to the limit
-        dist = self._tool_joint_start_angle - q0[-1]
-        dir = np.sign(dist)
+        dist = (self._tool_joint_end_angle - self._tool_joint_start_angle) / 2.0
         j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
-        forces = np.zeros_like(j_traj)
-        t1 = [
+        forces = np.ones_like(j_traj) * self._positioning_force
+        traj += [
             _generate_traj_points(q, dq, f)
-            for q, dq, f in zip(q0[-1] + j_traj * dir, j_vel * dir, forces)
+            for q, dq, f in zip(j0 - j_traj, -j_vel, forces)
         ]
 
-        # Increase the force to alignment one
-        time_steps = ceil(self._positioning_time / self._ocp_dt)
-        j_traj = np.ones(time_steps) * self._tool_joint_start_angle
-        j_vel = np.zeros_like(j_vel)
-        forces = self._compute_force_ramp(
-            0.0, self._positioning_force, self._positioning_force, time_steps
-        )
-        t2 = [
-            _generate_traj_points(q, dq, f) for q, dq, f in zip(j_traj, j_vel, forces)
-        ]
-
-        # Start moving while increasing the force. Handle force profile is slower than motion!
-        dist = self._tool_joint_end_angle - self._tool_joint_start_angle
-        j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
-        forces = self._compute_force_ramp(
-            self._positioning_force, self._deburring_force, 0.0, j_traj.shape[0]
-        )
-        t3 = [
-            _generate_traj_points(q, dq, f)
-            for q, dq, f in zip(j_traj + self._tool_joint_start_angle, j_vel, forces)
-        ]
-
-        return t1 + t2 + t3
+        return traj

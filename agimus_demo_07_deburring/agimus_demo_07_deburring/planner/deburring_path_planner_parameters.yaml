@@ -270,6 +270,12 @@ deburring_path_planner:
         default_value: 2.0
         validation:
           gt_eq<>: [0.0]
+      n_repeat:
+        type: int
+        description: How many times to repeat the motion.
+        default_value: 2
+        validation:
+          gt_eq<>: [0]
   weights:
     schedule:
       interpolation_time:

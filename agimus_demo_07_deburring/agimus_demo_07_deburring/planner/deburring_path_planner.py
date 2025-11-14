@@ -455,6 +455,7 @@ class DeburringPathPlanner(Node):
                             force_rate_down=gen_params.force_rate_down,
                             tool_joint_start_angle=gen_params.tool_joint_start_angle,
                             tool_joint_end_angle=gen_params.tool_joint_end_angle,
+                            n_repeat=gen_params.n_repeat,
                         )
                     )
                 self.get_logger().info(
