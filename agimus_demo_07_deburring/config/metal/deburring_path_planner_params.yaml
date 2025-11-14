@@ -51,7 +51,9 @@ deburring_path_planner_node:
         - fer_joint7
         joint_shrink_range: 0.95
       grasp_generator:
-        max_linear_vel: 0.125
+        linear_vel: 0.125
+        linear_acc: 1.0
+        linear_jerk: 500.0
       metal_deburring_generator:
         tool_angular_vel: 2.6
         tool_angular_acc: 10.0

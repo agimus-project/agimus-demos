@@ -9,6 +9,8 @@ from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator
     GenericTrajectoryGenerator,
 )
 
+from agimus_demo_07_deburring.planner.trajectory_generators.utils import SCurveGenerator
+
 
 class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
     def __init__(
@@ -33,9 +35,9 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
 
         self._tool_joint_end_angle = tool_joint_end_angle
         self._tool_joint_start_angle = tool_joint_start_angle
-        self._tool_angular_vel = tool_angular_vel
-        self._tool_angular_acc = tool_angular_acc
-        self._tool_angular_jerk = tool_angular_jerk
+        # self._tool_angular_vel = tool_angular_vel
+        # self._tool_angular_acc = tool_angular_acc
+        # self._tool_angular_jerk = tool_angular_jerk
 
         self._n_repeat = n_repeat
 
@@ -48,8 +50,14 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
 
         self._idx_cnt = 0
 
-        motion_time_total, _, _, _, motion_dist_cruise = self._compute_s_curve_params(
-            np.abs(self._tool_joint_end_angle - self._tool_joint_start_angle)
+        self._s_curve_generator = SCurveGenerator(
+            tool_angular_vel, tool_angular_acc, tool_angular_jerk, self._ocp_dt
+        )
+
+        motion_time_total, _, _, _, motion_dist_cruise = (
+            self._s_curve_generator.compute_params(
+                np.abs(self._tool_joint_end_angle - self._tool_joint_start_angle)
+            )
         )
         if motion_dist_cruise < 0:
             raise ValueError(
@@ -80,60 +88,6 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         self._tool_frame_id_name = tool_frame_id
         self._force_base = pin.Force(np.zeros(6))
         self._measurement_frame_id = measurement_frame_id
-
-    def _compute_s_curve_params(self, dist: float):
-        vel_max = self._tool_angular_vel
-        acc_max = self._tool_angular_acc
-        jerk_max = self._tool_angular_jerk
-        time_jerk = acc_max / jerk_max
-        time_acc = vel_max / acc_max + time_jerk
-
-        dist_acc = (acc_max * time_acc**2) / 2 - (acc_max**3) / (6 * jerk_max**2)
-        dist_cruise = dist - 2.0 * dist_acc
-
-        time_cruise = dist_cruise / vel_max
-        time_total = 2 * time_acc + time_cruise
-        return time_total, time_cruise, time_acc, time_jerk, dist_cruise
-
-    def _compute_position_s_curve(self, dist: float):
-        acc_max = self._tool_angular_acc
-        jerk_max = self._tool_angular_jerk
-        time_total, time_cruise, time_acc, time_jerk, _ = self._compute_s_curve_params(
-            dist
-        )
-
-        t = np.arange(0, time_total + self._ocp_dt, self._ocp_dt)
-        pos = np.zeros_like(t)
-        vel = np.zeros_like(t)
-        acc = np.zeros_like(t)
-        for i in range(1, len(t)):
-            ti = t[i]
-
-            # Acceleration phase
-            if ti < time_jerk:
-                acc[i] = jerk_max * ti
-            elif ti < (time_acc - time_jerk):
-                acc[i] = acc_max
-            elif ti < time_acc:
-                acc[i] = acc_max - jerk_max * (ti - (time_acc - time_jerk))
-            # Cruise phase
-            elif ti < (time_acc + time_cruise):
-                acc[i] = 0.0
-            # Deceleration phase
-            elif ti < (time_acc + time_cruise + time_jerk):
-                acc[i] = -jerk_max * (ti - (time_acc + time_cruise))
-            elif ti < (time_total - time_jerk):
-                acc[i] = -acc_max
-            elif ti <= time_total:
-                acc[i] = -acc_max + jerk_max * (ti - (time_total - time_jerk))
-            else:
-                acc[i] = 0.0
-
-            # Integrate to get velocity and position
-            vel[i] = vel[i - 1] + acc[i] * self._ocp_dt
-            pos[i] = pos[i - 1] + vel[i] * self._ocp_dt
-
-        return pos, vel
 
     def _compute_force_ramp(
         self,
@@ -201,7 +155,9 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
             # Move first joint to the limit
             dist = self._tool_joint_start_angle - j0
             dir = np.sign(dist)
-            j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
+            j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(
+                np.abs(dist)
+            )
             if i == 0:
                 forces = np.zeros_like(j_traj)
             else:
@@ -211,8 +167,8 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
                 for q, dq, f in zip(j0 + j_traj * dir, j_vel * dir, forces)
             ]
 
+            # Increase the force to alignment one
             if i == 0:
-                # Increase the force to alignment one
                 time_steps = ceil(self._positioning_time / self._ocp_dt)
                 j_traj = np.ones(time_steps) * self._tool_joint_start_angle
                 j_vel = np.zeros_like(j_vel)
@@ -226,7 +182,9 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
 
             # Start moving while increasing the force. Handle force profile is slower than motion!
             dist = self._tool_joint_end_angle - self._tool_joint_start_angle
-            j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
+            j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(
+                np.abs(dist)
+            )
             forces = self._compute_force_ramp(
                 self._positioning_force, self._deburring_force, f_final, j_traj.shape[0]
             )
@@ -240,9 +198,9 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
             if i == self._n_repeat - 2:
                 f_final = 0.0
 
-        # Move first joint to the limit
+        # Move first joint to middle configuration so planner has easier job
         dist = (self._tool_joint_end_angle - self._tool_joint_start_angle) / 2.0
-        j_traj, j_vel = self._compute_position_s_curve(np.abs(dist))
+        j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(np.abs(dist))
         forces = np.ones_like(j_traj) * self._positioning_force
         traj += [
             _generate_traj_points(q, dq, f)

@@ -369,10 +369,11 @@ class DeburringPathPlanner(Node):
                         DiffusionPathGenerator,
                     )
 
+                    gen_params = self._params.generators_params.diffusion_generator
                     self._path_generators["follow_joint_trajectory"]["generator"] = (
                         DiffusionPathGenerator(
-                            wights_path=self._params.generators_params.diffusion_generator.weights_path,
-                            sequence_length=self._params.generators_params.diffusion_generator.sequence_length,
+                            wights_path=gen_params.weights_path,
+                            sequence_length=gen_params.sequence_length,
                             robot_model=self._robot_model,
                             ocp_dt=self._params.ocp_dt,
                             max_joint_velocity=np.array(
@@ -409,12 +410,15 @@ class DeburringPathPlanner(Node):
                             joint_shrink_range=gen_params.joint_shrink_range,
                         )
                     )
+                gen_params = self._params.generators_params.grasp_generator
                 self._path_generators["insert_retract_tool"]["generator"] = (
                     GraspPathGenerator(
                         robot_model=self._robot_model,
                         ocp_dt=self._params.ocp_dt,
                         tool_frame_id=self._tool_frame_id_name,
-                        max_linear_vel=self._params.generators_params.grasp_generator.max_linear_vel,
+                        linear_vel=gen_params.linear_vel,
+                        linear_acc=gen_params.linear_acc,
+                        linear_jerk=gen_params.linear_jerk,
                     )
                 )
                 if self._params.generators_params.deburring_generator_type == "plastic":

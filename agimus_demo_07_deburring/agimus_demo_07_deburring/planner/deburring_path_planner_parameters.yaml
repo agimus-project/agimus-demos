@@ -164,9 +164,17 @@ deburring_path_planner:
         read_only: true
 
     grasp_generator:
-      max_linear_vel:
+      linear_vel:
         type: double
-        description: Maximum linear velocity when performing a grasp.
+        description: Linear velocity [m/s] when performing a grasp.
+        read_only: true
+      linear_acc:
+        type: double
+        description: Linear acceleration [m/s^2] when performing a grasp.
+        read_only: true
+      linear_jerk:
+        type: double
+        description: Linear jerk [m/s^3] when performing a grasp.
         read_only: true
     plastic_deburring_generator:
       angle:
@@ -209,34 +217,34 @@ deburring_path_planner:
     metal_deburring_generator:
       tool_angular_vel:
         type: double
-        description: Angular velocity of the end effector.
+        description: Angular velocity [rad/s] of the end effector.
         default_value: 1.0
         validation:
           gt_eq<>: [0.0]
           lt_eq<>: [2.6100]
       tool_angular_acc:
         type: double
-        description: Angular acceleration of the end effector.
+        description: Angular acceleration [rad/s^2] of the end effector.
         default_value: 10.0
         validation:
           gt_eq<>: [0.0]
           lt_eq<>: [20.0]
       tool_angular_jerk:
         type: double
-        description: Angular acceleration of the end effector.
+        description: Angular jerk [rad/s^3] of the end effector.
         default_value: 1000.0
         validation:
           gt_eq<>: [0.0]
           lt_eq<>: [10000.0]
       tool_joint_start_angle:
         type: double
-        description: Starting angle of the end effector.
+        description: Starting angle [rad] of the end effector.
         default_value: -2.8973
         validation:
           gt_eq<>: [-2.8973]
       tool_joint_end_angle:
         type: double
-        description: End angle of the end effector.
+        description: End angle [rad] of the end effector.
         default_value: 2.8973
         validation:
           lt_eq<>: [2.8973]

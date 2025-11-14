@@ -9,19 +9,25 @@ from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator
     GenericTrajectoryGenerator,
 )
 
+from agimus_demo_07_deburring.planner.trajectory_generators.utils import SCurveGenerator
+
 
 class GraspPathGenerator(GenericTrajectoryGenerator):
     def __init__(
         self,
         robot_model: pin.Model,
         ocp_dt: float,
-        max_linear_vel: float,
+        linear_vel: float,
+        linear_acc: float,
+        linear_jerk: float,
         tool_frame_id: str,
     ) -> None:
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
 
-        self._max_linear_vel = max_linear_vel
+        self._linear_vel = linear_vel
+        self._linear_acc = linear_acc
+        self._linear_jerk = linear_jerk
 
         self._nq = robot_model.nq
         self._nv = robot_model.nv
@@ -33,33 +39,9 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
             self._tool_frame_id_name
         )
 
-    def _ik(self, q_init: npt.ArrayLike, target: pin.SE3):
-        q = np.copy(q_init)
-        for _ in range(5):
-            pin.forwardKinematics(self._robot_model, self._robot_data, q)
-            pin.updateFramePlacement(
-                self._robot_model, self._robot_data, self._tool_frame_id_pin_frame
-            )
-
-            rMf = self._robot_data.oMf[self._tool_frame_id_pin_frame].actInv(target)
-
-            err = pin.log6(rMf).vector
-            fJf = pin.computeFrameJacobian(
-                self._robot_model,
-                self._robot_data,
-                q,
-                self._tool_frame_id_pin_frame,
-                pin.LOCAL,
-            )
-            rJf = pin.Jlog6(rMf)
-            J = -rJf @ fJf
-            v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
-            q = pin.integrate(self._robot_model, q, v)
-
-            if np.max(np.abs(rMf.translation)) < 1e-6:
-                q[-1] = q_init[-1]
-                return q
-        raise RuntimeError("Failed to converge with IK")
+        self._s_curve_generator = SCurveGenerator(
+            linear_vel, linear_acc, linear_jerk, self._ocp_dt
+        )
 
     def get_path(
         self,
@@ -68,29 +50,20 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         handle_name: str | None = None,
         T_init: pin.SE3 | None = None,
     ) -> list[npt.ArrayLike]:
-        pin.forwardKinematics(self._robot_model, self._robot_data, q0)
-        pin.updateFramePlacement(
-            self._robot_model, self._robot_data, self._tool_frame_id_pin_frame
-        )
-
+        # Copy the object to avoid accidental overriding
         start_pose = copy.copy(T_init)
-
-        # Separately interpolate in SO3 and R3 separately to obtain linear motion
+        # Compute the distance between starting pose and final one
         diff = start_pose.inverse() * T_final
         rot_vel = pin.log3(diff.rotation)
-
         dist = np.linalg.norm(diff.translation)
 
-        lin_time = dist / self._max_linear_vel
-
-        # Time for the interpolation is slightly larger than needed
-        # to account for accelerations and decelerations, plus
-        # to presume safety a margin
-        interp_time = lin_time * 1.25
-        n_interp = int(np.ceil(interp_time / self._ocp_dt))
+        traj, _ = self._s_curve_generator.compute_position_s_curve(np.abs(dist))
+        # Rescale s-curve based trajectory to become a blending proportion between
+        # initial and final frames for the interpolation.
+        time_spacing = traj / dist
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
-            t = i / n_interp
+            t = time_spacing[i]
             target = pin.SE3(np.eye(4))
             # Interpolate rotation
             target.rotation = start_pose.rotation @ pin.exp3(rot_vel * t)
@@ -110,4 +83,4 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
                 end_effector_poses={self._tool_frame_id_name: target},
             )
 
-        return [_create_trajectory_point(i) for i in range(n_interp)]
+        return [_create_trajectory_point(i) for i in range(len(time_spacing))]
