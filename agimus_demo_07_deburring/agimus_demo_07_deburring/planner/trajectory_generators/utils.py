@@ -28,7 +28,10 @@ class SCurveGenerator:
         time_total = 2 * time_acc + time_cruise
         return time_total, time_cruise, time_acc, time_jerk, dist_cruise
 
-    def compute_position_s_curve(self, dist: float):
+    def compute_position_s_curve(self, start: float, end: float):
+        dist = end - start
+        dir = np.sign(dist)
+        dist = np.abs(dist)
         acc_max = self._max_acc
         jerk_max = self._max_jerk
         time_total, time_cruise, time_acc, time_jerk, _ = self.compute_params(dist)
@@ -64,4 +67,4 @@ class SCurveGenerator:
             vel[i] = vel[i - 1] + acc[i] * self._ocp_dt
             pos[i] = pos[i - 1] + vel[i] * self._ocp_dt
 
-        return pos, vel
+        return start + (pos * dir), vel * dir

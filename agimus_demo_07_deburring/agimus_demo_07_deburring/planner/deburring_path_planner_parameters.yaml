@@ -25,6 +25,13 @@ deburring_path_planner:
     validation:
       fixed_size<>: [3]
       element_bounds<>: [-3.141592655, 3.141592655]
+  tool_offset_correction:
+    type: double_array
+    description: Frame offset [m] applied to handle frame. Offset is in HPP handle frame.
+    default_value: [0.0, 0.0, 0.0]
+    read_only: true
+    validation:
+      fixed_size<>: [3]
   tool_frame_id:
     type: string
     description: Name of the frame associated with the tool.
@@ -176,6 +183,39 @@ deburring_path_planner:
         type: double
         description: Linear jerk [m/s^3] when performing a grasp.
         read_only: true
+      tool_angular_vel:
+        type: double
+        description: Angular velocity [rad/s] of the end effector.
+        default_value: 1.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [2.6100]
+      tool_angular_acc:
+        type: double
+        description: Angular acceleration [rad/s^2] of the end effector.
+        default_value: 10.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [20.0]
+      tool_angular_jerk:
+        type: double
+        description: Angular jerk [rad/s^3] of the end effector.
+        default_value: 1000.0
+        validation:
+          gt_eq<>: [0.0]
+          lt_eq<>: [10000.0]
+      insert_joint_angle:
+        type: double
+        description: Angle [rad] of last joint at the end of insertion motion.
+        default_value: -2.8973
+        validation:
+          gt_eq<>: [-2.8973]
+      retract_joint_angle:
+        type: double
+        description: Angle [rad] of last joint at the end of retraction motion.
+        default_value: -2.8973
+        validation:
+          gt_eq<>: [-2.8973]
     plastic_deburring_generator:
       angle:
         type: double

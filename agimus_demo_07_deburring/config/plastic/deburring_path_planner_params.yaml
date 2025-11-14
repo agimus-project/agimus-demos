@@ -9,6 +9,7 @@ deburring_path_planner_node:
     world_frame_id: fer_link0
     deburred_object_frame_id: pylone_link
     hpp_handle_to_ee_rot: [0.0, 1.570796327, 0.0]
+    tool_offset_correction: [0.0, 0.0, 0.0]
     visualization:
       publish_path: true
       marker_size: 0.01
@@ -51,9 +52,14 @@ deburring_path_planner_node:
         - fer_joint7
         joint_shrink_range: 0.95
       grasp_generator:
-        linear_vel: 0.125
-        linear_acc: 1.0
-        linear_jerk: 500.0
+        linear_vel: 0.1
+        linear_acc: 0.1
+        linear_jerk: 100.0
+        tool_angular_vel: 2.6
+        tool_angular_acc: 10.0
+        tool_angular_jerk: 5000.0
+        insert_joint_angle: 0.0
+        retract_joint_angle: 0.0
       plastic_deburring_generator:
         angle: 0.1309 # 7.5 degrees
         frequency: 1.0

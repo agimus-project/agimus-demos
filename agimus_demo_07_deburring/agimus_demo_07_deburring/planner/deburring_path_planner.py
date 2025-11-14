@@ -76,7 +76,7 @@ class DeburringPathPlanner(Node):
         # Rotation used as a conversion between TCP coordinates and HPP handles
         self._R_insert = pin.SE3(
             pin.rpy.rpyToMatrix(np.array(self._params.hpp_handle_to_ee_rot)),
-            np.array([0.0, 0.0, 0.0]),
+            np.array(self._params.tool_offset_correction),
         )
 
         self._path_generators = {
@@ -419,6 +419,11 @@ class DeburringPathPlanner(Node):
                         linear_vel=gen_params.linear_vel,
                         linear_acc=gen_params.linear_acc,
                         linear_jerk=gen_params.linear_jerk,
+                        tool_angular_vel=gen_params.tool_angular_vel,
+                        tool_angular_acc=gen_params.tool_angular_acc,
+                        tool_angular_jerk=gen_params.tool_angular_jerk,
+                        insert_joint_angle=gen_params.insert_joint_angle,
+                        retract_joint_angle=gen_params.retract_joint_angle,
                     )
                 )
                 if self._params.generators_params.deburring_generator_type == "plastic":
@@ -585,6 +590,7 @@ class DeburringPathPlanner(Node):
             ]
 
             # Insert into the hole
+            self._path_generators["insert_retract_tool"]["generator"].set_insert_mode()
             self._insert_sequence_to_buffer(
                 "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
             )
@@ -594,6 +600,7 @@ class DeburringPathPlanner(Node):
                 "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
             )
             # Retract from the hole
+            self._path_generators["insert_retract_tool"]["generator"].set_retract_mode()
             q = self._trajectory_buffer[-1].point.robot_configuration
             self._insert_sequence_to_buffer(
                 "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
@@ -629,6 +636,7 @@ class DeburringPathPlanner(Node):
                     )
                 )
         except Exception as e:
+            self._trajectory_buffer.clear()
             self.get_logger().error(
                 f"Failed to plan a trajectory to a handle '{self._target_handle_name}'. "
                 f"Reason: {str(e)}"

@@ -35,9 +35,6 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
 
         self._tool_joint_end_angle = tool_joint_end_angle
         self._tool_joint_start_angle = tool_joint_start_angle
-        # self._tool_angular_vel = tool_angular_vel
-        # self._tool_angular_acc = tool_angular_acc
-        # self._tool_angular_jerk = tool_angular_jerk
 
         self._n_repeat = n_repeat
 
@@ -152,26 +149,22 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
         f_final = self._positioning_force
         traj = []
         for i in range(self._n_repeat):
-            # Move first joint to the limit
-            dist = self._tool_joint_start_angle - j0
-            dir = np.sign(dist)
-            j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(
-                np.abs(dist)
-            )
-            if i == 0:
-                forces = np.zeros_like(j_traj)
-            else:
+            if i != 0:
+                # Move first joint to the limit
+                j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(
+                    j0, self._tool_joint_start_angle
+                )
                 forces = np.ones_like(j_traj) * self._positioning_force
-            traj += [
-                _generate_traj_points(q, dq, f)
-                for q, dq, f in zip(j0 + j_traj * dir, j_vel * dir, forces)
-            ]
+                traj += [
+                    _generate_traj_points(q, dq, f)
+                    for q, dq, f in zip(j_traj, j_vel, forces)
+                ]
 
             # Increase the force to alignment one
             if i == 0:
                 time_steps = ceil(self._positioning_time / self._ocp_dt)
                 j_traj = np.ones(time_steps) * self._tool_joint_start_angle
-                j_vel = np.zeros_like(j_vel)
+                j_vel = np.zeros_like(j_traj)
                 forces = self._compute_force_ramp(
                     0.0, self._positioning_force, self._positioning_force, time_steps
                 )
@@ -180,31 +173,18 @@ class MetalDeburringPathGenerator(GenericTrajectoryGenerator):
                     for q, dq, f in zip(j_traj, j_vel, forces)
                 ]
 
-            # Start moving while increasing the force. Handle force profile is slower than motion!
-            dist = self._tool_joint_end_angle - self._tool_joint_start_angle
+            # Start moving while increasing the force.
+            # Handle force profile is slower than motion!
             j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(
-                np.abs(dist)
+                self._tool_joint_start_angle, self._tool_joint_end_angle
             )
             forces = self._compute_force_ramp(
                 self._positioning_force, self._deburring_force, f_final, j_traj.shape[0]
             )
             traj += [
                 _generate_traj_points(q, dq, f)
-                for q, dq, f in zip(
-                    self._tool_joint_start_angle + j_traj, j_vel, forces
-                )
+                for q, dq, f in zip(j_traj, j_vel, forces)
             ]
             j0 = self._tool_joint_end_angle
-            if i == self._n_repeat - 2:
-                f_final = 0.0
-
-        # Move first joint to middle configuration so planner has easier job
-        dist = (self._tool_joint_end_angle - self._tool_joint_start_angle) / 2.0
-        j_traj, j_vel = self._s_curve_generator.compute_position_s_curve(np.abs(dist))
-        forces = np.ones_like(j_traj) * self._positioning_force
-        traj += [
-            _generate_traj_points(q, dq, f)
-            for q, dq, f in zip(j0 - j_traj, -j_vel, forces)
-        ]
 
         return traj

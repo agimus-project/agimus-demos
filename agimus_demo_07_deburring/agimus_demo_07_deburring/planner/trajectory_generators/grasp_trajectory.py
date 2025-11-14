@@ -21,17 +21,20 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         linear_acc: float,
         linear_jerk: float,
         tool_frame_id: str,
+        tool_angular_vel: float,
+        tool_angular_acc: float,
+        tool_angular_jerk: float,
+        insert_joint_angle: float,
+        retract_joint_angle: float,
     ) -> None:
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
 
-        self._linear_vel = linear_vel
-        self._linear_acc = linear_acc
-        self._linear_jerk = linear_jerk
-
         self._nq = robot_model.nq
         self._nv = robot_model.nv
 
+        self._insert_joint_angle = insert_joint_angle
+        self._retract_joint_angle = retract_joint_angle
         self._ocp_dt = ocp_dt
 
         self._tool_frame_id_name = tool_frame_id
@@ -39,9 +42,19 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
             self._tool_frame_id_name
         )
 
-        self._s_curve_generator = SCurveGenerator(
+        self._linear_s_curve_generator = SCurveGenerator(
             linear_vel, linear_acc, linear_jerk, self._ocp_dt
         )
+
+        self._joint_s_curve_generator = SCurveGenerator(
+            tool_angular_vel, tool_angular_acc, tool_angular_jerk, self._ocp_dt
+        )
+
+    def set_insert_mode(self):
+        self._target_j = self._insert_joint_angle
+
+    def set_retract_mode(self):
+        self._target_j = self._retract_joint_angle
 
     def get_path(
         self,
@@ -56,11 +69,22 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         diff = start_pose.inverse() * T_final
         rot_vel = pin.log3(diff.rotation)
         dist = np.linalg.norm(diff.translation)
-
-        traj, _ = self._s_curve_generator.compute_position_s_curve(np.abs(dist))
+        traj, _ = self._linear_s_curve_generator.compute_position_s_curve(0.0, dist)
         # Rescale s-curve based trajectory to become a blending proportion between
         # initial and final frames for the interpolation.
-        time_spacing = traj / dist
+        time_spacing = traj / traj[-1]
+
+        # Move first joint to the limit
+        j_traj, j_vel = self._joint_s_curve_generator.compute_position_s_curve(
+            q0[-1], self._target_j
+        )
+
+        if len(j_traj) > len(traj):
+            traj = np.concatenate((traj, np.ones(len(j_traj) - len(traj))))
+        else:
+            extra_steps = np.ones(len(traj) - len(j_traj))
+            j_traj = np.concatenate((j_traj, extra_steps * j_traj[-1]))
+            j_vel = np.concatenate((j_vel, extra_steps * 0.0))
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             t = time_spacing[i]
@@ -72,11 +96,16 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
             end_t = T_final.translation
             target.translation = (1.0 - t) * start_t + (t) * end_t
 
+            q = q0.copy()
+            q[-1] = j_traj[i]
+            dq = np.zeros(self._nv)
+            dq[-1] = j_vel[i]
+
             return TrajectoryPoint(
                 id=i,
                 time_ns=0,
-                robot_configuration=q0,
-                robot_velocity=np.zeros(7),
+                robot_configuration=q,
+                robot_velocity=dq,
                 robot_acceleration=np.zeros(self._nv),
                 robot_effort=np.zeros(self._nv),
                 forces={},
