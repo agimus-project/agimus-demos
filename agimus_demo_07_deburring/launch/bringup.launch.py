@@ -87,6 +87,7 @@ def launch_setup(
             "use_ft_sensor": "true",
             "use_camera": "false",
             "ee_id": "ati_mini45_no_camera",
+            "initial_joint_position": "'0.78 -0.78 0.0 -2.35 0.0 1.57 0.78 0.0'",
         },
     )
 
