@@ -30,7 +30,7 @@ deburring_path_planner_node:
       main_generator_type: hpp
       deburring_generator_type: plastic
       use_precomputed_trajectories: $(var use_precomputed_trajectories)
-      precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories
+      precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/plastic
       # TODO implement when diffusion is finalized
       diffusion_generator:
         weights_path: ''
