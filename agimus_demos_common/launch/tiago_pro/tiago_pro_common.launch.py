@@ -47,61 +47,6 @@ def launch_setup(
         condition=UnlessCondition(use_gazebo),
     )
 
-    # tiago_pro_simulation_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         [
-    #             PathJoinSubstitution(
-    #                 [
-    #                     FindPackageShare("agimus_demos_common"),
-    #                     "launch",
-    #                     "tiago_pro",
-    #                     "tiago_pro_simulation.launch.py",
-    #                 ]
-    #             )
-    #         ]
-    #     ),
-    #     condition=IfCondition(use_gazebo),
-    # )
-
-    # xacro_collision_args = {
-    #     "end-effector-right": "no-end-effector",
-    #     "end-effector-left": "no-end-effector",
-    # }
-    # robot_description_file_substitution = PathJoinSubstitution(
-    #     [
-    #         FindPackageShare("tiago_pro_description"),
-    #         "robots",
-    #         "tiago_pro.urdf.xacro",
-    #     ]
-    # )
-    # robot_description_with_collision = ParameterValue(
-    #     Command(
-    #         [
-    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
-    #             " ",
-    #             robot_description_file_substitution,
-    #             *[
-    #                 arg
-    #                 for key, val in xacro_collision_args.items()
-    #                 for arg in (f" {key}:=", val)
-    #             ],
-    #         ]
-    #     ),
-    #     value_type=str,
-    # )
-    # robot_collision_publisher_node = Node(
-    #     package="agimus_demos_common",
-    #     executable="string_publisher",
-    #     name="robot_description_with_collision_publisher",
-    #     output="screen",
-    #     parameters=[
-    #         get_use_sim_time(),
-    #         {
-    #             "topic_name": "robot_description_with_collision",
-    #             "string_value": robot_description_with_collision,
-    #         },
-    #     ],
-    # )
     robot_srdf_description_substitution = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demos_common"),
@@ -143,8 +88,6 @@ def launch_setup(
 
     return [
         tiago_pro_hardware_launch,
-        # tiago_pro_simulation_launch,
-        # robot_collision_publisher_node,
         robot_srdf_publisher_node,
         rviz_node,
     ]
