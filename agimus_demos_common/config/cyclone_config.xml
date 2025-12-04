@@ -1,0 +1,27 @@
+<CycloneDDS>
+    <Domain>
+        <General>
+            <AllowMulticast>false</AllowMulticast>
+            <MaxMessageSize>1400B</MaxMessageSize>
+            <Interfaces>
+                <NetworkInterface name="lo" priority="0"/>
+            </Interfaces>
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <Peers>
+                <Peer Address="localhost"/>
+            </Peers>
+            <MaxAutoParticipantIndex>500</MaxAutoParticipantIndex>
+        </Discovery>
+        <Internal>
+            <Watermarks>
+                <WhcHigh>2000kB</WhcHigh>
+            </Watermarks>
+        </Internal>
+        <Tracing>
+            <Verbosity>config</Verbosity>
+            <OutputFile>${HOME}/.ros/log/cdds.log</OutputFile>
+        </Tracing>
+    </Domain>
+</CycloneDDS>

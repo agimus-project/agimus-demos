@@ -47,21 +47,21 @@ def launch_setup(
         condition=UnlessCondition(use_gazebo),
     )
 
-    tiago_pro_simulation_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demos_common"),
-                        "launch",
-                        "tiago_pro",
-                        "tiago_pro_simulation.launch.py",
-                    ]
-                )
-            ]
-        ),
-        condition=IfCondition(use_gazebo),
-    )
+    # tiago_pro_simulation_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         [
+    #             PathJoinSubstitution(
+    #                 [
+    #                     FindPackageShare("agimus_demos_common"),
+    #                     "launch",
+    #                     "tiago_pro",
+    #                     "tiago_pro_simulation.launch.py",
+    #                 ]
+    #             )
+    #         ]
+    #     ),
+    #     condition=IfCondition(use_gazebo),
+    # )
 
     # xacro_collision_args = {
     #     "end-effector-right": "no-end-effector",
@@ -143,7 +143,7 @@ def launch_setup(
 
     return [
         tiago_pro_hardware_launch,
-        tiago_pro_simulation_launch,
+        # tiago_pro_simulation_launch,
         # robot_collision_publisher_node,
         robot_srdf_publisher_node,
         rviz_node,
