@@ -1,5 +1,6 @@
 import ast
 from copy import deepcopy
+import os
 
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
@@ -50,7 +51,6 @@ def launch_setup(
     external_controllers_params = LaunchConfiguration("external_controllers_params")
     external_controllers_names = LaunchConfiguration("external_controllers_names")
     franka_controllers_params = LaunchConfiguration("franka_controllers_params")
-    initial_joint_position = LaunchConfiguration("initial_joint_position")
     use_rviz = LaunchConfiguration("use_rviz")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
     use_plotjuggler = LaunchConfiguration("use_plotjuggler")
@@ -378,7 +378,6 @@ def launch_setup(
         "rdt_sampling_rate": str(int(7000 / 6)),
         "internal_filter_rate": "1",
         "use_hardware_biasing": "true",
-        "initial_joint_position": initial_joint_position,
     }
 
     robot_description_file_substitution = PathJoinSubstitution(
@@ -545,11 +544,6 @@ def generate_launch_description():
                 ]
             ),
             description="Path to the yaml file use to define controller parameters.",
-        ),
-        DeclareLaunchArgument(
-            "initial_joint_position",
-            default_value="'0.0 -0.78 0.0 -2.35 0.0 1.57 0.78 0.0'",
-            description="Initial configuration of the robot used in Gazebo",
         ),
         DeclareLaunchArgument(
             "gz_world_path",

@@ -13,7 +13,7 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
-
+import os
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs

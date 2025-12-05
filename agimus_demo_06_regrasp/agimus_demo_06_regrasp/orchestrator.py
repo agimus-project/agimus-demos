@@ -113,6 +113,10 @@ class Orchestrator(object):
         self.smooth = self.param.use_smoothing_at_waypoints
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
+        self._node.declare_parameter("arm_id")
+        self.arm_id = (
+            self._node.get_parameter("arm_id").get_parameter_value().string_value
+        )
         self.state_client = AsyncSubscriber(
             self._node,
             JointState,
@@ -269,7 +273,7 @@ class Orchestrator(object):
             0.0,
             1.0,
         ]
-        self.planner = ManipulationPlanner(object_name, arm_id=self.arm_id)
+        self.planner = ManipulationPlanner(object_name,arm_id=self.arm_id)
         # self.hpp_client = HPPInterface(
         #     object_name=object_name, use_spline_gradient_based_opt=False
         # )

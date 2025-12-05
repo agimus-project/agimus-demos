@@ -19,6 +19,80 @@ EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
 )
 FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
+import os
+import re
+import yaml
+import tempfile
+
+def parse_config(path=None, data=None, replacements=None, output_path=None):
+    """
+    Load a YAML file, replace all occurrences of ${VAR}
+    in keys and values, and save the result if requested.
+    args:
+        path (str): Path to the YAML file to load.
+        data (str): YAML content as a string.
+        replacements (dict): Dictionary of variable replacements.
+        output_path (str): If provided, save the modified YAML to this path.
+    returns:
+        str: Path to the modified YAML temporary file or output_path.
+    """
+
+    pattern = re.compile(r'\${(\w+)}')
+
+    def replace_in_string(value):
+        """Replace all ${...} variables in a string."""
+        matches = pattern.findall(value)
+        for m in matches:
+            r = None
+            if replacements:
+                r = replacements.get(m)
+            if r is None:
+                r = os.environ.get(m)
+            if r is None:
+                raise ValueError(f"Variable '{m}' not found.")
+            value = value.replace(f"${{{m}}}", r)
+        return value
+
+    def replace_recursive(obj):
+        """Apply replacement throughout the YAML."""
+        if isinstance(obj, dict):
+            new_dict = {}
+            for key, val in obj.items():
+                # replacement in keys
+                new_key = replace_in_string(key) if isinstance(key, str) else key
+                new_dict[new_key] = replace_recursive(val)
+            return new_dict
+
+        elif isinstance(obj, list):
+            return [replace_recursive(item) for item in obj]
+
+        elif isinstance(obj, str):
+            return replace_in_string(obj)
+
+        return obj
+
+    if path:
+        with open(path) as f:
+            config = yaml.safe_load(f)
+    elif data:
+        config = yaml.safe_load(data)
+    else:
+        raise ValueError("Provide path or data")
+
+    # --- Apply replacements ---
+    config = replace_recursive(config)
+
+    # --- Saving ---
+    if output_path:
+        with open(output_path, "w") as f:
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+        return output_path
+    else:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as tmp:
+            yaml.dump(config, tmp)
+            tmp_path = tmp.name
+
+    return tmp_path
 
 def safe_remove(path: Path)-> None:
     """Remove the file if it exists; do nothing if it is already gone."""

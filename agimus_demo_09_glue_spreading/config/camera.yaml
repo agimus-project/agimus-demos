@@ -1,0 +1,9 @@
+camera:
+  name: cam_1
+  pose:
+    x: 1.82
+    y: 0.0
+    z: 0.90
+    roll:  0.0
+    pitch: 0.7853
+    yaw:   3.14159

@@ -21,6 +21,7 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
+import os
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
@@ -157,9 +158,7 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
-    trajectory_weights_yaml_file = parse_config(
-        path=trajectory_weights_yaml.perform(context), replacements=replacements
-    )
+    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
 
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
