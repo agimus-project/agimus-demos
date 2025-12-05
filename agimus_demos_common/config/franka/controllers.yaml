@@ -20,8 +20,8 @@ gripper_action_controller:
   ros__parameters:
     action_monitor_rate: 20.0
     # For now hardcoded arm_id. To be fixed later
-    joint: fer_finger_joint1
-    gains.fer_finger_joint1:
+    joint:  ${arm_id}_finger_joint1
+    gains.${arm_id}_finger_joint1:
       d: 10.0
       i: 0.1
       i_clamp: 0.5

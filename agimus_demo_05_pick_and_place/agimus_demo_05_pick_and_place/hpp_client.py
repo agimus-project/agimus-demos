@@ -72,6 +72,7 @@ class HPPInterface:
         dataset_name: str = "tless",
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
+        arm_id: str = "fer",
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
         use_spline_gradient_based_opt: bool = True,
         gripper_open_value: float = 0.04,
@@ -96,8 +97,9 @@ class HPPInterface:
         urdf_string = (
             process_xacro(
                 package_location + "/urdf/demo.urdf.xacro",
+                {"arm_id": arm_id},
                 "use_camera:=true",
-            ).replace("file://", "")
+            ).replace("file://", "", {"arm_id": arm_id})
             if robot_urdf_string == ""
             else robot_urdf_string
         )

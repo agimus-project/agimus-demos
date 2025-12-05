@@ -52,7 +52,6 @@ def launch_setup(
             "franka_controllers_params": LaunchConfiguration(
                 "franka_controllers_params"
             ),
-            "initial_joint_position": LaunchConfiguration("initial_joint_position"),
             "use_gazebo": LaunchConfiguration("use_gazebo"),
             "use_rviz": LaunchConfiguration("use_rviz"),
             "rviz_config_path": LaunchConfiguration("rviz_config_path"),
@@ -60,7 +59,6 @@ def launch_setup(
             "plotjuggler_config_path": LaunchConfiguration("plotjuggler_config_path"),
             "gz_verbose": LaunchConfiguration("gz_verbose"),
             "gz_headless": LaunchConfiguration("gz_headless"),
-            "gz_world_path": LaunchConfiguration("gz_world_path"),
         }.items(),
     )
 
@@ -93,22 +91,6 @@ def generate_launch_description():
             ),
             description="Path to the yaml file use to define "
             + "Linear Feedback Controller's and Joint State Estimator's params.",
-        ),
-        DeclareLaunchArgument(
-            "initial_joint_position",
-            default_value="'0.0 -0.78 0.0 -2.35 0.0 1.57 0.78 0.0'",
-            description="Initial configuration of the robot used in Gazebo",
-        ),
-        DeclareLaunchArgument(
-            "gz_world_path",
-            default_value=PathJoinSubstitution(
-                [
-                    FindPackageShare("franka_description"),
-                    "worlds",
-                    "empty.sdf",
-                ]
-            ),
-            description="Path to Gazebo world SDF file.",
         ),
         DeclareLaunchArgument(
             "rviz_config_path",

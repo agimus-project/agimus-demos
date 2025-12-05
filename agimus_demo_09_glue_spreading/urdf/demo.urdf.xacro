@@ -4,12 +4,11 @@
   <xacro:include filename="$(find franka_description)/robots/$(arg arm_id)/$(arg arm_id).urdf.xacro">
     <!-- <xacro:arg name="with_sc" value="True" /> -->
   </xacro:include>
-  <xacro:include filename="$(find agimus_demo_06_regrasp)/urdf/support.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_09_glue_spreading)/urdf/table.urdf.xacro"/>
 
-  <xacro:support/>
+  <xacro:table parent_link="world" child_link="base">
+    <origin xyz="0 0 0.68" rpy="0 0 0"/>
+  </xacro:table>
 
-  <joint name="attach_robot_joint" type="fixed">
-    <parent link="robot_attachment_link" />
-    <child link="base" />
 </joint>
 </robot>

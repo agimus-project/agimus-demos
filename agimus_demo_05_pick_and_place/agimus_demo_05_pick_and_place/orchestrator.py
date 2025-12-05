@@ -148,6 +148,9 @@ class Orchestrator(object):
         self.vision_type = (
             self._node.get_parameter("vision_type").get_parameter_value().string_value
         )
+        self.arm_id = (
+            self._node.get_parameter("arm_id").get_parameter_value().string_value
+        )
 
         self.object_to_grasp_name = None
         self.start_obj_pose = None
@@ -573,6 +576,7 @@ class Orchestrator(object):
         self.hpp_client = HPPInterface(
             object_name="obj_26",
             use_spline_gradient_based_opt=False,
+            arm_id=self.arm_id,
         )
 
         paths = self.hpp_client.plan_calib_motion(

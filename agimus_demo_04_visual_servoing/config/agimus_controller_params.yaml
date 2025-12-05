@@ -12,18 +12,17 @@ agimus_controller_node:
       max_qp_iter: 100
       max_iter: 10
       activate_callback: false
-      effector_frame_name: fer_link8
-      definition_yaml_file: package://agimus_demo_04_visual_servoing/config/ocp_definition_file.yaml
+      effector_frame_name: ${arm_id}_link8
     collision_pairs_names: [cp_1, cp_2, cp_3, cp_4]
     cp_1:
-      first: fer_hand_sc_capsule_0
+      first: ${arm_id}_hand_sc_capsule_0
       second: big_box_link_1
     cp_2:
-      first: fer_hand_sc_capsule_0
+      first: ${arm_id}_hand_sc_capsule_0
       second: big_box_link_2
     cp_3:
-      first: fer_hand_sc_capsule_0
+      first: ${arm_id}_hand_sc_capsule_0
       second: big_box_link_3
     cp_4:
-      first: fer_hand_sc_capsule_0
+      first: ${arm_id}_hand_sc_capsule_0
       second: big_box_link_4

@@ -43,8 +43,6 @@ class SplineBezier:
                 self.steeringMethod, self.currentProblem
             )
         )
-        Robot.urdfString = "package://example-robot-data/robots/tiago_pro_description/robots/tiago_pro.urdf"
-        Robot.srdfString = ""
 
     def createSplinePath(
         self, wayPoint1, wayPoint2, length, order1, derivative1, order2, derivative2

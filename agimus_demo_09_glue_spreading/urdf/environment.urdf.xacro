@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="obstacle">
+  <!--include table-->
+  <xacro:include filename="$(find agimus_demo_09_glue_spreading)/urdf/table.urdf.xacro"/>
+  <!--include camera-->
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro" />
+
+  <xacro:property name="camera_file" value="${xacro.load_yaml('$(find agimus_demo_09_glue_spreading)/config/camera.yaml')}"/>
+
+
+  <link name="robot_attachment_link"/>
+  <xacro:table parent_link="robot_attachment_link">
+    <origin xyz="0 0 -0.68" rpy="0 0 0"/>
+  </xacro:table>
+
+  <xacro:sensor_d435 parent="robot_attachment_link" name="${camera_file['camera']['name']}" use_nominal_extrinsics="true" use_mesh="true">
+    <origin xyz="${camera_file['camera']['pose']['x']} ${camera_file['camera']['pose']['y']} ${camera_file['camera']['pose']['z']}" 
+            rpy="${camera_file['camera']['pose']['roll']} ${camera_file['camera']['pose']['pitch']} ${camera_file['camera']['pose']['yaw']}"/>
+  </xacro:sensor_d435>
+  
+
+</robot>

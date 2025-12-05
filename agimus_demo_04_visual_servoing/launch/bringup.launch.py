@@ -1,7 +1,7 @@
 from launch import LaunchContext, LaunchDescription
 from launch.conditions import IfCondition
 from launch.actions import OpaqueFunction, RegisterEventHandler, DeclareLaunchArgument
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
@@ -15,14 +15,16 @@ from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
     get_use_sim_time,
+    parse_config,
 )
-
+import os
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     use_mpc_debugger = LaunchConfiguration("use_mpc_debugger")
     tracked_object_name = LaunchConfiguration("tracked_object_name")
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
     franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
 
@@ -33,6 +35,29 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
+
+    ocp_definition_yaml = PathJoinSubstitution(
+        [
+                FindPackageShare("agimus_demo_04_visual_servoing"),
+                "config",
+                "ocp_definition_file.yaml"
+        ]
+    )
+
+    # Parsing franka_controllers_params with arm_id replacement
+    replacements = {
+        'arm_id': arm_id_str,
+    }
+
+    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements)
+    ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
+
+    extra_params = {
+        "ocp": {
+            "definition_yaml_file": ocp_definition_yaml_file
+        }
+    }
+
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -42,7 +67,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml],
+        parameters=[get_use_sim_time(), agimus_controller_yaml_file,extra_params],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -95,11 +120,11 @@ def launch_setup(
             parameters=[{"robot_description": environment_description}],
         )
         tf_node = static_transform_publisher_node(
-            frame_id="fer_link0",
+            frame_id=arm_id_str+"_link0",
             child_frame_id="big_box_root",
         )
         tf_node_2 = static_transform_publisher_node(
-            frame_id="fer_link0",
+            frame_id=arm_id_str+"_link0",
             child_frame_id="big_box_root",
         )
         tf_node_3 = static_transform_publisher_node(
@@ -115,6 +140,7 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
+    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
 
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
@@ -122,17 +148,27 @@ def launch_setup(
         name="reference_publisher",
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
-        parameters=[get_use_sim_time(), trajectory_weights_yaml],
+        parameters=[get_use_sim_time(), trajectory_weights_yaml_file],
     )
 
     mpc_debugger = mpc_debugger_node(
-        "fer_hand_tcp",
-        parent_frame="fer_link0",
+        arm_id_str+"_hand_tcp",
+        parent_frame=arm_id_str+"_link0",
         cost_plot=True,
         node_kwargs=dict(
             remappings=[("robot_description", "robot_description_with_collision")],
             condition=IfCondition(use_mpc_debugger),
         ),
+    )
+    # Cleanup temporary file on shutdown
+    cleanup_action = RegisterEventHandler(
+        OnShutdown(
+            on_shutdown=lambda event, context: (
+                os.remove(ocp_definition_yaml_file),
+                os.remove(agimus_controller_yaml_file),
+                os.remove(trajectory_weights_yaml_file),
+            )
+        )
     )
 
     return [
@@ -150,6 +186,7 @@ def launch_setup(
                 + vision_nodes,
             )
         ),
+        cleanup_action,
     ]
 
 
