@@ -32,8 +32,22 @@ Robot.urdfString = process_xacro(urdf_xacro, "end_effector_left:=pal-pro-gripper
 Robot.srdfString = ""
 srdfString = process_xacro(srdf_xacro, "end_effector_left:=pal-pro-gripper",
                            "end_effector_right:=pal-pro-gripper")
+# Additional collision pairs to remove
+# remove </robot> from file
+i = srdfString.find("</robot>")
+assert(i!=-1)
+srdfString = srdfString[:i]
+for l1, l2 in [("base_link", "wheel_front_left_link"),
+    ("base_link", "wheel_front_right_link") ,
+    ("base_link", "wheel_rear_left_link"),
+    ("base_link", "wheel_rear_right_link"),
+    ("gripper_left_screw_left_link", "gripper_left_fingertip_left_link"),
+    ("gripper_right_screw_left_link", "gripper_right_fingertip_left_link")
+    ]:
+    srdfString += f'  <disable_collisions link1="{l1}" link2="{l2}" reason="Never"/>\n'
+srdfString += "</robot>"
 robot = Robot("tiago_pro-manip", "tiago_pro", rootJointType = "planar")
-robot.client.manipulation.robot.insertRobotSRDFModelFromString("", srdfString)
+robot.client.manipulation.robot.insertRobotSRDFModelFromString("tiago_pro", srdfString)
 ps = ProblemSolver(robot)
 vf = ViewerFactory(ps)
 vf.loadObjectModel(ReinforcmentBar, "reinforcment_bar")
@@ -57,33 +71,27 @@ robot.client.manipulation.robot.addHandle(
     "reinforcment_bar/base_link", "reinforcment_bar/right",
     [0, 0.01, .25, 0, 0, -c, c], .1, 6*[True])
 
-# Set initial configuration
-q0 = robot.getCurrentConfig()
-
 # Lock gripper joints
 lockedGrippers = {
-    'tiago_pro/gripper_left_finger_joint': .1,
-    'tiago_pro/gripper_left_inner_finger_left_joint': -.1,
-    'tiago_pro/gripper_left_fingertip_left_joint': .1,
+    'tiago_pro/gripper_left_finger_joint': .05,
+    'tiago_pro/gripper_left_inner_finger_left_joint': -.05,
+    'tiago_pro/gripper_left_fingertip_left_joint': .05,
     'tiago_pro/gripper_left_finger_right_joint': 0,
-    'tiago_pro/gripper_left_inner_finger_right_joint': -.1,
-    'tiago_pro/gripper_left_fingertip_right_joint': .1,
-    'tiago_pro/gripper_left_outer_finger_left_joint': -.1,
-    'tiago_pro/gripper_left_outer_finger_right_joint': -.1,
-    'tiago_pro/gripper_right_finger_joint': .1,
-    'tiago_pro/gripper_right_inner_finger_left_joint': -.1,
-    'tiago_pro/gripper_right_fingertip_left_joint': .1,
+    'tiago_pro/gripper_left_inner_finger_right_joint': -.05,
+    'tiago_pro/gripper_left_fingertip_right_joint': .05,
+    'tiago_pro/gripper_left_outer_finger_left_joint': -.05,
+    'tiago_pro/gripper_left_outer_finger_right_joint': -.05,
+    'tiago_pro/gripper_right_finger_joint': .05,
+    'tiago_pro/gripper_right_inner_finger_left_joint': -.05,
+    'tiago_pro/gripper_right_fingertip_left_joint': .05,
     'tiago_pro/gripper_right_finger_right_joint': 0,
-    'tiago_pro/gripper_right_inner_finger_right_joint': -.1,
-    'tiago_pro/gripper_right_fingertip_right_joint': .1,
-    'tiago_pro/gripper_right_outer_finger_left_joint': -.1,
-    'tiago_pro/gripper_right_outer_finger_right_joint': -.1,
+    'tiago_pro/gripper_right_inner_finger_right_joint': -.05,
+    'tiago_pro/gripper_right_fingertip_right_joint': .05,
+    'tiago_pro/gripper_right_outer_finger_left_joint': -.05,
+    'tiago_pro/gripper_right_outer_finger_right_joint': -.05,
     }
 for j, v in lockedGrippers.items():
     ps.createLockedJoint(j, j, [v])
-
-r = robot.rankInConfiguration["reinforcment_bar/root_joint"]
-q0[r:r+7] = [.6, 0, .5, c, 0, 0, c]
 
 # Create constraint graph
 cg = ConstraintGraph(robot, "graph")
@@ -97,5 +105,10 @@ factory.setPossibleGrasps(possibleGrasps)
 factory.generate ()
 cg.addConstraints(graph=True, constraints = Constraints(numConstraints = lockedGrippers.keys()))
 cg.initialize ()
+
+# Set initial configuration
+q0 = robot.getCurrentConfig()
+r = robot.rankInConfiguration["reinforcment_bar/root_joint"]
+q0[r:r+7] = [.6, 0, .6, c, 0, 0, c]
 
 res, q1, err = cg.applyNodeConstraints('free', q0)
