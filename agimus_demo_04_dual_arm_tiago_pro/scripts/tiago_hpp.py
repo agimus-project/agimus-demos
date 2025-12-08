@@ -10,6 +10,7 @@ from hpp.corbaserver.manipulation import (
     Robot
 )
 from hpp.gepetto.manipulation import ViewerFactory
+from viewer import displayGripper, displayHandle
 
 # Load Tiago pro robot and Reinforcment bar
 class ReinforcmentBar:
@@ -28,7 +29,7 @@ Client().problem.resetProblem()
 urdf_xacro = "package://tiago_pro_description/robots/tiago_pro.urdf.xacro"
 srdf_xacro = "package://tiago_pro_moveit_config/config/srdf/tiago_pro.srdf.xacro"
 Robot.urdfString = process_xacro(urdf_xacro, "end_effector_left:=pal-pro-gripper",
-                           "end_effector_right:=pal-pro-gripper").replace("file://", "")
+    "end_effector_right:=pal-pro-gripper").replace("file://", "")
 Robot.srdfString = ""
 srdfString = process_xacro(srdf_xacro, "end_effector_left:=pal-pro-gripper",
                            "end_effector_right:=pal-pro-gripper")
@@ -60,18 +61,21 @@ robot.setJointBounds("tiago_pro/root_joint", [-3, 3, -3, 3, -1, 1, -1, 1])
 c = sqrt(2)/2
 robot.client.manipulation.robot.addGripper(
     "tiago_pro/arm_left_7_link", "tiago_pro/left",
-    [0, 0, .18, 0, -c, 0, c], .1)
+    [0, 0, .19, 0, -c, 0, c], .02)
 robot.client.manipulation.robot.addGripper(
     "tiago_pro/arm_right_7_link", "tiago_pro/right",
-    [0, 0, .18, 0, -c, 0, c], .1)
+    [0, 0, .19, 0, -c, 0, c], .02)
 robot.client.manipulation.robot.addHandle(
     "reinforcment_bar/base_link", "reinforcment_bar/left",
-    [0, 0.01, -.25, 0, 0, -c, c], .1, 6*[True])
+    [0, 0.01, -.25, 0, 0, -c, c], .05, 6*[True])
 robot.client.manipulation.robot.addHandle(
     "reinforcment_bar/base_link", "reinforcment_bar/right",
-    [0, 0.01, .25, 0, 0, -c, c], .1, 6*[True])
+    [0, 0.01, .25, 0, 0, -c, c], .05, 6*[True])
 
-# Lock gripper joints
+# Create lists of locked joints
+ps.createLockedJoint("locked_tiago_pro/root_joint", "tiago_pro/root_joint",
+                     [0, 0, 1, 0])
+ps.setConstantRightHandSide("locked_tiago_pro/root_joint", False)
 lockedGrippers = {
     'tiago_pro/gripper_left_finger_joint': .05,
     'tiago_pro/gripper_left_inner_finger_left_joint': -.05,
@@ -90,8 +94,29 @@ lockedGrippers = {
     'tiago_pro/gripper_right_outer_finger_left_joint': -.05,
     'tiago_pro/gripper_right_outer_finger_right_joint': -.05,
     }
+locked_grippers = list()
 for j, v in lockedGrippers.items():
-    ps.createLockedJoint(j, j, [v])
+    constraint = f"locked_{j}"
+    ps.createLockedJoint(constraint, j, [v])
+    locked_grippers.append(constraint)
+
+lockedHead = {"tiago_pro/head_1_joint" : 0,
+              "tiago_pro/head_2_joint" : 0}
+locked_head = list()
+for j, v in lockedHead.items():
+    constraint = f"locked_{j}"
+    ps.createLockedJoint(constraint, j, [v])
+    locked_head.append(constraint)
+
+locked_arms_and_torso = list()
+for j in filter(lambda s:s.startswith("tiago_pro/") and
+    not s.startswith("tiago_pro/head") and
+    not s.startswith("tiago_pro/wheel") and
+    s != "tiago_pro/root_joint", robot.jointNames):
+    constraint = f"locked_{j}"
+    ps.createLockedJoint(constraint, j, [0])
+    locked_arms_and_torso.append(constraint)
+    ps.setConstantRightHandSide(constraint, False)
 
 # Create constraint graph
 cg = ConstraintGraph(robot, "graph")
@@ -103,12 +128,69 @@ possibleGrasps = {"tiago_pro/left" : ["reinforcment_bar/left"],
                   "tiago_pro/right": ["reinforcment_bar/right"]}
 factory.setPossibleGrasps(possibleGrasps)
 factory.generate ()
-cg.addConstraints(graph=True, constraints = Constraints(numConstraints = lockedGrippers.keys()))
+# Add a transition to move the base keeping all other joints fixed
+cg.createEdge("free", "free", "move_base", 1, "free")
+# Add a transition to move the base while holding the bar
+n = "tiago_pro/left grasps reinforcment_bar/left : tiago_pro/right grasps reinforcment_bar/right"
+cg.createEdge(n, n, "move_base_holding_bar", 1, n)
+# Lock grippers and head all the time
+cg.addConstraints(graph=True,
+    constraints = Constraints(numConstraints = locked_grippers + locked_head))
+# Do not allow motion of the bar until grasped by two hands
+for e in ["tiago_pro/right > reinforcment_bar/right | 0-0_01",
+    "tiago_pro/right > reinforcment_bar/right | 0-0_12",
+    "tiago_pro/right < reinforcment_bar/right | 0-0:1-1_21",
+    "tiago_pro/right < reinforcment_bar/right | 0-0:1-1_10",
+    "tiago_pro/left > reinforcment_bar/left | 1-1_01",
+    "tiago_pro/left > reinforcment_bar/left | 1-1_12",
+    "tiago_pro/left < reinforcment_bar/left | 0-0:1-1_21",
+    "tiago_pro/left < reinforcment_bar/left | 0-0:1-1_10"]:
+    cg.addConstraints(edge = e, constraints = Constraints(
+        numConstraints = ["reinforcment_bar/root_joint"]))
+# When moving the arms, do not move the base
+for e in ['Loop | f', 'Loop | 0-0', 'tiago_pro/left > reinforcment_bar/left | f',
+    'tiago_pro/left < reinforcment_bar/left | 0-0', 'tiago_pro/left > reinforcment_bar/left | f_01',
+    'tiago_pro/left < reinforcment_bar/left | 0-0_10',
+    'tiago_pro/left > reinforcment_bar/left | f_12',
+    'tiago_pro/left < reinforcment_bar/left | 0-0_21',
+    'Loop | 0-0:1-1', 'tiago_pro/right > reinforcment_bar/right | 0-0',
+    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1',
+    'tiago_pro/right > reinforcment_bar/right | 0-0_01',
+    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1_10',
+    'tiago_pro/right > reinforcment_bar/right | 0-0_12',
+    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1_21',
+    'Loop | 1-1', 'tiago_pro/right > reinforcment_bar/right | f',
+    'tiago_pro/right < reinforcment_bar/right | 1-1',
+    'tiago_pro/right > reinforcment_bar/right | f_01',
+    'tiago_pro/right < reinforcment_bar/right | 1-1_10',
+    'tiago_pro/right > reinforcment_bar/right | f_12',
+    'tiago_pro/right < reinforcment_bar/right | 1-1_21',
+    'tiago_pro/left > reinforcment_bar/left | 1-1',
+    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1',
+    'tiago_pro/left > reinforcment_bar/left | 1-1_01',
+    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1_10',
+    'tiago_pro/left > reinforcment_bar/left | 1-1_12',
+    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1_21']:
+    cg.addConstraints(edge = e,
+        constraints = Constraints(numConstraints = ["locked_tiago_pro/root_joint"]))
+# When moving the base, do not move the arms and torso
+cg.addConstraints(edge = "move_base_holding_bar", constraints = Constraints(
+    numConstraints = locked_arms_and_torso
+))
+cg.addConstraints(edge = "move_base", constraints = Constraints(
+    numConstraints = locked_arms_and_torso + ["reinforcment_bar/root_joint"]
+))
 cg.initialize ()
 
 # Set initial configuration
 q0 = robot.getCurrentConfig()
 r = robot.rankInConfiguration["reinforcment_bar/root_joint"]
-q0[r:r+7] = [.6, 0, .6, c, 0, 0, c]
+q0[r:r+7] = [.7, 0, .6, c, 0, 0, c]
 
-res, q1, err = cg.applyNodeConstraints('free', q0)
+res, q_init, err = cg.applyNodeConstraints('free', q0)
+q_goal = q_init[:]
+q_goal[r:r+7] = [-.7, 0, .6, 0, c, c, 0]
+
+ps.setInitialConfig(q_init)
+ps.addGoalConfig(q_goal)
+ps.solve()
