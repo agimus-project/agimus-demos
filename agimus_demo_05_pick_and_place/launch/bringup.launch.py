@@ -101,7 +101,7 @@ def launch_setup(
 
     # add simulation of vision detection
     if vision_type in ["simulate_happypose", "simulate_apriltag_det"]:
-        simulated_object_pose = [0.2, -0.1, 0.95, 0.0, 0.0, 0.707, 0.707]
+        simulated_object_pose = [0.15, -0.2, 1.05, 0.0, 0.0, 0.707, 0.707]
         if vision_type == "simulate_apriltag_det":
             simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
             tf_node_object_detection = static_transform_publisher_node(
@@ -168,7 +168,7 @@ def launch_setup(
     elif vision_type in ["simulate_apriltag_det", "apriltag_det"]:
         apriltag_tf_to_world_pose_pub = Node(
             package="olt_ros2_pipeline",
-            executable="apriltag_tf_to_world_pose",
+            executable="apriltag_tf_to_world",
             name="detection_pub_node",
             parameters=[get_use_sim_time()],
             output="screen",
