@@ -527,75 +527,39 @@ class SplineGenerator:
     
     def transform(self, translation, rotation):
         """
-        Apply a full SE3 transform (rotation + translation) to all waypoints AND orientations.
-        This keeps the spline consistent with the new reference frame.
+        Apply a full transformation (rotation + translation)
+        to a trajectory given as positions expressed in the frame of the provided transform.
 
-        Args:
-            translation: geometry_msgs/Vector3
-            rotation: geometry_msgs/Quaternion
+        - traj: np.array of shape (N, 3) representing the trajectory points
+        - translation: translation part of the transform (with attributes x, y, z)
+        - rotation: rotation part of the transform as a quaternion (with attributes x, y, z, w)
+
+        Sets:
+            self.waypoints : transformed waypoints
+            self.start_traj : updated interpolator for the pose of the start trajectory
+            self.spread_traj : updated interpolator for the pose of the spread trajectory
+            self.t_total : updated time of the complete trajectory
         """
-
-        # --- 1. Normalize quaternion (ROS can give non-normalized Q) ---
         quat_ros = np.array([rotation.x, rotation.y, rotation.z, rotation.w])
-        quat_ros = quat_ros / np.linalg.norm(quat_ros)
-
         trans_ros = np.array([translation.x, translation.y, translation.z])
-
-        # --- 2. Build the SE3 transform ---
         q_pin = pin.Quaternion(quat_ros).normalize()
-        R_tf = q_pin.toRotationMatrix()
-        T = pin.SE3(R_tf, trans_ros)
+        T = pin.SE3(q_pin.toRotationMatrix(), trans_ros)
+        
         T_matrix = T.homogeneous
+        
+        # Convert the trajectory into a single NumPy array of shape (N, 3)
+        
 
-        # --- 3. Transform all waypoint positions ---
-        assert self.waypoints.shape[1] == 3, (
-            f"Waypoints should have shape (N,3), got {self.waypoints.shape}"
-        )
+        assert self.waypoints.shape[1] == 3, f"Waypoints should have shape (N, 3), but got {self.waypoints.shape}"
+        # Homogeneous coordinates (N, 4)
+        homogeneous_points = np.hstack([self.waypoints, np.ones((self.waypoints.shape[0], 1))])
 
-        homogeneous_points = np.hstack([
-            self.waypoints,
-            np.ones((self.waypoints.shape[0], 1))
-        ])
-
-        transformed_points = (T_matrix @ homogeneous_points.T).T
-        self.waypoints = transformed_points[:, :3]
-
-        # --- 4. Transform all orientations (RPY) ---
-        new_orientations = []
-        for i in range(len(self.waypoints) - 1):
-            # Recompute local orientation
-            wp_ori = self._compute_local_orientation(
-                self.waypoints[i], self.waypoints[i + 1]
-            )
-
-            # Convert to rotation matrix
-            R_local = pin.utils.rpyToMatrix(*wp_ori)
-
-            # Apply transform rotation
-            R_global = R_tf @ R_local
-
-            # Convert back to RPY
-            rpy_global = pin.utils.matrixToRpy(R_global)
-            new_orientations.append(rpy_global)
-
-        # Duplicate last orientation to keep same size
-        new_orientations.append(new_orientations[-1])
-        self.transformed_orientations = np.array(new_orientations)
-
-        # --- 5. Rebuild interpolation based on new points & orientations ---
-        self._compute_and_set_times()
-        self._compute_full_traj()
-
-        # Replace spread orientations with computed ones
-        self.spread_ori_traj = RBFInterpolator(
-            self.time_spread, self.transformed_orientations, kernel=self.spread_kernel
-        )
-
-        # Recompute the start orientation interpolator
-        start_oris = np.vstack((self.start_ori, self.transformed_orientations[0]))
-        self.start_ori_traj = RBFInterpolator(
-            self.time_start, start_oris, kernel=self.start_kernel
-        )
+        # Apply the transformation
+        transformed_homogeneous = (T_matrix @ homogeneous_points.T).T
+        
+        # Return list of tuples (cartesian coordinates)
+        self.waypoints = transformed_homogeneous[:, :3]
+        self.update_interpolators()
 
     def update_interpolators(self):
         """
@@ -700,10 +664,7 @@ if __name__=="__main__":
     ax.legend()
 
     trans = MockPoint(0,0,0)
-    rot = MockQuaternion(0, 0, 0.7071, 0.7071)
-    rot = MockQuaternion(0.7071, 0, 0.0, 0.7071)
-
-
+    rot = MockQuaternion(0,0,np.pi/2,1)
     spline.transform(trans, rot)
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111, projection='3d')

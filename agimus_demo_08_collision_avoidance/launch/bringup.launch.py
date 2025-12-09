@@ -15,8 +15,6 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
-
-
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -118,6 +116,7 @@ def launch_setup(
     goal_publisher_params_file = parse_config(
         path=goal_publisher_params.perform(context), replacements=replacements
     )
+    goal_publisher_params_file = parse_config(path=goal_publisher_params.perform(context), replacements=replacements)
 
     goal_publisher_node = Node(
         package="agimus_demo_08_collision_avoidance",

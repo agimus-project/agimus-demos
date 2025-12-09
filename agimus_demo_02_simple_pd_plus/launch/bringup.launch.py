@@ -13,7 +13,6 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
-import os
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
@@ -37,7 +36,9 @@ def launch_setup(
     # Cleanup temporary file on shutdown
     cleanup_action = RegisterEventHandler(
         OnShutdown(
-            on_shutdown=lambda event, context: (safe_remove(pd_plus_controller_params),)
+            on_shutdown=lambda event, context: (
+                safe_remove(pd_plus_controller_params),
+            )
         )
     )
     print(f"Temporary pd_plus_controller_params file: {pd_plus_controller_params}")

@@ -24,6 +24,15 @@ import re
 import yaml
 import tempfile
 
+def safe_remove(path):
+    """Remove the file if it exists; do nothing if it is already gone."""
+    if path and os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 def parse_config(path=None, data=None, replacements=None, output_path=None):
     """
     Load a YAML file, replace all occurrences of ${VAR}

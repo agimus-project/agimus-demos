@@ -21,7 +21,6 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
-import os
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )

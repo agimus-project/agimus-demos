@@ -23,7 +23,6 @@ from agimus_demos_common.launch_utils import (
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
-import os
 
 
 def launch_setup(

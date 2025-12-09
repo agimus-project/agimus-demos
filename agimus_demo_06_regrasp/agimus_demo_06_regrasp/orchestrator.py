@@ -113,10 +113,6 @@ class Orchestrator(object):
         self.smooth = self.param.use_smoothing_at_waypoints
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
-        self._node.declare_parameter("arm_id")
-        self.arm_id = (
-            self._node.get_parameter("arm_id").get_parameter_value().string_value
-        )
         self.state_client = AsyncSubscriber(
             self._node,
             JointState,

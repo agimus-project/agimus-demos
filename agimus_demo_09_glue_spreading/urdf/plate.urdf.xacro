@@ -96,7 +96,7 @@
   </xacro:macro>
 
   
-  <xacro:bordered_plate name="pannel">
+  <xacro:bordered_plate name="plate">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:bordered_plate>
 

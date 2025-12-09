@@ -116,10 +116,10 @@ def launch_setup(
         child_frame_id="robot_attachment_link",
     )
     tf_node_plate = static_transform_publisher_node(
-        frame_id="plate_base_link_happypose",
-        child_frame_id="pannel_base_link",
-        xyz=["0.0", "0.0", "0.0"],
-        rot_xyzw=["-0.7071","0.0"," 0.0", "0.7071"],
+        frame_id="table_link",
+        child_frame_id="plate_base_link",
+        xyz=["0.0", "0.0", "0.1"],
+        rot_xyzw=["0.0, 0.0, 0.0, 1.0"],
     )
 
 

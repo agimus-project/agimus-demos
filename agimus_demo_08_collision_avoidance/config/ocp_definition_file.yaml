@@ -56,7 +56,7 @@ running_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision2
-          collision_pair: ['${arm_id}_hand_sc_capsule_0', obstacle_0]
+          collision_pair: ["${arm_id}_hand_sc_capsule_0", "obstacle_0"]
 
 terminal_model:
   class: IntegratedActionModelEuler
@@ -104,4 +104,4 @@ terminal_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision2
-          collision_pair: ['${arm_id}_hand_sc_capsule_0', obstacle_0]
+          collision_pair: ["${arm_id}_hand_sc_capsule_0", "obstacle_0"]
