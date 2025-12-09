@@ -11,8 +11,8 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
     parse_config,
+    safe_remove,
 )
-import os
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
@@ -37,7 +37,7 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                os.remove(pd_plus_controller_params),
+                safe_remove(pd_plus_controller_params),
             )
         )
     )

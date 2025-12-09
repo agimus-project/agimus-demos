@@ -73,7 +73,8 @@ class ManipulationPlanner:
         newProblem()
         # Load robot
         Robot.urdfString = process_xacro(
-            self.package_location + "/urdf/demo.urdf.xacro", {"arm_id": self.arm_id}
+            self.package_location + "/urdf/demo.urdf.xacro", 
+            f"arm_id:={self.arm_id}"
         )
         Robot.srdfString = ""
         self.robot = Robot("robot", "panda", rootJointType="anchor")

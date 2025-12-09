@@ -20,8 +20,8 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
     parse_config,
+    safe_remove,
 )
-import os
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
@@ -50,20 +50,16 @@ def launch_setup(
                 "ocp_definition_file.yaml"
         ]
     )
-    # Parsing franka_controllers_params with arm_id replacement
     replacements = {
         'arm_id': arm_id_str,
     }
-
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements)
     ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
-
-    extra_params = {
-        "ocp": {
-            "definition_yaml_file": ocp_definition_yaml_file
-        }
+    replacements_agimus_controller = {
+        'arm_id': arm_id_str,
+        'ocp_file': ocp_definition_yaml_file,
     }
-    print("Using ocp definition file:", ocp_definition_yaml_file)
+    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements_agimus_controller)
+
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -73,7 +69,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml_file, extra_params],
+        parameters=[get_use_sim_time(), agimus_controller_yaml_file],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -126,7 +122,7 @@ def launch_setup(
 
     # add simulation of vision detection
     if vision_type in ["simulate_happypose", "simulate_apriltag_det"]:
-        simulated_object_pose = [0.15, -0.2, 1.05, 0.0, 0.0, 0.707, 0.707]
+        simulated_object_pose = [0.2, -0.1, 0.95, 0.0, 0.0, 0.707, 0.707]
         if vision_type == "simulate_apriltag_det":
             simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
             tf_node_object_detection = static_transform_publisher_node(
@@ -176,9 +172,9 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                os.remove(ocp_definition_yaml_file),
-                os.remove(agimus_controller_yaml_file),
-                os.remove(trajectory_weights_yaml_file),
+                safe_remove(ocp_definition_yaml_file),
+                safe_remove(agimus_controller_yaml_file),
+                safe_remove(trajectory_weights_yaml_file),
             )
         )
     )

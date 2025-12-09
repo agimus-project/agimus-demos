@@ -18,11 +18,11 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
     parse_config,
+    safe_remove,
 )
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
-import os
 
 
 def launch_setup(
@@ -34,11 +34,16 @@ def launch_setup(
         context.perform_substitution(ocp_choice_arg).lower()
         == "custom_with_collision_avoidance"
     )
+
     arm_id_str=LaunchConfiguration("arm_id").perform(context)
+
+
+    
     # Parsing franka_controllers_params with arm_id replacement
     replacements = {
         'arm_id': arm_id_str,
     }
+
     agimus_controller_yaml = PathJoinSubstitution([FindPackageShare("agimus_demo_03_mpc_dummy_traj"),"config","agimus_controller_params.yaml",])
     ocp_definition_yaml = PathJoinSubstitution([FindPackageShare("agimus_demo_03_mpc_dummy_traj"),"config","ocp_definition_file.yaml"])
 
@@ -133,9 +138,9 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                os.remove(ocp_definition_yaml_file),
-                os.remove(agimus_controller_yaml_file),
-                os.remove(trajectory_weights_yaml_file),
+                safe_remove(ocp_definition_yaml_file),
+                safe_remove(agimus_controller_yaml_file),
+                safe_remove(trajectory_weights_yaml_file),
             )
         )
     )

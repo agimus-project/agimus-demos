@@ -1,6 +1,5 @@
 import ast
 from copy import deepcopy
-import os
 
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
@@ -34,6 +33,7 @@ from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     get_use_sim_time,
     parse_config,
+    safe_remove,
 )
 
 
@@ -176,8 +176,8 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                os.remove(franka_controllers_params),
-                os.remove(external_controllers_params_str)
+                safe_remove(franka_controllers_params),
+                safe_remove(external_controllers_params_str)
             )
         )
     )

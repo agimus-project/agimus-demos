@@ -1,8 +1,8 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
-from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.event_handlers import OnProcessExit, OnProcessStart, OnShutdown
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
@@ -12,9 +12,9 @@ from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
     get_use_sim_time,
+    parse_config,
+    safe_remove,
 )
-
-
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -38,6 +38,14 @@ def launch_setup(
         output="screen",
     )
 
+    ocp_definition_params = agimus_controller_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_08_collision_avoidance"),
+            "config",
+            "ocp_definition_file.yaml",
+        ]
+    )
+
     agimus_controller_params = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_08_collision_avoidance"),
@@ -45,13 +53,23 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-
+    arm_id_str=LaunchConfiguration("arm_id").perform(context)
+    # Parsing franka_controllers_params with arm_id replacement
+    replacements = {
+        'arm_id': arm_id_str,
+    }
+    ocp_definition_params_file = parse_config(path=ocp_definition_params.perform(context), replacements=replacements)
+    replacements_agimus_controller = {
+        'arm_id': arm_id_str,
+        'ocp_file': ocp_definition_params_file,
+    }
+    agimus_controller_params_file = parse_config(path=agimus_controller_params.perform(context), replacements=replacements_agimus_controller)
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
         parameters=[
             get_use_sim_time(),
-            agimus_controller_params,
+            agimus_controller_params_file,
         ],
         output="screen",
         remappings=[("robot_description", "/robot_description_with_collision")],
@@ -82,15 +100,14 @@ def launch_setup(
         remappings=[("robot_description", "environment_description")],
     )
 
-    goal_publisher_params = (
-        PathJoinSubstitution(
-            [
-                FindPackageShare("agimus_demo_08_collision_avoidance"),
-                "config",
-                "goal_publisher_params.yaml",
-            ]
-        ),
+    goal_publisher_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_08_collision_avoidance"),
+            "config",
+            "goal_publisher_params.yaml",
+        ]
     )
+    goal_publisher_params_file = parse_config(path=goal_publisher_params.perform(context), replacements=replacements)
 
     goal_publisher_node = Node(
         package="agimus_demo_08_collision_avoidance",
@@ -99,7 +116,7 @@ def launch_setup(
         output="both",
         parameters=[
             get_use_sim_time(),
-            ParameterFile(param_file=goal_publisher_params, allow_substs=True),
+            ParameterFile(param_file=goal_publisher_params_file, allow_substs=True),
         ],
     )
 
@@ -108,9 +125,20 @@ def launch_setup(
         executable="obstacle_pose_publisher",
         name="obstacle_pose_publisher_node",
         output="both",
-        parameters=[get_use_sim_time()],
+        parameters=[get_use_sim_time(),
+                    {"arm_id": arm_id_str}],
     )
 
+    # Cleanup temporary file on shutdown
+    cleanup_action = RegisterEventHandler(
+        OnShutdown(
+            on_shutdown=lambda event, context: (
+                safe_remove(ocp_definition_params_file),
+                safe_remove(agimus_controller_params_file),
+                safe_remove(goal_publisher_params_file),
+            )
+        )
+    )
     return [
         franka_robot_launch,
         environment_publisher_node,
@@ -133,6 +161,7 @@ def launch_setup(
                 ),
             )
         ),
+        cleanup_action,
     ]
 
 

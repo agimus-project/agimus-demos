@@ -40,10 +40,8 @@ class TrajectoryMPC(Node):
             'height': self.plate_height,
             'center': self.plate_center
         }
-        
         self.pattern_generator = PatternGenerator(object)
         self.waypoints = self.pattern_generator.generate_pattern('zigzag_curve',stride=self.glue_stride)
-        self.original_waypoints = np.copy(self.waypoints)
 
         # TF2 setup
         self.tf_object_buffer = Buffer()
@@ -106,38 +104,19 @@ class TrajectoryMPC(Node):
 
     def transform_traj(self):
         try:
-            trans, quat = self.tf[0], self.tf[1]
+            trans,quat = self.tf[0], self.tf[1]
             if trans is None or quat is None:
                 self.get_logger().error("TF data is incomplete.")
                 return
-
-            # First TF: just store
-            if self.last_tf == [None, None]:
-                self.last_tf = [trans, quat]
-                self.spline.waypoints = np.copy(self.original_waypoints)
-                self.spline.transform(trans, quat)
-                return
-
-            # Compare TF values properly
-            if self.tf_changed(trans, quat, self.last_tf[0], self.last_tf[1]):
-                # Reset BEFORE applying transformation
-                self.spline.waypoints = np.copy(self.original_waypoints)
-                self.spline.transform(trans, quat)
-                self.last_tf = [trans, quat]
-
+            if (self.last_tf != [None,None]): # if we have previous transform data
+                if trans != self.last_tf[0] or quat != self.last_tf[1]: # If there is a change in transform
+                    self.spline.transform(trans,quat)
+                    self.last_tf[0], self.last_tf[1] = self.tf[0], self.tf[1]
+            else: # First time setting the transform
+                self.spline.transform(trans,quat)
+                self.last_tf[0], self.last_tf[1] = self.tf[0], self.tf[1]
         except Exception as e:
             self.get_logger().error(f"Failed to update waypoints: {e}")
-
-    def tf_changed(self, t1, q1, t2, q2):
-        return (
-            abs(t1.x - t2.x) > 1e-6 or
-            abs(t1.y - t2.y) > 1e-6 or
-            abs(t1.z - t2.z) > 1e-6 or
-            abs(q1.x - q2.x) > 1e-6 or
-            abs(q1.y - q2.y) > 1e-6 or
-            abs(q1.z - q2.z) > 1e-6 or
-            abs(q1.w - q2.w) > 1e-6
-        )
 
     def display_trajectory_rviz(self):
         """

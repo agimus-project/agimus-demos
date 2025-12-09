@@ -1,8 +1,8 @@
 ---
 goal_publisher_node:
   ros__parameters:
-    tool_frame_id: fer_hand
-    world_frame_id: fer_link0
+    tool_frame_id: ${arm_id}_hand
+    world_frame_id: ${arm_id}_link0
     visualization:
       publish_target_marker: true
       marker_size: 0.01

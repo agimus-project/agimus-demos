@@ -13,6 +13,7 @@ agimus_controller_node:
       max_iter: 10
       activate_callback: false
       effector_frame_name: ${arm_id}_link8
+      definition_yaml_file: ${ocp_file}
     collision_pairs_names: [cp_1, cp_2, cp_3, cp_4]
     cp_1:
       first: ${arm_id}_hand_sc_capsule_0

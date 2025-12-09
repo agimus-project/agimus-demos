@@ -16,8 +16,8 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
     parse_config,
+    safe_remove,
 )
-import os
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
@@ -44,14 +44,15 @@ def launch_setup(
         ]
     )
 
-    # Parsing franka_controllers_params with arm_id replacement
     replacements = {
         'arm_id': arm_id_str,
     }
-
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements)
     ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
-
+    replacements_agimus_controller = {
+        'arm_id': arm_id_str,
+        'ocp_file': ocp_definition_yaml_file,
+    }
+    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements_agimus_controller)
     extra_params = {
         "ocp": {
             "definition_yaml_file": ocp_definition_yaml_file
@@ -164,9 +165,9 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                os.remove(ocp_definition_yaml_file),
-                os.remove(agimus_controller_yaml_file),
-                os.remove(trajectory_weights_yaml_file),
+                safe_remove(ocp_definition_yaml_file),
+                safe_remove(agimus_controller_yaml_file),
+                safe_remove(trajectory_weights_yaml_file),
             )
         )
     )
