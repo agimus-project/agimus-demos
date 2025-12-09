@@ -118,68 +118,55 @@ for j in filter(lambda s:s.startswith("tiago_pro/") and
     locked_arms_and_torso.append(constraint)
     ps.setConstantRightHandSide(constraint, False)
 
+locked_wheels = list()
+for j in ["tiago_pro/wheel_front_left_joint", "tiago_pro/wheel_front_right_joint",
+    "tiago_pro/wheel_rear_left_joint", "tiago_pro/wheel_rear_right_joint"]:
+    constraint = f"locked_{j}"
+    ps.createLockedJoint(constraint, j, [1, 0])
+    locked_wheels.append(constraint)
+    ps.setConstantRightHandSide(constraint, True)
+
 # Create constraint graph
 cg = ConstraintGraph(robot, "graph")
 factory = ConstraintGraphFactory (cg)
-factory.setGrippers (["tiago_pro/left", "tiago_pro/right"])
-factory.setObjects (["reinforcment_bar"], [["reinforcment_bar/left", "reinforcment_bar/right"]],
-                    [[]])
-possibleGrasps = {"tiago_pro/left" : ["reinforcment_bar/left"],
-                  "tiago_pro/right": ["reinforcment_bar/right"]}
-factory.setPossibleGrasps(possibleGrasps)
+factory.setGrippers (["tiago_pro/left"])
+factory.setObjects (["reinforcment_bar"], [["reinforcment_bar/left"]], [[]])
 factory.generate ()
-# Add a transition to move the base keeping all other joints fixed
-cg.createEdge("free", "free", "move_base", 1, "free")
-# Add a transition to move the base while holding the bar
-n = "tiago_pro/left grasps reinforcment_bar/left : tiago_pro/right grasps reinforcment_bar/right"
-cg.createEdge(n, n, "move_base_holding_bar", 1, n)
+# # Add a transition to move the base keeping all other joints fixed
+# cg.createEdge("free", "free", "move_base", 1, "free")
+# # Add a transition to move the base while holding the bar
+# n = "tiago_pro/left grasps reinforcment_bar/left"
+# cg.createEdge(n, n, "move_base_holding_bar", 1, n)
 # Lock grippers and head all the time
 cg.addConstraints(graph=True,
-    constraints = Constraints(numConstraints = locked_grippers + locked_head))
-# Do not allow motion of the bar until grasped by two hands
-for e in ["tiago_pro/right > reinforcment_bar/right | 0-0_01",
-    "tiago_pro/right > reinforcment_bar/right | 0-0_12",
-    "tiago_pro/right < reinforcment_bar/right | 0-0:1-1_21",
-    "tiago_pro/right < reinforcment_bar/right | 0-0:1-1_10",
-    "tiago_pro/left > reinforcment_bar/left | 1-1_01",
-    "tiago_pro/left > reinforcment_bar/left | 1-1_12",
-    "tiago_pro/left < reinforcment_bar/left | 0-0:1-1_21",
-    "tiago_pro/left < reinforcment_bar/left | 0-0:1-1_10"]:
-    cg.addConstraints(edge = e, constraints = Constraints(
-        numConstraints = ["reinforcment_bar/root_joint"]))
+    constraints = Constraints(numConstraints = locked_grippers + locked_head +
+    locked_wheels))
 # When moving the arms, do not move the base
-for e in ['Loop | f', 'Loop | 0-0', 'tiago_pro/left > reinforcment_bar/left | f',
-    'tiago_pro/left < reinforcment_bar/left | 0-0', 'tiago_pro/left > reinforcment_bar/left | f_01',
-    'tiago_pro/left < reinforcment_bar/left | 0-0_10',
-    'tiago_pro/left > reinforcment_bar/left | f_12',
-    'tiago_pro/left < reinforcment_bar/left | 0-0_21',
-    'Loop | 0-0:1-1', 'tiago_pro/right > reinforcment_bar/right | 0-0',
-    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1',
-    'tiago_pro/right > reinforcment_bar/right | 0-0_01',
-    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1_10',
-    'tiago_pro/right > reinforcment_bar/right | 0-0_12',
-    'tiago_pro/right < reinforcment_bar/right | 0-0:1-1_21',
-    'Loop | 1-1', 'tiago_pro/right > reinforcment_bar/right | f',
-    'tiago_pro/right < reinforcment_bar/right | 1-1',
-    'tiago_pro/right > reinforcment_bar/right | f_01',
-    'tiago_pro/right < reinforcment_bar/right | 1-1_10',
-    'tiago_pro/right > reinforcment_bar/right | f_12',
-    'tiago_pro/right < reinforcment_bar/right | 1-1_21',
-    'tiago_pro/left > reinforcment_bar/left | 1-1',
-    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1',
-    'tiago_pro/left > reinforcment_bar/left | 1-1_01',
-    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1_10',
-    'tiago_pro/left > reinforcment_bar/left | 1-1_12',
-    'tiago_pro/left < reinforcment_bar/left | 0-0:1-1_21']:
-    cg.addConstraints(edge = e,
-        constraints = Constraints(numConstraints = ["locked_tiago_pro/root_joint"]))
+# for e in ['Loop | f', 'Loop | 0-0', 'tiago_pro/left < reinforcment_bar/left | 0-0',
+#     'tiago_pro/left > reinforcment_bar/left | f_01',
+#     'tiago_pro/left > reinforcment_bar/left | f_12',
+#     'tiago_pro/left < reinforcment_bar/left | 0-0_10',
+#     'tiago_pro/left < reinforcment_bar/left | 0-0_21',]:
+#     cg.addConstraints(edge = e,
+#         constraints = Constraints(numConstraints = ["locked_tiago_pro/root_joint"]))
 # When moving the base, do not move the arms and torso
-cg.addConstraints(edge = "move_base_holding_bar", constraints = Constraints(
-    numConstraints = locked_arms_and_torso
-))
-cg.addConstraints(edge = "move_base", constraints = Constraints(
-    numConstraints = locked_arms_and_torso + ["reinforcment_bar/root_joint"]
-))
+# cg.addConstraints(edge = "move_base_holding_bar", constraints = Constraints(
+#     numConstraints = locked_arms_and_torso
+# ))
+# cg.addConstraints(edge = "move_base", constraints = Constraints(
+#     numConstraints = locked_arms_and_torso + ["reinforcment_bar/root_joint"]
+#))
+# Add other pregrasp constraints in pregrasp states
+g = "tiago_pro/right"
+h = "reinforcment_bar/right"
+cg.createGrasp(f"{g} grasps {h}", g, h)
+cg.createPreGrasp(f"{g} pregrasps {h}", g, h)
+cg.addConstraints(node = "tiago_pro/left > reinforcment_bar/left | f_pregrasp",
+    constraints = Constraints(
+        numConstraints=["tiago_pro/right pregrasps reinforcment_bar/right"]))
+cg.addConstraints(node = "tiago_pro/left grasps reinforcment_bar/left",
+    constraints = Constraints(
+        numConstraints=["tiago_pro/right grasps reinforcment_bar/right"]))
 cg.initialize ()
 
 # Set initial configuration
@@ -191,6 +178,12 @@ res, q_init, err = cg.applyNodeConstraints('free', q0)
 q_goal = q_init[:]
 q_goal[r:r+7] = [-.7, 0, .6, 0, c, c, 0]
 
+# Load path optimizers
+ps.loadPlugin('spline-gradient-based.so')
+ps.addPathOptimizer("SplineGradientBased_bezier3")
+
+ps.selectPathProjector("Progressive", .1)
 ps.setInitialConfig(q_init)
-ps.addGoalConfig(q_goal)
-ps.solve()
+#ps.addGoalConfig(q_goal)
+#ps.selectPathPlanner("StatesPathFinder")
+#ps.solve()
