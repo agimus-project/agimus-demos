@@ -3,7 +3,9 @@
         <General>
             <AllowMulticast>false</AllowMulticast>
             <MaxMessageSize>1400B</MaxMessageSize>
+            
             <Interfaces>
+                <NetworkInterface name="lo"/>
                 <NetworkInterface name="lo"/>
             </Interfaces>
         </General>
