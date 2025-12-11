@@ -38,7 +38,7 @@ def launch_setup(
         output="screen",
     )
 
-    ocp_definition_params = agimus_controller_params = PathJoinSubstitution(
+    ocp_definition_params = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_08_collision_avoidance"),
             "config",
