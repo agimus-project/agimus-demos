@@ -6,7 +6,6 @@
 
             <Interfaces>
                 <NetworkInterface name="lo"/>
-                <NetworkInterface name="lo"/>
             </Interfaces>
         </General>
 
