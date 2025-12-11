@@ -11,7 +11,10 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-
+import os
+import re
+import yaml
+import tempfile
 # Constants used to synchronize paths expected on remote between launch files
 COMPOSE_REMOTE_PATH: Path = Path("/tmp/compose.yaml")
 EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
@@ -19,10 +22,6 @@ EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
 )
 FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
-import os
-import re
-import yaml
-import tempfile
 
 
 def safe_remove(path):
