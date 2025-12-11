@@ -14,9 +14,9 @@
   </xacro:table>
 
   <xacro:sensor_d435 parent="robot_attachment_link" name="${camera_file['camera']['name']}" use_nominal_extrinsics="true" use_mesh="true">
-    <origin xyz="${camera_file['camera']['pose']['x']} ${camera_file['camera']['pose']['y']} ${camera_file['camera']['pose']['z']}" 
+    <origin xyz="${camera_file['camera']['pose']['x']} ${camera_file['camera']['pose']['y']} ${camera_file['camera']['pose']['z']}"
             rpy="${camera_file['camera']['pose']['roll']} ${camera_file['camera']['pose']['pitch']} ${camera_file['camera']['pose']['yaw']}"/>
   </xacro:sensor_d435>
-  
+
 
 </robot>

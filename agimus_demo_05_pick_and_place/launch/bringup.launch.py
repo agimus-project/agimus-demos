@@ -1,4 +1,3 @@
-from pathlib import Path
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     OpaqueFunction,
@@ -45,20 +44,25 @@ def launch_setup(
     )
     ocp_definition_yaml = PathJoinSubstitution(
         [
-                FindPackageShare("agimus_demo_05_pick_and_place"),
-                "config",
-                "ocp_definition_file.yaml"
+            FindPackageShare("agimus_demo_05_pick_and_place"),
+            "config",
+            "ocp_definition_file.yaml",
         ]
     )
     replacements = {
-        'arm_id': arm_id_str,
+        "arm_id": arm_id_str,
     }
-    ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
+    ocp_definition_yaml_file = parse_config(
+        path=ocp_definition_yaml.perform(context), replacements=replacements
+    )
     replacements_agimus_controller = {
-        'arm_id': arm_id_str,
-        'ocp_file': ocp_definition_yaml_file,
+        "arm_id": arm_id_str,
+        "ocp_file": ocp_definition_yaml_file,
     }
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements_agimus_controller)
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context),
+        replacements=replacements_agimus_controller,
+    )
 
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
@@ -154,7 +158,9 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"

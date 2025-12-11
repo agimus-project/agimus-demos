@@ -19,6 +19,7 @@ from agimus_demos_common.launch_utils import (
     safe_remove,
 )
 
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -38,26 +39,27 @@ def launch_setup(
 
     ocp_definition_yaml = PathJoinSubstitution(
         [
-                FindPackageShare("agimus_demo_04_visual_servoing"),
-                "config",
-                "ocp_definition_file.yaml"
+            FindPackageShare("agimus_demo_04_visual_servoing"),
+            "config",
+            "ocp_definition_file.yaml",
         ]
     )
 
     replacements = {
-        'arm_id': arm_id_str,
+        "arm_id": arm_id_str,
     }
-    ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
+    ocp_definition_yaml_file = parse_config(
+        path=ocp_definition_yaml.perform(context), replacements=replacements
+    )
     replacements_agimus_controller = {
-        'arm_id': arm_id_str,
-        'ocp_file': ocp_definition_yaml_file,
+        "arm_id": arm_id_str,
+        "ocp_file": ocp_definition_yaml_file,
     }
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements_agimus_controller)
-    extra_params = {
-        "ocp": {
-            "definition_yaml_file": ocp_definition_yaml_file
-        }
-    }
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context),
+        replacements=replacements_agimus_controller,
+    )
+    extra_params = {"ocp": {"definition_yaml_file": ocp_definition_yaml_file}}
 
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
@@ -68,7 +70,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml_file,extra_params],
+        parameters=[get_use_sim_time(), agimus_controller_yaml_file, extra_params],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -121,11 +123,11 @@ def launch_setup(
             parameters=[{"robot_description": environment_description}],
         )
         tf_node = static_transform_publisher_node(
-            frame_id=arm_id_str+"_link0",
+            frame_id=arm_id_str + "_link0",
             child_frame_id="big_box_root",
         )
         tf_node_2 = static_transform_publisher_node(
-            frame_id=arm_id_str+"_link0",
+            frame_id=arm_id_str + "_link0",
             child_frame_id="big_box_root",
         )
         tf_node_3 = static_transform_publisher_node(
@@ -141,7 +143,9 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
@@ -153,8 +157,8 @@ def launch_setup(
     )
 
     mpc_debugger = mpc_debugger_node(
-        arm_id_str+"_hand_tcp",
-        parent_frame=arm_id_str+"_link0",
+        arm_id_str + "_hand_tcp",
+        parent_frame=arm_id_str + "_link0",
         cost_plot=True,
         node_kwargs=dict(
             remappings=[("robot_description", "robot_description_with_collision")],

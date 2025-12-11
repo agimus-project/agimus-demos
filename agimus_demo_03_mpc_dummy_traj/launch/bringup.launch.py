@@ -35,29 +35,41 @@ def launch_setup(
         == "custom_with_collision_avoidance"
     )
 
-    arm_id_str=LaunchConfiguration("arm_id").perform(context)
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
-
-    
     # Parsing franka_controllers_params with arm_id replacement
     replacements = {
-        'arm_id': arm_id_str,
+        "arm_id": arm_id_str,
     }
 
-    agimus_controller_yaml = PathJoinSubstitution([FindPackageShare("agimus_demo_03_mpc_dummy_traj"),"config","agimus_controller_params.yaml",])
-    ocp_definition_yaml = PathJoinSubstitution([FindPackageShare("agimus_demo_03_mpc_dummy_traj"),"config","ocp_definition_file.yaml"])
+    agimus_controller_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+            "config",
+            "agimus_controller_params.yaml",
+        ]
+    )
+    ocp_definition_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj"),
+            "config",
+            "ocp_definition_file.yaml",
+        ]
+    )
 
-    ocp_definition_yaml_file = parse_config(path=ocp_definition_yaml.perform(context), replacements=replacements)
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements)
+    ocp_definition_yaml_file = parse_config(
+        path=ocp_definition_yaml.perform(context), replacements=replacements
+    )
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context), replacements=replacements
+    )
 
-    print(f"Temporary mpc dummy file: ocp:{ocp_definition_yaml_file}, agimus controller:{agimus_controller_yaml_file}")
+    print(
+        f"Temporary mpc dummy file: ocp:{ocp_definition_yaml_file}, agimus controller:{agimus_controller_yaml_file}"
+    )
 
     if use_collision_detection:
-        extra_params = {
-            "ocp": {
-                "definition_yaml_file": ocp_definition_yaml_file
-            }
-        }
+        extra_params = {"ocp": {"definition_yaml_file": ocp_definition_yaml_file}}
     else:
         extra_params = {}
 
@@ -88,7 +100,9 @@ def launch_setup(
         ]
     )
 
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
@@ -99,8 +113,8 @@ def launch_setup(
             "4",
             "-A",
             "0.2",
-            arm_id_str+"_joint3",
-            arm_id_str+"_joint5",
+            arm_id_str + "_joint3",
+            arm_id_str + "_joint5",
         ],
         output="screen",
     )
@@ -130,7 +144,7 @@ def launch_setup(
         parameters=[{"robot_description": environment_description}],
     )
     tf_node = static_transform_publisher_node(
-        frame_id=arm_id_str+"_link0",
+        frame_id=arm_id_str + "_link0",
         child_frame_id="obstacle1",
     )
 

@@ -2,14 +2,14 @@ import pinocchio as pin
 import numpy as np
 from pinocchio import SE3
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.interpolate import interp1d, RBFInterpolator
+from scipy.interpolate import RBFInterpolator
 
 
 class PatternGenerator:
     """
     A class to generate patterns for glue spreading.
     """
+
     def __init__(self, dims_or_dict, center=None):
         """
         Initialize the PatternGenerator.
@@ -21,38 +21,42 @@ class PatternGenerator:
         # support dict input
         if isinstance(dims_or_dict, dict):
             data = dims_or_dict
-            self.object_length = float(data.get('length', 1.0))
-            self.object_width = float(data.get('width', 1.0))
-            self.object_height = float(data.get('height', 0.0))
-            self.object_center = tuple(data.get('center', (0.0, 0.0, 0.0)))
+            self.object_length = float(data.get("length", 1.0))
+            self.object_width = float(data.get("width", 1.0))
+            self.object_height = float(data.get("height", 0.0))
+            self.object_center = tuple(data.get("center", (0.0, 0.0, 0.0)))
         else:
             # expect iterable dims and a center tuple
             if center is None:
-                raise ValueError("When passing dims as iterable you must also provide `center` (x,y,z)")
+                raise ValueError(
+                    "When passing dims as iterable you must also provide `center` (x,y,z)"
+                )
             self.object_length = float(dims_or_dict[0])
             self.object_width = float(dims_or_dict[1])
             self.object_height = float(dims_or_dict[2])
             self.object_center = tuple(center)
 
-    def generate_pattern(self, pattern_type, step=10, stride=0.2, orientation='vertical'):
-        if pattern_type == 'zigzag':
-            x,y,z = self.zigzag(step=step, stride=stride, orientation=orientation)
-            waypoints : list = []
-            for i in range (len(x)):
+    def generate_pattern(
+        self, pattern_type, step=10, stride=0.2, orientation="vertical"
+    ):
+        if pattern_type == "zigzag":
+            x, y, z = self.zigzag(step=step, stride=stride, orientation=orientation)
+            waypoints: list = []
+            for i in range(len(x)):
                 waypoints.append(np.array([x[i], y[i], z[i]]))
             return waypoints
-        elif pattern_type == 'spiral':
-            x,y,z = self.spiral_from_center(stride=stride)
-            waypoints : list = []
-            for i in range (len(x)):
+        elif pattern_type == "spiral":
+            x, y, z = self.spiral_from_center(stride=stride)
+            waypoints: list = []
+            for i in range(len(x)):
                 waypoints.append(np.array([x[i], y[i], z[i]]))
             return waypoints
-        elif pattern_type == 'zigzag_curve':
+        elif pattern_type == "zigzag_curve":
             return self.zig_zag_curve(step=step, stride=stride, orientation=orientation)
         else:
             raise ValueError("Unknown pattern type")
 
-    def zigzag(self, step=10, stride=0.2, orientation='vertical'):
+    def zigzag(self, step=10, stride=0.2, orientation="vertical"):
         """
         Draws a zigzag pattern.
 
@@ -65,17 +69,21 @@ class PatternGenerator:
         - orientation: 'vertical', 'horizontal', or 'diagonal'
         """
         x, y, z = [], [], []
-        if (orientation == 'vertical'):
-            x_tmp, y_tmp, z_tmp = self.object_center[0] - self.object_length / 2, \
-                self.object_center[1] - self.object_width / 2, \
-                self.object_center[2] + self.object_height / 2
+        if orientation == "vertical":
+            x_tmp, y_tmp, z_tmp = (
+                self.object_center[0] - self.object_length / 2,
+                self.object_center[1] - self.object_width / 2,
+                self.object_center[2] + self.object_height / 2,
+            )
             num_lines = int(self.object_length // stride)
             if self.object_length % stride == 0:
                 num_lines += 1
-        elif (orientation == 'horizontal'):
-            x_tmp, y_tmp, z_tmp = self.object_center[0] - self.object_length / 2, \
-                self.object_center[1] - self.object_width / 2, \
-                self.object_center[2] + self.object_height / 2
+        elif orientation == "horizontal":
+            x_tmp, y_tmp, z_tmp = (
+                self.object_center[0] - self.object_length / 2,
+                self.object_center[1] - self.object_width / 2,
+                self.object_center[2] + self.object_height / 2,
+            )
             # Ensure the last line is on the edge if division is exact
             num_lines = int(self.object_width / stride)
             if self.object_width % stride == 0:
@@ -87,26 +95,26 @@ class PatternGenerator:
             direction = 1 if i % 2 == 0 else -1  # alternate direction
 
             for j in range(step + 1):
-                if orientation == 'vertical':
+                if orientation == "vertical":
                     x.append(x_tmp)
                     y.append(y_tmp + direction * j * self.object_width / step)
                     z.append(z_tmp)
-                elif orientation == 'horizontal':
+                elif orientation == "horizontal":
                     x.append(x_tmp + direction * j * self.object_length / step)
                     y.append(y_tmp)
                     z.append(z_tmp)
 
-            if orientation == 'vertical':
+            if orientation == "vertical":
                 x_tmp += stride
                 y_tmp = y[-1]  # continue from last y
                 z_tmp = z[-1]
-            elif orientation == 'horizontal':
+            elif orientation == "horizontal":
                 y_tmp += stride
                 x_tmp = x[-1]  # continue from last x
                 z_tmp = z[-1]
         return x, y, z
 
-    def zig_zag_curve(self, step=10, stride=0.2, orientation='vertical'):
+    def zig_zag_curve(self, step=10, stride=0.2, orientation="vertical"):
         """
         Génère un motif en zigzag où les courbes de demi-tour restent
         STRICTEMENT à l'intérieur des limites de l'objet.
@@ -120,52 +128,52 @@ class PatternGenerator:
         R = stride / 2.0
 
         # 2. Configuration des axes
-        if orientation == 'vertical':
+        if orientation == "vertical":
             # Stride sur X, Sweep (balayage) sur Y
             axis_stride, axis_sweep = 0, 1
-            stride_start = x_c - L/2
-            stride_end = x_c + L/2
+            stride_start = x_c - L / 2
+            stride_end = x_c + L / 2
             # Limites du balayage (bords de l'objet sur Y)
-            sweep_min = y_c - W/2
-            sweep_max = y_c + W/2
+            sweep_min = y_c - W / 2
+            sweep_max = y_c + W / 2
             stride_len = L
-            
-        elif orientation == 'horizontal':
+
+        elif orientation == "horizontal":
             # Stride sur Y, Sweep (balayage) sur X
             axis_stride, axis_sweep = 1, 0
-            stride_start = y_c - W/2
-            stride_end = y_c + W/2
+            stride_start = y_c - W / 2
+            stride_end = y_c + W / 2
             # Limites du balayage (bords de l'objet sur X)
-            sweep_min = x_c - L/2
-            sweep_max = x_c + L/2
+            sweep_min = x_c - L / 2
+            sweep_max = x_c + L / 2
             stride_len = W
         else:
             raise ValueError("orientation must be 'vertical' or 'horizontal'")
 
         # 3. Calcul du nombre de lignes
         target_strides = np.arange(stride_start, stride_end, stride)
-    
+
         # FORCE LA COUVERTURE DU DERNIER BORD :
         # Si la dernière ligne n'est pas exactement sur le bord max, on ajoute une ligne sur le bord max.
         if target_strides[-1] < (stride_end - 1e-5):
             target_strides = np.append(target_strides, stride_end)
         else:
-            target_strides[-1] = stride_end # On s'assure que c'est préci
-        
+            target_strides[-1] = stride_end  # On s'assure que c'est préci
+
         num_lines = len(target_strides)
-        
+
         trajectory_chunks = []
         current_stride_pos = stride_start
 
         for i in range(num_lines):
             # Direction: 1 = vers le haut/droite, -1 = vers le bas/gauche
             direction = 1 if i % 2 == 0 else -1
-            
+
             # --- A. LIGNE DROITE ---
             # Logique de confinement :
             # Si on va vers le MAX (+1) : on s'arrête à (MAX - Rayon) pour laisser la place à la courbe
             # Si on va vers le MIN (-1) : on s'arrête à (MIN + Rayon)
-            
+
             # Cas spécial : Le tout début de la trajectoire (i=0, start) commence au bord absolu
             if i == 0 and direction == 1:
                 p_start = sweep_min
@@ -186,8 +194,8 @@ class PatternGenerator:
             coords_line[:, 2] = z_ref
             coords_line[:, axis_stride] = current_stride_pos
             # Interpolation linéaire entre p_start et p_end
-            coords_line[:, axis_sweep]  = p_start + (p_end - p_start) * t_line
-            
+            coords_line[:, axis_sweep] = p_start + (p_end - p_start) * t_line
+
             trajectory_chunks.append(coords_line)
 
             # --- B. COURBE DE DEMI-TOUR (Interne) ---
@@ -195,39 +203,40 @@ class PatternGenerator:
                 # On génère un arc de 180 degrés (pi radians)
                 # On exclut le premier point (t=0) pour éviter le doublon avec la ligne
                 t_arc = np.linspace(0, np.pi, (step // 2) + 1)[1:]
-                
+
                 coords_arc = np.zeros((len(t_arc), 3))
                 coords_arc[:, 2] = z_ref
-                
+
                 # --- Calcul sur l'axe STRIDE (Avancement) ---
                 # On part de current_stride_pos et on va à current_stride_pos + stride
                 # Formule : pos + R * (1 - cos(t))
                 # t=0 -> pos, t=pi -> pos + 2R (= pos + stride)
-                coords_arc[:, axis_stride] = current_stride_pos + R * (1 - np.cos(t_arc))
-                
+                coords_arc[:, axis_stride] = current_stride_pos + R * (
+                    1 - np.cos(t_arc)
+                )
+
                 # --- Calcul sur l'axe SWEEP (Oscillation) ---
                 # L'arc doit "bomber" vers le mur sans le traverser.
                 # Si direction était +1 (on est en haut), on doit bomber vers le haut puis redescendre.
                 # Le centre de rotation est à (p_end)
                 # Formule : center + R * sin(t) * direction
-                
+
                 # Point pivot (fin de la ligne précédente)
                 pivot = coords_line[-1, axis_sweep]
                 coords_arc[:, axis_sweep] = pivot + R * np.sin(t_arc) * direction
-                
+
                 trajectory_chunks.append(coords_arc)
-                
+
                 # Mise à jour pour la prochaine ligne
                 current_stride_pos += stride
 
         # 4. Assemblage et Conversion
         full_matrix = np.vstack(trajectory_chunks)
-        
+
         # Conversion en liste de np.array([x,y,z]) comme demandé
         waypoints = [row for row in full_matrix]
-        
-        return waypoints
 
+        return waypoints
 
     def curve_arc(self, start_point, radius, dir, angle=np.pi, step=10):
         """
@@ -248,16 +257,16 @@ class PatternGenerator:
 
         for i in range(1, step):
             theta = i * angle_step
-            if dir == '+x':
+            if dir == "+x":
                 xi = start_point[0] + radius * np.sin(theta)
                 yi = start_point[1] + radius * (1 - np.cos(theta))
-            elif dir == '-x':
+            elif dir == "-x":
                 xi = start_point[0] - radius * np.sin(theta)
                 yi = start_point[1] + radius * (1 - np.cos(theta))
-            elif dir == '+y':
+            elif dir == "+y":
                 xi = start_point[0] + radius * (1 - np.cos(theta))
                 yi = start_point[1] + radius * np.sin(theta)
-            elif dir == '-y':
+            elif dir == "-y":
                 xi = start_point[0] + radius * (1 - np.cos(theta))
                 yi = start_point[1] - radius * np.sin(theta)
             else:
@@ -302,13 +311,13 @@ class PatternGenerator:
             dx, dy = directions[dir_idx % 4]
             # Détermine la longueur maximale possible sans dépasser les bords
             if dx != 0:
-                # Mouvement en x
+                # Movement en x
                 if dx > 0:
                     max_len = min(current_lengths[0], x_max - x[-1])
                 else:
                     max_len = min(current_lengths[0], x[-1] - x_min)
             else:
-                # Mouvement en y
+                # Movement en y
                 if dy > 0:
                     max_len = min(current_lengths[1], y_max - y[-1])
                 else:
@@ -344,9 +353,17 @@ class SplineGenerator:
     """
     Class that interpolates the `waypoints` into a spline and calculates the orientation between them so that the X axis faces the nex waypoint and the Z axis faces downward
     """
-    def __init__(self, start_pos, start_ori, waypoints,
-                 v_start=1.0, v_spread=1.0,
-                 start_kernel='linear', spread_kernel='cubic'):
+
+    def __init__(
+        self,
+        start_pos,
+        start_ori,
+        waypoints,
+        v_start=1.0,
+        v_spread=1.0,
+        start_kernel="linear",
+        spread_kernel="cubic",
+    ):
         if len(waypoints) < 2:
             raise ValueError("At least two waypoints are required.")
 
@@ -368,10 +385,10 @@ class SplineGenerator:
         self._compute_full_ori()
 
     def _compute_and_set_times(self):
-        """ Computes time durations based on distances and velocities. """
+        """Computes time durations based on distances and velocities."""
         # Distance for first segment (Current Robot Pose -> Pattern Start)
         d_start = np.linalg.norm(self.waypoints[0] - self.start_pos)
-        
+
         # Handle distances for the start segment with protection against zero velocity
         t_start = d_start / self.v_start if self.v_start > 0 else 0.0
 
@@ -386,7 +403,9 @@ class SplineGenerator:
 
         # Update time arrays
         self.time_start = np.array([0.0, self.t_start])[:, None]
-        self.time_spread = np.linspace(self.t_start, self.t_total, len(self.waypoints))[:, None]
+        self.time_spread = np.linspace(self.t_start, self.t_total, len(self.waypoints))[
+            :, None
+        ]
 
     def _compute_start_trj(self):
         """
@@ -400,7 +419,9 @@ class SplineGenerator:
             self.start_traj (RBFInterpolator)
         """
         points = np.vstack([self.start_pos, self.waypoints[0]])
-        self.start_traj = RBFInterpolator(self.time_start, points, kernel=self.start_kernel)
+        self.start_traj = RBFInterpolator(
+            self.time_start, points, kernel=self.start_kernel
+        )
 
     def _compute_spread_traj(self):
         """
@@ -414,7 +435,9 @@ class SplineGenerator:
             self.spread_traj (RBFInterpolator)
         """
         points = self.waypoints[0:]
-        self.spread_traj = RBFInterpolator(self.time_spread, points, kernel=self.spread_kernel)
+        self.spread_traj = RBFInterpolator(
+            self.time_spread, points, kernel=self.spread_kernel
+        )
 
     def _compute_full_traj(self):
         """
@@ -449,7 +472,7 @@ class SplineGenerator:
 
     def _compute_start_orientation(self, spread_orientations):
         """
-        Instanciates the interpolator from the start orientation to the orientation of the first pattern waypoint
+        Instantiates the interpolator from the start orientation to the orientation of the first pattern waypoint
         Args:
             spread_orientations : list of the orientations for the spreading part of the trajectory
         Returns:
@@ -458,7 +481,9 @@ class SplineGenerator:
             start_ori_traj : (RBFInterpolator) interpolator for the orientation of the start trajectory
         """
         orientations = np.vstack((self.start_ori, spread_orientations[0]))
-        self.start_ori_traj = RBFInterpolator(self.time_start, orientations, kernel=self.start_kernel)
+        self.start_ori_traj = RBFInterpolator(
+            self.time_start, orientations, kernel=self.start_kernel
+        )
 
     def _compute_spread_orientation(self):
         """
@@ -473,10 +498,16 @@ class SplineGenerator:
         """
         points = self.waypoints[0:]
         spread_orientations = []
-        for i in range(len(points)-1):
-            spread_orientations.append(self._compute_local_orientation(points[i], points[i+1]))
-        spread_orientations.append(spread_orientations[-1]) # repeat last orientation to match the number of waypoints
-        self.spread_ori_traj = RBFInterpolator(self.time_spread, spread_orientations, kernel=self.spread_kernel)
+        for i in range(len(points) - 1):
+            spread_orientations.append(
+                self._compute_local_orientation(points[i], points[i + 1])
+            )
+        spread_orientations.append(
+            spread_orientations[-1]
+        )  # repeat last orientation to match the number of waypoints
+        self.spread_ori_traj = RBFInterpolator(
+            self.time_spread, spread_orientations, kernel=self.spread_kernel
+        )
         return spread_orientations
 
     def _compute_local_orientation(self, current_point, next_point):
@@ -509,7 +540,7 @@ class SplineGenerator:
         spread_ori = self._compute_spread_orientation()
         self._compute_start_orientation(spread_ori)
 
-    def get_interpolated_ori(self,t):
+    def get_interpolated_ori(self, t):
         """
         Returns the orientation of the end effector at a given `t` (secs)
         Args:
@@ -524,7 +555,7 @@ class SplineGenerator:
             return self.start_ori_traj(np.array([[t]]))[0]
         else:
             return self.spread_ori_traj(np.array([[t]]))[0]
-    
+
     def transform(self, translation, rotation):
         """
         Apply a full transformation (rotation + translation)
@@ -544,19 +575,22 @@ class SplineGenerator:
         trans_ros = np.array([translation.x, translation.y, translation.z])
         q_pin = pin.Quaternion(quat_ros).normalize()
         T = pin.SE3(q_pin.toRotationMatrix(), trans_ros)
-        
-        T_matrix = T.homogeneous
-        
-        # Convert the trajectory into a single NumPy array of shape (N, 3)
-        
 
-        assert self.waypoints.shape[1] == 3, f"Waypoints should have shape (N, 3), but got {self.waypoints.shape}"
+        T_matrix = T.homogeneous
+
+        # Convert the trajectory into a single NumPy array of shape (N, 3)
+
+        assert self.waypoints.shape[1] == 3, (
+            f"Waypoints should have shape (N, 3), but got {self.waypoints.shape}"
+        )
         # Homogeneous coordinates (N, 4)
-        homogeneous_points = np.hstack([self.waypoints, np.ones((self.waypoints.shape[0], 1))])
+        homogeneous_points = np.hstack(
+            [self.waypoints, np.ones((self.waypoints.shape[0], 1))]
+        )
 
         # Apply the transformation
         transformed_homogeneous = (T_matrix @ homogeneous_points.T).T
-        
+
         # Return list of tuples (cartesian coordinates)
         self.waypoints = transformed_homogeneous[:, :3]
         self.update_interpolators()
@@ -573,18 +607,22 @@ class SplineGenerator:
             self.start_traj : (RBFInterpolator) interpolator for the pose of the start trajectory
             self.spread_traj : (RBFInterpolator) interpolator for the pose of the spread trajectory
         """
-        self._compute_and_set_times() 
+        self._compute_and_set_times()
         self._compute_full_traj()
         self._compute_full_ori()
+
+
 class MockPoint:
     def __init__(self, x, y, z):
         self.x, self.y, self.z = x, y, z
+
 
 class MockQuaternion:
     def __init__(self, x, y, z, w):
         self.x, self.y, self.z, self.w = x, y, z, w
 
-def draw_frame(ax, pose: SE3,scale=[1, 1, 1]):
+
+def draw_frame(ax, pose: SE3, scale=[1, 1, 1]):
     """
     Draws 3 arrows in the `ax` plot showing XYZ pose and RPY rotation.
     Args:
@@ -595,24 +633,31 @@ def draw_frame(ax, pose: SE3,scale=[1, 1, 1]):
     origin = pose.translation
     R = pose.rotation
 
-    colors = ['r', 'g', 'b']
+    colors = ["r", "g", "b"]
     for i in range(3):
         axis = R[:, i]  # vecteur direction
         ax.quiver(
-            origin[0], origin[1], origin[2],
-            axis[0]*scale[i], axis[1]*scale[i], axis[2]*scale[i],
-            color=colors[i], arrow_length_ratio = 0.01, length=0.05
+            origin[0],
+            origin[1],
+            origin[2],
+            axis[0] * scale[i],
+            axis[1] * scale[i],
+            axis[2] * scale[i],
+            color=colors[i],
+            arrow_length_ratio=0.01,
+            length=0.05,
         )
 
-if __name__=="__main__":
-    object= {
-            'width': 1.0,
-            'length': 1.0,
-            'height': 0.0,
-            'center': [0.,0.,0.2],
-        }
+
+if __name__ == "__main__":
+    object = {
+        "width": 1.0,
+        "length": 1.0,
+        "height": 0.0,
+        "center": [0.0, 0.0, 0.2],
+    }
     patternGen = PatternGenerator(object)
-    positions = patternGen.generate_pattern('zigzag_curve',stride=0.45)
+    positions = patternGen.generate_pattern("zigzag_curve", stride=0.45)
 
     # positions = [np.array([0.5, 0.0, 0.2]),
     #             np.array([ 0.5, 0.0, 0.5]),
@@ -633,14 +678,13 @@ if __name__=="__main__":
     #             np.array([0.5, 0.0, 0.2])]
 
     duration = 7
-    start_pose = [ 3.33970764e-01, -3.08143602e-16,  5.40159383e-01]
-    start_ori = [ 2.77295717, -0.34585912 , 0.85050551]
+    start_pose = [3.33970764e-01, -3.08143602e-16, 5.40159383e-01]
+    start_ori = [2.77295717, -0.34585912, 0.85050551]
     spline = SplineGenerator(start_pose, start_ori, waypoints=positions)
 
-    
     # Debug of trajectory
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     t = 0
     while t < spline.t_total:
         orientation = spline.get_interpolated_ori(t)
@@ -653,21 +697,20 @@ if __name__=="__main__":
         print((pose))
         pose_6d = pin.SE3(R, pose)
         draw_frame(ax, pose_6d)
-        ax.scatter(*pose, marker="^", c="r",alpha=0.5,s=15)
+        ax.scatter(*pose, marker="^", c="r", alpha=0.5, s=15)
         t = t + 0.02
 
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
     ax.set_title("Interpolation position + orientation 3D (RBF)")
     ax.legend()
 
-    trans = MockPoint(0,0,0)
-    rot = MockQuaternion(0,0,np.pi/2,1)
+    trans = MockPoint(0, 0, 0)
+    rot = MockQuaternion(0, 0, np.pi / 2, 1)
     spline.transform(trans, rot)
     fig2 = plt.figure()
-    ax2 = fig2.add_subplot(111, projection='3d')
+    ax2 = fig2.add_subplot(111, projection="3d")
     t = 0
     while t < spline.t_total:
         orientation = spline.get_interpolated_ori(t)
@@ -680,13 +723,12 @@ if __name__=="__main__":
         print((pose))
         pose_6d = pin.SE3(R, pose)
         draw_frame(ax2, pose_6d)
-        ax2.scatter(*pose, marker="^", c="r",alpha=0.5,s=15)
+        ax2.scatter(*pose, marker="^", c="r", alpha=0.5, s=15)
         t = t + 0.02
 
-
-    ax2.set_xlabel('X')
-    ax2.set_ylabel('Y')
-    ax2.set_zlabel('Z')
+    ax2.set_xlabel("X")
+    ax2.set_ylabel("Y")
+    ax2.set_zlabel("Z")
     ax2.set_title("Interpolation position + orientation 3D (RBF) Transformed")
     ax.legend()
     plt.tight_layout()

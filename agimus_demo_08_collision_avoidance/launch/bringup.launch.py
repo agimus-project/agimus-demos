@@ -15,6 +15,8 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
+
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -53,17 +55,22 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-    arm_id_str=LaunchConfiguration("arm_id").perform(context)
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
     # Parsing franka_controllers_params with arm_id replacement
     replacements = {
-        'arm_id': arm_id_str,
+        "arm_id": arm_id_str,
     }
-    ocp_definition_params_file = parse_config(path=ocp_definition_params.perform(context), replacements=replacements)
+    ocp_definition_params_file = parse_config(
+        path=ocp_definition_params.perform(context), replacements=replacements
+    )
     replacements_agimus_controller = {
-        'arm_id': arm_id_str,
-        'ocp_file': ocp_definition_params_file,
+        "arm_id": arm_id_str,
+        "ocp_file": ocp_definition_params_file,
     }
-    agimus_controller_params_file = parse_config(path=agimus_controller_params.perform(context), replacements=replacements_agimus_controller)
+    agimus_controller_params_file = parse_config(
+        path=agimus_controller_params.perform(context),
+        replacements=replacements_agimus_controller,
+    )
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
@@ -107,7 +114,9 @@ def launch_setup(
             "goal_publisher_params.yaml",
         ]
     )
-    goal_publisher_params_file = parse_config(path=goal_publisher_params.perform(context), replacements=replacements)
+    goal_publisher_params_file = parse_config(
+        path=goal_publisher_params.perform(context), replacements=replacements
+    )
 
     goal_publisher_node = Node(
         package="agimus_demo_08_collision_avoidance",
@@ -125,8 +134,7 @@ def launch_setup(
         executable="obstacle_pose_publisher",
         name="obstacle_pose_publisher_node",
         output="both",
-        parameters=[get_use_sim_time(),
-                    {"arm_id": arm_id_str}],
+        parameters=[get_use_sim_time(), {"arm_id": arm_id_str}],
     )
 
     # Cleanup temporary file on shutdown

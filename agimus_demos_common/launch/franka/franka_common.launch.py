@@ -167,21 +167,27 @@ def launch_setup(
 
     # Parsing franka_controllers_params with arm_id replacement
     replacements = {
-        'arm_id': arm_id.perform(context),
+        "arm_id": arm_id.perform(context),
     }
 
-    franka_controllers_params = parse_config(path=franka_controllers_params.perform(context), replacements=replacements)
-    external_controllers_params_str = parse_config(path=external_controllers_params_str, replacements=replacements)
+    franka_controllers_params = parse_config(
+        path=franka_controllers_params.perform(context), replacements=replacements
+    )
+    external_controllers_params_str = parse_config(
+        path=external_controllers_params_str, replacements=replacements
+    )
     # Cleanup temporary file on shutdown
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
                 safe_remove(franka_controllers_params),
-                safe_remove(external_controllers_params_str)
+                safe_remove(external_controllers_params_str),
             )
         )
     )
-    print(f"Temporary franka_controllers_params file: {franka_controllers_params}, {external_controllers_params_str}")
+    print(
+        f"Temporary franka_controllers_params file: {franka_controllers_params}, {external_controllers_params_str}"
+    )
 
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",

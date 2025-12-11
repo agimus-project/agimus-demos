@@ -15,9 +15,8 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 
-# generate_parameter_module(
-#   goal_publisher_parameters
-#   agimus_demo_08_collision_avoidance/goal_publisher_parameters.yaml)
+# generate_parameter_module( goal_publisher_parameters
+# agimus_demo_08_collision_avoidance/goal_publisher_parameters.yaml)
 
 ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
                              lib/${PROJECT_NAME})

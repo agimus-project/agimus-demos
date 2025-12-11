@@ -41,7 +41,7 @@ class ObstaclePosePublisher(Node):
 
         transform = TransformStamped()
         transform.header.stamp = self.get_clock().now().to_msg()
-        transform.header.frame_id = self.arm_id+"_link0"
+        transform.header.frame_id = self.arm_id + "_link0"
         transform.child_frame_id = "obstacle"
         transform.transform = Transform(
             translation=Vector3(

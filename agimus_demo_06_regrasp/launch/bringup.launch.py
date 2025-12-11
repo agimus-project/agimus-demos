@@ -20,6 +20,7 @@ from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
 
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -35,9 +36,11 @@ def launch_setup(
     )
     # Parsing franka_controllers_params with arm_id replacement
     replacements = {
-        'arm_id': arm_id_str,
+        "arm_id": arm_id_str,
     }
-    agimus_controller_yaml_file = parse_config(path=agimus_controller_yaml.perform(context), replacements=replacements)
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context), replacements=replacements
+    )
     print(f"Using agimus_controller file: {agimus_controller_yaml_file}")
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
