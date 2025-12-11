@@ -96,10 +96,8 @@ class HPPInterface:
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
             process_xacro(
-                package_location + "/urdf/demo.urdf.xacro",
-                {"arm_id": arm_id},
-                "use_camera:=true",
-            ).replace("file://", "")
+                package_location + "/urdf/demo.urdf.xacro", {"arm_id": arm_id}
+            )
             if robot_urdf_string == ""
             else robot_urdf_string
         )

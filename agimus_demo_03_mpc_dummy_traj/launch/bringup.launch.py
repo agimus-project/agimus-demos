@@ -38,7 +38,9 @@ def launch_setup(
     arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
     # Parsing franka_controllers_params with arm_id replacement
-    replacements = {"arm_id": arm_id_str}
+    replacements = {
+        "arm_id": arm_id_str,
+    }
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -98,7 +100,9 @@ def launch_setup(
         ]
     )
 
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     simple_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
@@ -109,8 +113,8 @@ def launch_setup(
             "4",
             "-A",
             "0.2",
-            arm_id_str+"_joint3",
-            arm_id_str+"_joint5",
+            arm_id_str + "_joint3",
+            arm_id_str + "_joint5",
         ],
         output="screen",
     )
@@ -140,7 +144,7 @@ def launch_setup(
         parameters=[{"robot_description": environment_description}],
     )
     tf_node = static_transform_publisher_node(
-        frame_id=arm_id_str+"_link0",
+        frame_id=arm_id_str + "_link0",
         child_frame_id="obstacle1",
     )
 

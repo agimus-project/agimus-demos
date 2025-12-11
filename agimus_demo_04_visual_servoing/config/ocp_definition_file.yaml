@@ -48,7 +48,7 @@ running_model:
           alpha: 2e-2
         residual:
           class: ResidualDistanceCollision
-          collision_pair: ["${arm_id}_hand_sc_capsule_0", "big_box_link_1"]
+          collision_pair: ['${arm_id}_hand_sc_capsule_0', big_box_link_1]
 
 terminal_model:
   class: IntegratedActionModelEuler

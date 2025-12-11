@@ -49,15 +49,22 @@ def launch_setup(
             "ocp_definition_file.yaml",
         ]
     )
-    replacements = {"arm_id": arm_id_str}
-    
+    replacements = {
+        "arm_id": arm_id_str,
+    }
     ocp_definition_yaml_file = parse_config(
         path=ocp_definition_yaml.perform(context), replacements=replacements
     )
     replacements_agimus_controller = {
         "arm_id": arm_id_str,
         "ocp_file": ocp_definition_yaml_file,
+        "arm_id": arm_id_str,
+        "ocp_file": ocp_definition_yaml_file,
     }
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context),
+        replacements=replacements_agimus_controller,
+    )
     agimus_controller_yaml_file = parse_config(
         path=agimus_controller_yaml.perform(context),
         replacements=replacements_agimus_controller,
@@ -157,7 +164,9 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"

@@ -19,6 +19,7 @@ from agimus_demos_common.launch_utils import (
     safe_remove,
 )
 
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -44,7 +45,9 @@ def launch_setup(
         ]
     )
 
-    replacements = {"arm_id": arm_id_str}
+    replacements = {
+        "arm_id": arm_id_str,
+    }
     ocp_definition_yaml_file = parse_config(
         path=ocp_definition_yaml.perform(context), replacements=replacements
     )
@@ -120,11 +123,11 @@ def launch_setup(
             parameters=[{"robot_description": environment_description}],
         )
         tf_node = static_transform_publisher_node(
-            frame_id=arm_id_str+"_link0",
+            frame_id=arm_id_str + "_link0",
             child_frame_id="big_box_root",
         )
         tf_node_2 = static_transform_publisher_node(
-            frame_id=arm_id_str+"_link0",
+            frame_id=arm_id_str + "_link0",
             child_frame_id="big_box_root",
         )
         tf_node_3 = static_transform_publisher_node(
@@ -140,7 +143,9 @@ def launch_setup(
             "trajectory_weights_params.yaml",
         ]
     )
-    trajectory_weights_yaml_file = parse_config(path=trajectory_weights_yaml.perform(context), replacements=replacements)
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
+    )
 
     reference_publisher_node = Node(
         package="agimus_demo_04_visual_servoing",
@@ -152,8 +157,8 @@ def launch_setup(
     )
 
     mpc_debugger = mpc_debugger_node(
-        arm_id_str+"_hand_tcp",
-        parent_frame=arm_id_str+"_link0",
+        arm_id_str + "_hand_tcp",
+        parent_frame=arm_id_str + "_link0",
         cost_plot=True,
         node_kwargs=dict(
             remappings=[("robot_description", "robot_description_with_collision")],

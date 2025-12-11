@@ -1,11 +1,10 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
-from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 
 from agimus_demos_common.launch_utils import (
@@ -112,7 +111,7 @@ def launch_setup(
     )
 
     tf_node = static_transform_publisher_node(
-        frame_id=arm_id_str+"_link0",
+        frame_id=arm_id_str + "_link0",
         child_frame_id="robot_attachment_link",
     )
     tf_node_plate = static_transform_publisher_node(
@@ -121,7 +120,6 @@ def launch_setup(
         xyz=["0.0", "0.0", "0.1"],
         rot_xyzw=["0.0, 0.0, 0.0, 1.0"],
     )
-
 
     return [
         franka_robot_launch,

@@ -14,6 +14,7 @@ from agimus_demos_common.launch_utils import (
     safe_remove,
 )
 
+
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
@@ -28,17 +29,20 @@ def launch_setup(
     )
 
     # Parsing franka_controllers_params with arm_id replacement
-    replacements = {"arm_id": arm_id.perform(context)}
+    replacements = {
+        "arm_id": arm_id.perform(context),
+    }
 
+    pd_plus_controller_params = parse_config(
+        path=pd_plus_controller_params.perform(context), replacements=replacements
+    )
     pd_plus_controller_params = parse_config(
         path=pd_plus_controller_params.perform(context), replacements=replacements
     )
     # Cleanup temporary file on shutdown
     cleanup_action = RegisterEventHandler(
         OnShutdown(
-            on_shutdown=lambda event, context: (
-                safe_remove(pd_plus_controller_params),
-            )
+            on_shutdown=lambda event, context: (safe_remove(pd_plus_controller_params),)
         )
     )
     print(f"Temporary pd_plus_controller_params file: {pd_plus_controller_params}")

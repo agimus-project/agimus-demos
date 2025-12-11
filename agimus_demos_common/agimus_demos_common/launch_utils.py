@@ -24,6 +24,7 @@ import re
 import yaml
 import tempfile
 
+
 def safe_remove(path):
     """Remove the file if it exists; do nothing if it is already gone."""
     if path and os.path.exists(path):
@@ -46,7 +47,7 @@ def parse_config(path=None, data=None, replacements=None, output_path=None):
         str: Path to the modified YAML temporary file or output_path.
     """
 
-    pattern = re.compile(r'\${(\w+)}')
+    pattern = re.compile(r"\${(\w+)}")
 
     def replace_in_string(value):
         """Replace all ${...} variables in a string."""

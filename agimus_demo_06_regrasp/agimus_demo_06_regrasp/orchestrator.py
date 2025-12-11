@@ -269,7 +269,7 @@ class Orchestrator(object):
             0.0,
             1.0,
         ]
-        self.planner = ManipulationPlanner(object_name,arm_id=self.arm_id)
+        self.planner = ManipulationPlanner(object_name, arm_id=self.arm_id)
         # self.hpp_client = HPPInterface(
         #     object_name=object_name, use_spline_gradient_based_opt=False
         # )
