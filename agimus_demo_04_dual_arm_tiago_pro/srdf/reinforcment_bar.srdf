@@ -1,2 +1,12 @@
 <robot name="reinforcment_bar">
+<contact name="bottom">
+    <link name="base_link"/>
+    <point>
+        0.03 0.00 -0.03
+        0.03 0.00  0.03
+        0.00 0.00  0.03
+        0.00 0.00 -0.03
+    </point>
+    <shape> 4 0 1 2 3 </shape>
+</contact>
 </robot>

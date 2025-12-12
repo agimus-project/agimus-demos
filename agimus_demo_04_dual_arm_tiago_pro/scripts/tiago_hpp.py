@@ -13,15 +13,20 @@ from hpp.gepetto.manipulation import ViewerFactory
 from viewer import displayGripper, displayHandle
 
 # Load Tiago pro robot and Reinforcment bar
+class Table:
+    rootJointType = "anchor"
+    urdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/urdf/table.urdf"
+    srdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/srdf/table.srdf"
+
+class Plate:
+    rootJointType = "freeflyer"
+    urdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/urdf/plate.urdf"
+    srdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/srdf/plate.srdf"
+
 class ReinforcmentBar:
     rootJointType = "freeflyer"
     urdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/urdf/reinforcment_bar.urdf"
     srdfFilename = "package://agimus_demo_04_dual_arm_tiago_pro/srdf/reinforcment_bar.srdf"
-
-#Robot.urdfFilename = (
-#    "package://example-robot-data/robots/tiago_pro_description/robots/tiago_pro.urdf"
-#)
-#Robot.srdfFilename = ""
 
 loadServerPlugin("corbaserver", "manipulation-corba.so")
 Client().problem.resetProblem()
@@ -51,6 +56,8 @@ robot = Robot("tiago_pro-manip", "tiago_pro", rootJointType = "planar")
 robot.client.manipulation.robot.insertRobotSRDFModelFromString("tiago_pro", srdfString)
 ps = ProblemSolver(robot)
 vf = ViewerFactory(ps)
+vf.loadObjectModel(Table, "table")
+vf.loadObjectModel(Plate, "plate")
 vf.loadObjectModel(ReinforcmentBar, "reinforcment_bar")
 
 # Set joint bounds
@@ -130,7 +137,9 @@ for j in ["tiago_pro/wheel_front_left_joint", "tiago_pro/wheel_front_right_joint
 cg = ConstraintGraph(robot, "graph")
 factory = ConstraintGraphFactory (cg)
 factory.setGrippers (["tiago_pro/left"])
-factory.setObjects (["reinforcment_bar"], [["reinforcment_bar/left"]], [[]])
+factory.environmentContacts(["table/reinforcment_bar_support", "table/top"])
+factory.setObjects (["reinforcment_bar"], [["reinforcment_bar/left"]],
+                    [["reinforcment_bar/bottom"]])
 factory.generate ()
 # # Add a transition to move the base keeping all other joints fixed
 # cg.createEdge("free", "free", "move_base", 1, "free")
@@ -171,16 +180,20 @@ cg.initialize ()
 
 # Set initial configuration
 q0 = robot.getCurrentConfig()
+r = robot.rankInConfiguration["tiago_pro/root_joint"]
+q0[r:r+4] = [3, 0, -1, 0]
+r = robot.rankInConfiguration['plate/root_joint']
+q0[r:r+3] = [.6, 0, .66]
 r = robot.rankInConfiguration["reinforcment_bar/root_joint"]
-q0[r:r+7] = [.7, 0, .6, c, 0, 0, c]
-
+q0[r:r+7] = [1.20, -0.0009939583742700046, 0.6680938848666721,
+             0.12097379466237763, 0.6966816640367284, 0.6966816640367284, -0.12097379466237763]
 res, q_init, err = cg.applyNodeConstraints('free', q0)
 q_goal = q_init[:]
-q_goal[r:r+7] = [-.7, 0, .6, 0, c, c, 0]
+q_goal[r:r+7] = [0.2, 0, 0.639, 0, c, c, 0]
 
 # Load path optimizers
 ps.loadPlugin('spline-gradient-based.so')
-ps.addPathOptimizer("SplineGradientBased_bezier3")
+#ps.addPathOptimizer("SplineGradientBased_bezier3")
 
 ps.selectPathProjector("Progressive", .1)
 ps.setInitialConfig(q_init)
