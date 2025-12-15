@@ -94,9 +94,9 @@ class HPPInterface:
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
             process_xacro(
-                package_location + "/urdf/demo.urdf.xacro", 
+                package_location + "/urdf/demo.urdf.xacro",
                 "use_camera:=true",
-                ).replace("file://", "")
+            ).replace("file://", "")
             if robot_urdf_string == ""
             else robot_urdf_string
         )
@@ -143,7 +143,9 @@ class HPPInterface:
         pose[3:] = pose[3:] / np.linalg.norm(pose[3:])
         # pose wrt base of hpp robot
         self.start_obj_pose = pose.tolist()
-        print(f"Start object pose w.r.t root of hpp robot is set to {self.start_obj_pose} with {frame_name} being the reference pose")
+        print(
+            f"Start object pose w.r.t root of hpp robot is set to {self.start_obj_pose} with {frame_name} being the reference pose"
+        )
 
     @property
     def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:

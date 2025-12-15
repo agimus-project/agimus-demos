@@ -330,7 +330,6 @@ class Orchestrator(object):
             self.trajectory_publisher.params.trajectory_name
             == "generic_visual_servoing_trajectory"
         ):
-            
             # kz: this assumes start_obj_pose is in a particular frame (support link)
             in_support_link_M_object = pin.XYZQUATToSE3(
                 self.hpp_client.start_obj_pose.copy()
@@ -439,7 +438,6 @@ class Orchestrator(object):
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
         if self.vision_type in ["simulate_apriltag_det", "apriltag_det"]:
-
             apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
 
             self.publish_transform_in_tf(
