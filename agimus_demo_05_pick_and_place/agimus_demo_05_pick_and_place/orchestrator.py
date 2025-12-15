@@ -330,12 +330,15 @@ class Orchestrator(object):
             self.trajectory_publisher.params.trajectory_name
             == "generic_visual_servoing_trajectory"
         ):
+            
+            # kz: this assumes start_obj_pose is in a particular frame (support link)
             in_support_link_M_object = pin.XYZQUATToSE3(
                 self.hpp_client.start_obj_pose.copy()
             )
             in_fer_link0_M_object = (
                 self.in_fer_link0_M_support_link * in_support_link_M_object
             )
+            print(f"starting visual servoing for the pose {in_fer_link0_M_object}...")
 
             self.trajectory_publisher.add_visual_servoing_trajectory(
                 trajectory,
@@ -435,15 +438,16 @@ class Orchestrator(object):
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
+        if self.vision_type in ["simulate_apriltag_det", "apriltag_det"]:
 
-        apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
+            apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
 
-        self.publish_transform_in_tf(
-            parent_frame=apriltag_detections.header.frame_id,
-            child_frame="current_object",
-            transform=pose_msg_to_se3(apriltag_detections.pose),
-            stamp=self._node.get_clock().now().to_msg(),
-        )
+            self.publish_transform_in_tf(
+                parent_frame=apriltag_detections.header.frame_id,
+                child_frame="current_object",
+                transform=pose_msg_to_se3(apriltag_detections.pose),
+                stamp=self._node.get_clock().now().to_msg(),
+            )
 
         if placing_path is not None:
             # TODO: check automatically
