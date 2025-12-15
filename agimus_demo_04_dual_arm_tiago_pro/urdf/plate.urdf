@@ -26,72 +26,72 @@
     <visual>
       <material name="dark_grey"/>
       <geometry>
-        <box size="0.02 1.0 0.02"/>
+        <box size="0.01 1.0 0.02"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <box size="0.02 1.0 0.02"/>
+        <box size="0.01 1.0 0.02"/>
       </geometry>
     </collision>
   </link>
   <joint name="plate_border_front_joint" type="fixed">
     <parent link="plate_base_link"/>
     <child link="plate_border_front"/>
-    <origin rpy="0 0 0" xyz="0.49 0 0.025"/>
+    <origin rpy="0 0 0" xyz="0.495 0 0.025"/>
   </joint>
   <link name="plate_border_back">
     <visual>
       <material name="dark_grey"/>
       <geometry>
-        <box size="0.02 1.0 0.02"/>
+        <box size="0.01 1.0 0.02"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <box size="0.02 1.0 0.02"/>
+        <box size="0.01 1.0 0.02"/>
       </geometry>
     </collision>
   </link>
   <joint name="plate_border_back_joint" type="fixed">
     <parent link="plate_base_link"/>
     <child link="plate_border_back"/>
-    <origin rpy="0 0 0" xyz="-0.49 0 0.025"/>
+    <origin rpy="0 0 0" xyz="-0.495 0 0.025"/>
   </joint>
   <link name="plate_border_left">
     <visual>
       <material name="dark_grey"/>
       <geometry>
-        <box size="1.0 0.02 0.02"/>
+        <box size="1.0 0.01 0.02"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <box size="1.0 0.02 0.02"/>
+        <box size="1.0 0.01 0.02"/>
       </geometry>
     </collision>
   </link>
   <joint name="plate_border_left_joint" type="fixed">
     <parent link="plate_base_link"/>
     <child link="plate_border_left"/>
-    <origin rpy="0 0 0" xyz="0 0.49 0.025"/>
+    <origin rpy="0 0 0" xyz="0 0.495 0.025"/>
   </joint>
   <link name="plate_border_right">
     <visual>
       <material name="dark_grey"/>
       <geometry>
-        <box size="1.0 0.02 0.02"/>
+        <box size="1.0 0.01 0.02"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <box size="1.0 0.02 0.02"/>
+        <box size="1.0 0.01 0.02"/>
       </geometry>
     </collision>
   </link>
   <joint name="plate_border_right_joint" type="fixed">
     <parent link="plate_base_link"/>
     <child link="plate_border_right"/>
-    <origin rpy="0 0 0" xyz="0 -0.49 0.025"/>
+    <origin rpy="0 0 0" xyz="0 -0.495 0.025"/>
   </joint>
 </robot>
