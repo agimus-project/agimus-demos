@@ -1,5 +1,35 @@
+#!/usr/bin/env python
+# Copyright (c) 2025 CNRS
+# Author: Florent Lamiraux
+#
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+# DAMAGE.
+
 from math import pi, sqrt
 from rostools import process_xacro
+from helper import Helper
 from hpp.corbaserver import loadServerPlugin, wrap_delete as wd
 from hpp.corbaserver.manipulation import (
     Client,
@@ -7,7 +37,8 @@ from hpp.corbaserver.manipulation import (
     ConstraintGraphFactory,
     Constraints,
     ProblemSolver,
-    Robot
+    Robot,
+    SecurityMargins
 )
 from hpp.gepetto.manipulation import ViewerFactory
 from viewer import displayGripper, displayHandle
@@ -60,7 +91,9 @@ vf.loadObjectModel(Table, "table")
 vf.loadObjectModel(Plate, "plate")
 vf.loadObjectModel(ReinforcmentBar, "reinforcment_bar")
 
+#ps.selectPathValidation("NoValidation", 1)
 # Set joint bounds
+robot.setJointBounds("plate/root_joint", [-3,3,-3,3,0,2,-1,1,-1,1,-1,1,-1,1])
 robot.setJointBounds("reinforcment_bar/root_joint", [-3,3,-3,3,0,2,-1,1,-1,1,-1,1,-1,1])
 robot.setJointBounds("tiago_pro/root_joint", [-3, 3, -3, 3, -1, 1, -1, 1]) 
 
@@ -133,39 +166,28 @@ for j in ["tiago_pro/wheel_front_left_joint", "tiago_pro/wheel_front_right_joint
     locked_wheels.append(constraint)
     ps.setConstantRightHandSide(constraint, True)
 
+# Lock plate since for some reason, the factory does not.
+ps.createLockedJoint("locked_plate/root_joint", "plate/root_joint", [0,0,0,0,0,0,1])
+ps.setConstantRightHandSide("locked_plate/root_joint", False)
+
 # Create constraint graph
 cg = ConstraintGraph(robot, "graph")
 factory = ConstraintGraphFactory (cg)
 factory.setGrippers (["tiago_pro/left"])
-factory.environmentContacts(["table/reinforcment_bar_support", "table/top"])
+factory.environmentContacts(["table/reinforcment_bar_support",
+    "plate/top"])
 factory.setObjects (["reinforcment_bar"], [["reinforcment_bar/left"]],
                     [["reinforcment_bar/bottom"]])
 factory.generate ()
-# # Add a transition to move the base keeping all other joints fixed
-# cg.createEdge("free", "free", "move_base", 1, "free")
-# # Add a transition to move the base while holding the bar
-# n = "tiago_pro/left grasps reinforcment_bar/left"
-# cg.createEdge(n, n, "move_base_holding_bar", 1, n)
-# Lock grippers and head all the time
+# Add a state and transition to project on 'free' with static tiago_pro and plate
+cg.createNode('unconstrained')
+cg.createEdge('unconstrained', 'free', 'project-on-free', 1, "unconstrained")
+# Lock wheels, head and grippers everywhere
 cg.addConstraints(graph=True,
     constraints = Constraints(numConstraints = locked_grippers + locked_head +
     locked_wheels))
-# When moving the arms, do not move the base
-# for e in ['Loop | f', 'Loop | 0-0', 'tiago_pro/left < reinforcment_bar/left | 0-0',
-#     'tiago_pro/left > reinforcment_bar/left | f_01',
-#     'tiago_pro/left > reinforcment_bar/left | f_12',
-#     'tiago_pro/left < reinforcment_bar/left | 0-0_10',
-#     'tiago_pro/left < reinforcment_bar/left | 0-0_21',]:
-#     cg.addConstraints(edge = e,
-#         constraints = Constraints(numConstraints = ["locked_tiago_pro/root_joint"]))
-# When moving the base, do not move the arms and torso
-# cg.addConstraints(edge = "move_base_holding_bar", constraints = Constraints(
-#     numConstraints = locked_arms_and_torso
-# ))
-# cg.addConstraints(edge = "move_base", constraints = Constraints(
-#     numConstraints = locked_arms_and_torso + ["reinforcment_bar/root_joint"]
-#))
-# Add other pregrasp constraints in pregrasp states
+
+# Add other pregrasp-grasp constraint in pregrasp|intersec|preplace states
 g = "tiago_pro/right"
 h = "reinforcment_bar/right"
 cg.createGrasp(f"{g} grasps {h}", g, h)
@@ -173,9 +195,23 @@ cg.createPreGrasp(f"{g} pregrasps {h}", g, h)
 cg.addConstraints(node = "tiago_pro/left > reinforcment_bar/left | f_pregrasp",
     constraints = Constraints(
         numConstraints=["tiago_pro/right pregrasps reinforcment_bar/right"]))
+cg.addConstraints(node = "tiago_pro/left > reinforcment_bar/left | f_intersec",
+    constraints = Constraints(
+        numConstraints=["tiago_pro/right grasps reinforcment_bar/right"]))
+cg.addConstraints(node = "tiago_pro/left > reinforcment_bar/left | f_preplace",
+    constraints = Constraints(
+        numConstraints=["tiago_pro/right grasps reinforcment_bar/right"]))
 cg.addConstraints(node = "tiago_pro/left grasps reinforcment_bar/left",
     constraints = Constraints(
         numConstraints=["tiago_pro/right grasps reinforcment_bar/right"]))
+
+# Lock plate in all transitions
+for e in cg.edges.keys():
+    cg.addConstraints(edge = e, constraints = Constraints(
+        numConstraints=["locked_plate/root_joint"]))
+
+cg.setWeight("Loop | f", 1)
+cg.setWeight("Loop | 0-0", 1)
 cg.initialize ()
 
 # Set initial configuration
@@ -189,14 +225,20 @@ q0[r:r+7] = [1.20, -0.0009939583742700046, 0.6680938848666721,
              0.12097379466237763, 0.6966816640367284, 0.6966816640367284, -0.12097379466237763]
 res, q_init, err = cg.applyNodeConstraints('free', q0)
 q_goal = q_init[:]
-q_goal[r:r+7] = [0.2, 0, 0.639, 0, c, c, 0]
-
+q_goal[r:r+7] = [0.2, 0, 0.7, 0, c, c, 0]
+res, q_goal, err = cg.generateTargetConfig("project-on-free", q_goal, q_goal)
+assert(res)
 # Load path optimizers
 ps.loadPlugin('spline-gradient-based.so')
 #ps.addPathOptimizer("SplineGradientBased_bezier3")
 
 ps.selectPathProjector("Progressive", .1)
+ps.addPathOptimizer("RandomShortcut")
 ps.setInitialConfig(q_init)
-#ps.addGoalConfig(q_goal)
-#ps.selectPathPlanner("StatesPathFinder")
+ps.addGoalConfig(q_goal)
+
+helper = Helper(ps, cg)
+q1, q2 = helper.generateIntermediateConfigs(q_init, q_goal)
+ps.addConfigToRoadmap(q1)
+ps.addConfigToRoadmap(q2)
 #ps.solve()
