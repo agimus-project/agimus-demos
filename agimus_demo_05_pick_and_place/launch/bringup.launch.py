@@ -87,8 +87,9 @@ def launch_setup(
         frame_id="robot_attachment_link",
         child_frame_id="world",
     )
+    object_name = "tless-obj_000031"  # todo: fix this better later
     tf_node_2 = static_transform_publisher_node(
-        frame_id="tless-obj_000031",
+        frame_id=object_name,
         child_frame_id="current_object",
     )
     tf_node_support_link = static_transform_publisher_node(
@@ -106,14 +107,14 @@ def launch_setup(
             simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
             tf_node_object_detection = static_transform_publisher_node(
                 frame_id="support_link",
-                child_frame_id="tless-obj_000031",
+                child_frame_id=object_name,
                 xyz=simulated_object_pose_as_str[:3],
                 rot_xyzw=simulated_object_pose_as_str[3:],
             )
             env_nodes.append(tf_node_object_detection)
         elif vision_type == "simulate_happypose":
             happypose_simulation_params = {
-                "object_id": "tless-obj_000031",
+                "object_id": object_name,
                 "base_name": "support_link",
                 "camera_name": "camera_color_optical_frame",
                 "object_pose_in_base_txyz": simulated_object_pose[:3],
