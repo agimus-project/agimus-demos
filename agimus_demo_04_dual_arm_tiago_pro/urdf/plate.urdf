@@ -21,7 +21,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- Instanciation des 4 bordures en appelant la macro single_border -->
+  <!-- Instantiation des 4 bordures en appelant la macro single_border -->
   <link name="plate_border_front">
     <visual>
       <material name="dark_grey"/>

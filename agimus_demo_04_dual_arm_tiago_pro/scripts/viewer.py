@@ -1,8 +1,8 @@
 def displayGripper(v, name):
-    """                                                                                       
-    Display gripper in gepetto-gui                                                            
-    Retrieve the joint and pose information of the gripper in the robot model                 
-    and display a frame.                                                                      
+    """
+    Display gripper in gepetto-gui
+    Retrieve the joint and pose information of the gripper in the robot model
+    and display a frame.
     """
     robot = v.robot
     joint, pose = robot.getGripperPositionInJoint(name)
@@ -17,10 +17,10 @@ def displayGripper(v, name):
 
 
 def displayHandle(v, name):
-    """                                                                                       
-    Display handle in gepetto-gui                                                             
-    Retrieve the joint and pose information of the handle in the robot model                  
-    and display a frame.                                                                      
+    """
+    Display handle in gepetto-gui
+    Retrieve the joint and pose information of the handle in the robot model
+    and display a frame.
     """
     robot = v.robot
     joint, pose = robot.getHandlePositionInJoint(name)
@@ -32,4 +32,3 @@ def displayHandle(v, name):
     else:
         v.client.gui.addToGroup(hname, robot.name)
     v.client.gui.applyConfiguration(hname, pose)
-

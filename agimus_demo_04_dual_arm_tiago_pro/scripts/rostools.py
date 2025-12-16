@@ -1,8 +1,5 @@
 import os
-import sys
-import xml
 
-from xacro import filestack
 
 try:  # python 2
     _basestr = basestring
@@ -34,11 +31,12 @@ def retrieve_resource(path, dirs=None, env_var="ROS_PACKAGE_PATH"):
     Retrieve resource of the form "package://", resolving the package in the list of
     dirs.
     If the list of dirs is None, it is initialized with
-    the content of the environnement variable env_var.
+    the content of the environment variable env_var.
     """
     if path.startswith("package://"):
         relpath = path[len("package://") :]
         import os
+
         if dirs is None:
             dirs = os.environ[env_var].split(":")
         for dir in dirs:
