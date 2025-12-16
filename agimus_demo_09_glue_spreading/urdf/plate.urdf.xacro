@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="bordered_plate_model">
+
+  <!-- ===================================================== -->
+  <!--             PROPRIÉTÉS GLOBALES                       -->
+  <!-- ===================================================== -->
+  <xacro:property name="setup_file" value="${xacro.load_yaml('$(find agimus_demo_09_glue_spreading)/config/plate.yaml')}"/>
+  
+  <xacro:property name="plate_length" value="${setup_file['plate']['length']}" /> <!-- Dimension sur l'axe X -->
+  <xacro:property name="plate_width"  value="${setup_file['plate']['width']}"  /> <!-- Dimension sur l'axe Y -->
+  <xacro:property name="plate_height" value="${setup_file['plate']['height']}" /> <!-- Épaisseur de la plaque -->
+
+  <xacro:property name="border_height"    value="${setup_file['plate']['border_height']}" />    <!-- Hauteur des bordures -->
+  <xacro:property name="border_thickness" value="${setup_file['plate']['border_thickness']}" /> <!-- Épaisseur des bordures -->
+
+  <!-- Matériaux pour les couleurs -->
+  <material name="grey"><color rgba="0.6 0.6 0.6 1.0"/></material>
+  <material name="dark_grey"><color rgba="0.3 0.3 0.3 1.0"/></material>
+
+  <!-- ===================================================== -->
+  <!--               MACRO POUR UNE BORDURE UNIQUE           -->
+  <!-- ===================================================== -->
+  <!--
+    Cette macro génère un seul maillon de bordure.
+    Params:
+      name: Nom unique pour le maillon et le joint
+      parent_link: Le maillon auquel attacher cette bordure
+      size_x, size_y, size_z: Dimensions de la boîte de la bordure
+      *origin: Bloc <origin> pour la position relative au parent
+  -->
+  <xacro:macro name="single_border" params="name parent_link size_x size_y size_z *origin">
+    <link name="${name}">
+      <visual>
+        <material name="dark_grey"/>
+        <geometry><box size="${size_x} ${size_y} ${size_z}"/></geometry>
+      </visual>
+      <collision>
+        <geometry><box size="${size_x} ${size_y} ${size_z}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ===================================================== -->
+  <!--             MACRO POUR LA PLAQUE COMPLÈTE             -->
+  <!-- ===================================================== -->
+  <!--
+    Cette macro génère une plaque et appelle 4 fois la macro single_border.
+    Params:
+      name: Préfixe pour tous les liens et joints
+      *origin: Position de la plaque par rapport au parent
+  -->
+  <xacro:macro name="bordered_plate" params="name *origin">
+
+    <!-- Le maillon de base (la surface de la plaque) -->
+    <link name="${name}_base_link">
+      <visual>
+        <geometry><box size="${plate_length} ${plate_width} ${plate_height}"/></geometry>
+        <material name="grey"/>
+      </visual>
+      <collision>
+        <geometry><box size="${plate_length} ${plate_width} ${plate_height}"/></geometry>
+      </collision>
+    </link>
+
+    <!-- Instanciation des 4 bordures en appelant la macro single_border -->
+    
+    <!-- Bordure Avant (+X) -->
+    <xacro:single_border name="${name}_border_front" parent_link="${name}_base_link"
+                         size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
+      <origin xyz="${plate_length/2 - border_thickness/2} 0 ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+    </xacro:single_border>
+
+    <!-- Bordure Arrière (-X) -->
+    <xacro:single_border name="${name}_border_back" parent_link="${name}_base_link"
+                         size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
+      <origin xyz="-${plate_length/2 - border_thickness/2} 0 ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+    </xacro:single_border>
+
+    <!-- Bordure Gauche (+Y) -->
+    <xacro:single_border name="${name}_border_left" parent_link="${name}_base_link"
+                         size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
+      <origin xyz="0 ${plate_width/2 - border_thickness/2} ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+    </xacro:single_border>
+
+    <!-- Bordure Droite (-Y) -->
+    <xacro:single_border name="${name}_border_right" parent_link="${name}_base_link"
+                         size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
+      <origin xyz="0 -${plate_width/2 - border_thickness/2} ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+    </xacro:single_border>
+
+  </xacro:macro>
+
+  
+  <xacro:bordered_plate name="pannel">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:bordered_plate>
+
+</robot>
