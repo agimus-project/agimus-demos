@@ -115,11 +115,18 @@ def launch_setup(
         frame_id=arm_id_str+"_link0",
         child_frame_id="robot_attachment_link",
     )
-    tf_node_plate = static_transform_publisher_node(
-        frame_id="plate_base_link_happypose",
-        child_frame_id="pannel_base_link",
-        xyz=["0.0", "0.0", "0.0"],
-        rot_xyzw=["-0.7071","0.0"," 0.0", "0.7071"],
+    # tf_node_plate = static_transform_publisher_node(
+    #     frame_id="plate_base_link_happypose",
+    #     child_frame_id="pannel_base_link",
+    #     xyz=["0.0", "0.0", "0.0"],
+    #     rot_xyzw=["-0.7071","0.0"," 0.0", "0.7071"],
+    # )
+
+    tf_node_plate_mpc = static_transform_publisher_node(
+    frame_id="fer_link0",
+    child_frame_id="pannel_base_link",
+    xyz=["0.6", "0", "0.0"],
+    rot_xyzw= ["0", "0", "0", "1"],#["-0.7071","0.0"," 0.0", "0.7071"],
     )
 
 
@@ -128,7 +135,7 @@ def launch_setup(
         environment_publisher_node,
         plate_publisher_node,
         tf_node,
-        tf_node_plate,
+        tf_node_plate_mpc,
         # wait_for_non_zero_joints_node,
         # RegisterEventHandler(
         #     event_handler=OnProcessExit(
