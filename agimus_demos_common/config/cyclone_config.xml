@@ -1,16 +1,19 @@
 <CycloneDDS>
     <Domain>
         <General>
-            <AllowMulticast>true</AllowMulticast>
+            <AllowMulticast>false</AllowMulticast>
             <MaxMessageSize>1400B</MaxMessageSize>
             <Interfaces>
-                <NetworkInterface name="docker0" priority="default" multicast="default" />
+                <NetworkInterface name="lo"/>
             </Interfaces>
         </General>
 
         <Discovery>
             <ParticipantIndex>auto</ParticipantIndex>
             <MaxAutoParticipantIndex>500</MaxAutoParticipantIndex>
+            <Peers>
+                <Peer address="127.0.0.1"/>
+            </Peers>
         </Discovery>
 
         <Internal>
