@@ -1,5 +1,5 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction, DeclareLaunchArgument
+from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
 from launch.event_handlers import OnProcessExit, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
