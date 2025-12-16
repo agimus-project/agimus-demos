@@ -24,4 +24,4 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS scripts/tuck_arm.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS scripts/orchestrator_node.py DESTINATION lib/${PROJECT_NAME})
 # Install ament and share folders.
-ament_auto_package(INSTALL_TO_SHARE config launch)
+ament_auto_package(INSTALL_TO_SHARE config launch urdf)

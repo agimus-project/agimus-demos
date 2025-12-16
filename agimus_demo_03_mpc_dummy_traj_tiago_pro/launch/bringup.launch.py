@@ -1,5 +1,6 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
+    ExecuteProcess,
     OpaqueFunction,
     RegisterEventHandler,
 )
@@ -29,6 +30,8 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     use_gazebo = LaunchConfiguration("use_gazebo")
 
+    use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
+
     #
     # Robot
     #
@@ -54,7 +57,7 @@ def launch_setup(
             "config",
             "trajectory_weights_params.yaml",
         ]
-    )
+    ).perform(context)
     environment_description = ParameterValue(
         Command(
             [
@@ -111,7 +114,7 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_03_mpc_dummy_traj_tiago_pro orchestrator_node --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
+            f'ros2 run agimus_demo_03_mpc_dummy_traj_tiago_pro orchestrator_node.py --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
         ],
         output="screen",
     )
