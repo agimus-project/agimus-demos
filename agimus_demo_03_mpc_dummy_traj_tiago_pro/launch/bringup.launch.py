@@ -105,11 +105,14 @@ def launch_setup(
         output="screen",
         # remappings=[("robot_description", "robot_description_with_collision")],
     )
-    simple_trajectory_publisher_node = Node(
-        package="agimus_controller_ros",
-        executable="simple_trajectory_publisher",
-        name="simple_trajectory_publisher",
-        parameters=[get_use_sim_time(), trajectory_weights_yaml],
+    orchestrator_node = ExecuteProcess(
+        cmd=[
+            "xterm",
+            "-hold",
+            "-e",
+            'bash -c "source /opt/ros/humble/setup.bash && '
+            f'ros2 run agimus_demo_03_mpc_dummy_traj_tiago_pro orchestrator_node --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
+        ],
         output="screen",
     )
     environment_publisher_node = Node(
@@ -140,7 +143,6 @@ def launch_setup(
         arguments=[
             "-l",
             plotjuggler_file,  # Load the layout file
-            # "--start",              # Start immediately
             "--nosplash",  # Skip the splash screen
             "--start_streamer",
             "ros2",  # Automatically start the ROS 2 streamer
@@ -178,7 +180,7 @@ def launch_setup(
                 on_exit=[
                     agimus_controller_node,
                     mpc_debugger_node,
-                    simple_trajectory_publisher_node,
+                    orchestrator_node,
                     plotjuggler_node,
                 ],
             )

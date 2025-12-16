@@ -75,7 +75,7 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    simple_trajectory_publisher_node = Node(
+    hpp_trajectory_publisher_node = Node(
         package="agimus_controller_ros",
         executable="simple_trajectory_publisher",
         name="simple_trajectory_publisher",
