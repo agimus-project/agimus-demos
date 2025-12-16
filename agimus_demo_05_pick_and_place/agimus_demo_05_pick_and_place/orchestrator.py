@@ -88,7 +88,7 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         return "dest_box/base_link", [0.15, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     if object_name == "obj_22":
         return "dest_box/base_link", [-0.05, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_23":
+    elif object_name in ["obj_23", "obj_20"]:
         return "dest_box/base_link", [0.05, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_25":
         return "dest_box/base_link", [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
@@ -307,14 +307,15 @@ class Orchestrator(object):
         ddq_array += [ddq_array[-1]] * horizon_size  # OCP horizon
 
         # find trajectory points idx range where to apply visual servoing
-        if visual_servoing_time_range is None:
-            visual_servoing_idx_range = [0, 0]
-        else:
-            visual_servoing_idx_range = [
-                int(t / self.dt) for t in visual_servoing_time_range
-            ]
-            if visual_servoing_time_range[1] == path_vector.length():
-                visual_servoing_idx_range[1] += horizon_size
+        visual_servoing_idx_range = [0, 0]  # TODO: add a parameter to config
+        # if visual_servoing_time_range is None:
+        #     visual_servoing_idx_range = [0, 0]
+        # else:
+        #     visual_servoing_idx_range = [
+        #         int(t / self.dt) for t in visual_servoing_time_range
+        #     ]
+        #     if visual_servoing_time_range[1] == path_vector.length():
+        # visual_servoing_idx_range[1] += horizon_size
 
         # convert arrays in list of trajectory points
         trajectory = (
@@ -420,8 +421,8 @@ class Orchestrator(object):
         )
 
         if enable_visualization_in_gepetto_gui:
-            self.v = self.hpp_client.vf.createViewer()
-            self.v(self.hpp_client.q_init)
+            # self.v = self.hpp_client.vf.createViewer()
+            self.hpp_client.v(self.hpp_client.q_init)
             input("Trajectory computed. Ready to move. Press Enter to start motion...")
 
         self.open_gripper()

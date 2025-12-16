@@ -387,6 +387,9 @@ class HPPInterface:
                 + self.default_obstacle2_pose
             ),
         )
+        self.v = self.vf.createViewer()
+        self.v(self.q_init)
+        input("Initialized the problem")
 
         res, q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
