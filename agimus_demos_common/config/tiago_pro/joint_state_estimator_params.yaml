@@ -6,9 +6,9 @@ joint_state_estimator:
       arm_right_4_joint/position, arm_right_5_joint/position, arm_right_6_joint/position,
       arm_right_7_joint/position, arm_right_1_joint/velocity, arm_right_2_joint/velocity,
       arm_right_3_joint/velocity, arm_right_4_joint/velocity, arm_right_5_joint/velocity,
-      arm_right_6_joint/velocity, arm_right_7_joint/velocity, arm_right_1_joint/torque, arm_right_2_joint/torque,
-      arm_right_3_joint/torque, arm_right_4_joint/torque, arm_right_5_joint/torque, arm_right_6_joint/torque,
-      arm_right_7_joint/torque]
+      arm_right_6_joint/velocity, arm_right_7_joint/velocity, arm_right_1_joint/force, arm_right_2_joint/force,
+      arm_right_3_joint/force, arm_right_4_joint/force, arm_right_5_joint/force, arm_right_6_joint/force,
+      arm_right_7_joint/force]
     command_interfaces: [linear_feedback_controller/arm_right_1_joint/position, linear_feedback_controller/arm_right_2_joint/position,
       linear_feedback_controller/arm_right_3_joint/position, linear_feedback_controller/arm_right_4_joint/position,
       linear_feedback_controller/arm_right_5_joint/position, linear_feedback_controller/arm_right_6_joint/position,
