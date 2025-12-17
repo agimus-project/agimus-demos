@@ -38,8 +38,8 @@ def launch_setup(
         jse_file = "joint_state_estimator_params.yaml"
         lfc_file = "linear_feedback_controller_params.yaml"
     lfc_controllers_params = [
-        f"/opt/agimus_demos/config/{jse_file}", # JSE params file
-        f"/opt/agimus_demos/config/{lfc_file}", # LFC params file
+        f"/tmp/{jse_file}", # JSE params file
+        f"/tmp/{lfc_file}", # LFC params file
     ]
     lfc_controllers = [
         "linear_feedback_controller",

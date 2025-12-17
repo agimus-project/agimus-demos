@@ -47,3 +47,38 @@ Launch the demo
 ros2 launch agimus_demo_03_mpc_dummy_traj_tiago_pro bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
 ```
 Expected result: after starting the demo, a RViz 2 window should be appearing with Tiago robot. The robot's joints oscillating gently.
+
+
+
+### Run on the robot
+
+- copy lfc + jse config in tmp
+- set the cyclone DDS config in bashrc. A file is in `agimus_demos_common/config/tiago_pro/cyclone_config.xml`
+- remove the laser from the urdf: `pal robot_info set laser_model no-laser`
+
+parameter for cartesian:
+
+simple_trajectory_publisher:
+  ros__parameters:
+    ee_frame_name: arm_right_7_joint
+    trajectory_name: generic_trajectory
+    w_q: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
+    w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    w_pose: [60.0, 60.0, 60.0, 10.0, 10.0, 10.0]
+    mask: [true, true, true, true, true, true]
+
+
+parameter for joint space:
+
+simple_trajectory_publisher:
+  ros__parameters:
+    ee_frame_name: arm_right_7_joint
+    trajectory_name: generic_trajectory
+    w_q: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
+    w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    w_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    mask: [false, false, false, false, false, false]
