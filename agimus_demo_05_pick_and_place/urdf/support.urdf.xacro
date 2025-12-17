@@ -2,189 +2,208 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="support" params="">
     <link name="support_link">
-      <inertial>
-        <mass value="200" />
-        <origin xyz="0 0 0.45" />
-        <inertia ixx="50" ixy="0" ixz="0" iyy="50" iyz="0" izz="50" />
-      </inertial>
-      <visual>
-        <origin xyz="0 0 0.38" />
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+    </link>
+    <link name="table_desk">
+    <inertial>
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+        <mass value="1" />
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+    </inertial>
+    <visual>
+        <origin xyz="0 0 -0.44" rpy="0 0 0" />
         <geometry>
-          <box size="1.703 0.803 0.76" />
+            <box size="1.384 0.854 0.88" />
         </geometry>
-        <material name="blue">
-          <color rgba="0 0.3 0.9 1.0" />
+        <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
         </material>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0.38" />
+    </visual>
+    <collision>
+        <origin xyz="0 0 -0.44" rpy="0 0 0" />
         <geometry>
-          <box size="1.703 0.803 0.76" />
+            <box size="1.384 0.854 0.88" />
         </geometry>
-      </collision>
-      <!--visual>
-          <origin xyz="-0.61 0.2215 0.77"/>
-          <geometry>
-	    <box size="0.363 0.252 0.02"/>
-          </geometry>
+    </collision>
+    </link>
+
+    <joint name="table_main_link" type="fixed">
+        <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.88" />
+        <parent link="support_link" />
+        <child link="table_desk" />
+    </joint>
+    <link name="shelf_top_desk">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.01 0 -0.0125" rpy="0 0 0" />
+            <geometry>
+                <box size="0.4 1.2 0.025" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
         </visual>
         <collision>
-          <origin xyz="-0.61 0.2215 0.77"/>
-          <geometry>
-	    <box size="0.363 0.252 0.02"/>
-          </geometry>
-        </collision-->
-      <visual>
-        <origin xyz="0.6385 -0.1655 0.77" />
-        <geometry>
-          <box size="0.3 0.3 0.02" />
-        </geometry>
-        <material name="blue" />
-      </visual>
-      <collision>
-        <origin xyz="0.6385 -0.1655 0.77" />
-        <geometry>
-          <box size="0.3 0.3 0.02" />
-        </geometry>
-      </collision>
+        <origin xyz="-0.01 0 -0.0125" rpy="0 0 0" />
+            <geometry>
+                <box size="0.4 1.2 0.025" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="shelf_box">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 -0.8275" rpy="0 0 0" />
+            <geometry>
+                <box size="0.38 1.2 0.945" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.8275" rpy="0 0 0" />
+            <geometry>
+                <box size="0.38 1.2 0.945" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="shelf_wall_left">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0075 -0.59 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.0075 -0.59 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="shelf_wall_center">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0075 0.0 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.0075 0.0 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="shelf_wall_right">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0075 0.59 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.0075 0.59 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.365 0.02 0.33" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="shelf_wall_back">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+            <mass value="1" />
+            <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001" />
+        </inertial>
+        <visual>
+            <origin xyz="0.1825 0 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.015 1.2 0.33" />
+            </geometry>
+            <material name="brown">
+            <color rgba="0.43 0.34 0.24 0.9" />
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.1825 0 -0.19" rpy="0 0 0" />
+            <geometry>
+                <box size="0.015 1.2 0.33" />
+            </geometry>
+        </collision>
     </link>
 
-    <link name="wall_link_1">
-      <inertial>
-        <mass value="200" />
-        <origin xyz="0 0 1." />
-        <inertia ixx="50" ixy="0" ixz="0" iyy="50" iyz="0" izz="50" />
-      </inertial>
-      <visual>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="3.0 0.1 2.0" />
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="3.0 0.1 2.0" />
-        </geometry>
-      </collision>
-    </link>
-    <link name="wall_link_2">
-      <inertial>
-        <mass value="200" />
-        <origin xyz="0 0 1." />
-        <inertia ixx="50" ixy="0" ixz="0" iyy="50" iyz="0" izz="50" />
-      </inertial>
-      <visual>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="0.1 2.0 2.0" />
-        </geometry>
-        <material name="lightGrey">
-          <color rgba="0.9 0.9 0.9 0.5" />
-        </material>
-      </visual>
-      <collision>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="0.1 2.0 2.0" />
-        </geometry>
-      </collision>
-    </link>
-    <link name="wall_link_3">
-      <inertial>
-        <mass value="200" />
-        <origin xyz="0 0 1." />
-        <inertia ixx="50" ixy="0" ixz="0" iyy="50" iyz="0" izz="50" />
-      </inertial>
-      <visual>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="0.7 0.12 2.0" />
-        </geometry>
-      </visual>
-      <collision>
-        <origin xyz="0 0 1.0" />
-        <geometry>
-          <box size="0.7 0.12 2.0" />
-        </geometry>
-      </collision>
-    </link>
-    <link name="pedestal">
-      <inertial>
-        <mass value="1." />
-        <origin xyz="1.05 0.45 0.4625" />
-        <inertia ixx=".01" iyy=".01" izz=".1" ixy="0" ixz="0" iyz="0" />
-      </inertial>
-      <visual>
-        <origin xyz="0 0 0.4625" />
-        <geometry>
-          <box size="0.25 0.25 0.925" />
-        </geometry>
-        <material name="blue">
-          <color rgba="0 0.3 0.9 1.0" />
-        </material>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0.4625" />
-        <geometry>
-          <box size="0.25 0.25 0.925" />
-        </geometry>
-      </collision>
-    </link>
-    <!-- Wrap panda1 robot into a box shaped obstacle -->
-    <link name="panda1_box">
-      <inertial>
-        <mass value="100" />
-        <origin xyz="0 0 0" />
-        <inertia ixx="25" ixy="0" ixz="0" iyy="25" iyz="0" izz="25" />
-      </inertial>
-      <collision>
-        <origin xyz="0 0 0" />
-        <geometry>
-          <box size="0.44 0.803 0.80" />
-        </geometry>
-      </collision>
-      <visual>
-        <origin xyz="0 0 0" />
-        <geometry>
-          <box size="0.44 0.803 0.80" />
-        </geometry>
-        <material name="lightGrey">
-          <color rgba="0.9 0.9 0.9 0.5" />
-        </material>
-      </visual>
-    </link>
-
+    <joint name="shelf_main_link" type="fixed">
+        <origin rpy="0.0 0.0 -1.5707963267948966" xyz="-1.15 1.51 1.28" />
+        <parent link="support_link" />
+        <child link="shelf_top_desk" />
+    </joint>
+    <joint name="shelf_box_connect" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="shelf_top_desk" />
+        <child link="shelf_box" />
+    </joint>
+    <joint name="shelf_wall_L_connect" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="shelf_top_desk" />
+        <child link="shelf_wall_left" />
+    </joint>
+    <joint name="shelf_wall_C_connect" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="shelf_top_desk" />
+        <child link="shelf_wall_center" />
+    </joint>
+    <joint name="shelf_wall_R_connect" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="shelf_top_desk" />
+        <child link="shelf_wall_right" />
+    </joint>
+    <joint name="shelf_wall_B_connect" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="shelf_top_desk" />
+        <child link="shelf_wall_back" />
+    </joint>
     <link name="robot_attachment_link" />
     <joint name="support_joint" type="fixed">
-      <origin xyz="0.563 -0.1655 .78" rpy="0 0 ${pi}" />
+      <origin xyz="-0.422 0.0 .92" rpy="0 0 ${pi}" />
       <parent link="support_link" />
       <child link="robot_attachment_link" />
-    </joint>
-    <joint name="wall_joint_1" type="fixed">
-      <origin xyz="0 1.07 0" />
-      <parent link="support_link" />
-      <child link="wall_link_1" />
-    </joint>
-    <joint name="wall_joint_2" type="fixed">
-      <origin xyz="1.78 0 0" />
-      <parent link="support_link" />
-      <child link="wall_link_2" />
-    </joint>
-    <joint name="wall_joint_3" type="fixed">
-      <origin xyz="1.40 0.96 0" />
-      <parent link="support_link" />
-      <child link="wall_link_3" />
-    </joint>
-    <joint name="pedestal_joint" type="fixed">
-      <origin xyz="1.05 0 0" />
-      <parent link="support_link" />
-      <child link="pedestal" />
-    </joint>
-    <joint name="panda1_box_joint" type="fixed">
-      <origin xyz="-0.6315 0 1.17" />
-      <parent link="support_link" />
-      <child link="panda1_box" />
     </joint>
   </xacro:macro>
 </robot>
