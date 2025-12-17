@@ -11,6 +11,7 @@ agimus_controller_node:
       max_qp_iter: 200
       max_iter: 20
       activate_callback: false
+      termination_tolerance: 0.0001
       definition_yaml_file: package://agimus_demo_03_mpc_dummy_traj_tiago_pro/config/ocp_definition_file.yaml
     publish_debug_data: true
     constant_delay: false
@@ -22,3 +23,4 @@ agimus_controller_node:
     cp_1:
       first: arm_right_7_link_0
       second: arm_left_7_link_0
+    robot_attachment_frame: universe

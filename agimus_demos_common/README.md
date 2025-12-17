@@ -217,7 +217,7 @@ Kill ALL !!!!!!
 
 In order to kill all simulation ghost processes:
 ```bash
-alias kr2='pkill -9 -f '\''.*(gzclient|gzserver).*'\'''
+alias kr2='pkill -9 -f '\''.*(gzclient|gzserver).*'\'' ; ros2 daemon stop'
 kr2
 ```
 

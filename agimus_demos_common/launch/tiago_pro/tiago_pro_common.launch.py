@@ -38,8 +38,8 @@ def launch_setup(
         jse_file = "joint_state_estimator_params.yaml"
         lfc_file = "linear_feedback_controller_params.yaml"
     lfc_controllers_params = [
-        f"/workspaces/workspace_agimus_alum/install/agimus_demo_03_mpc_dummy_traj_tiago_pro/share/agimus_demo_03_mpc_dummy_traj_tiago_pro/config/{jse_file}", # JSE params file
-        f"/workspaces/workspace_agimus_alum/install/agimus_demo_03_mpc_dummy_traj_tiago_pro/share/agimus_demo_03_mpc_dummy_traj_tiago_pro/config/{lfc_file}", # LFC params file
+        f"/opt/agimus_demos/config/{jse_file}", # JSE params file
+        f"/opt/agimus_demos/config/{lfc_file}", # LFC params file
     ]
     lfc_controllers = [
         "linear_feedback_controller",

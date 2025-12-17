@@ -23,15 +23,13 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
 )
+from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    use_gazebo = LaunchConfiguration("use_gazebo")
-
-    use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
-
+    
     #
     # Robot
     #
@@ -43,60 +41,18 @@ def launch_setup(
     #
     # Parameters
     #
+    use_gazebo = LaunchConfiguration("use_gazebo")
+    use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
+
+    #
+    # OCP
+    #
     agimus_controller_yaml = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
             "config",
             "agimus_controller_params.yaml",
         ]
-    )
-
-    trajectory_weights_yaml = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-            "config",
-            "trajectory_weights_params.yaml",
-        ]
-    ).perform(context)
-    environment_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-                        "urdf",
-                        "obstacles.xacro",
-                    ]
-                ),
-                # Convert dict to list of parameters
-            ]
-        ),
-        value_type=str,
-    )
-    plotjuggler_file = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-            "config",
-            "plotjuggler_view.xml",
-        ]
-    )
-
-    #
-    # Nodes
-    #
-    tuck_arm = Node(
-        package="agimus_demo_03_mpc_dummy_traj_tiago_pro",
-        executable="tuck_arm.py",
-        parameters=[get_use_sim_time()],
-        output="screen",
-    )
-    wait_for_non_zero_joints_node = Node(
-        package="agimus_demos_common",
-        executable="wait_for_non_zero_joints_node",
-        parameters=[get_use_sim_time()],
-        output="screen",
     )
     agimus_controller_node = Node(
         package="agimus_controller_ros",
@@ -107,7 +63,21 @@ def launch_setup(
         ],
         output="screen",
         # remappings=[("robot_description", "robot_description_with_collision")],
+        remappings=[
+            ("robot_description_semantic", "robot_srdf_description"),
+        ],
     )
+    
+    #
+    # Orchestrator
+    #
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
+            "config",
+            "trajectory_weights_params.yaml",
+        ]
+    ).perform(context)
     orchestrator_node = ExecuteProcess(
         cmd=[
             "xterm",
@@ -118,26 +88,49 @@ def launch_setup(
         ],
         output="screen",
     )
-    environment_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="environment_publisher",
-        output="screen",
-        remappings=[("robot_description", "environment_description")],
-        parameters=[{"robot_description": environment_description}],
+
+    #
+    # Environment
+    #
+    environment_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
+                        "urdf",
+                        "empty.urdf",
+                    ]
+                ),
+                # Convert dict to list of parameters
+            ]
+        ),
+        value_type=str,
     )
-    mpc_debugger_node = Node(
-        package="agimus_controller_ros",
-        executable="mpc_debugger_node",
-        name="mpc_debugger_node",
-        arguments=[
-            "--frame=arm_right_7_joint",
-            "--parent-frame=base_footprint",
-            "--marker-size=0.05",
+    # No collision avoidance case
+    environment_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="environment_publisher",
+        parameters=[
+            {
+                "topic_name": "environment_description",
+                "string_value": "<robot name='empty'><link name='env'/></robot>",
+            }
         ],
-        # Disable ROS 2 arguments
-        additional_env={"ROS_DISABLE_ARGUMENTS": "true"},
-        output="screen",
+    )
+
+    #
+    # Plotjuggler
+    #
+    plotjuggler_file = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
+            "config",
+            "plotjuggler_view.xml",
+        ]
     )
     plotjuggler_node = Node(
         package="plotjuggler",
@@ -154,22 +147,35 @@ def launch_setup(
         condition=IfCondition(use_gazebo),
     )
 
-    environment_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-                        "urdf",
-                        "obstacles.xacro",
-                    ]
-                ),
-                # Convert dict to list of parameters
-            ]
+    #
+    # Initialization
+    #
+    wait_for_non_zero_joints_node = Node(
+        package="agimus_demos_common",
+        executable="wait_for_non_zero_joints_node",
+        parameters=[get_use_sim_time()],
+        output="screen",
+    )
+    tuck_arm = Node(
+        package="agimus_demo_03_mpc_dummy_traj_tiago_pro",
+        executable="tuck_arm.py",
+        parameters=[get_use_sim_time()],
+        output="screen",
+    )
+    
+    #
+    # Debugger node
+    #
+    mpc_debugger = mpc_debugger_node(
+        "arm_right_7_joint",
+        parent_frame="base_link",
+        cost_plot=True,
+        node_kwargs=dict(
+            remappings=[
+                # ("robot_description", "robot_description_with_collision"),
+                ("robot_description_semantic", "robot_srdf_description"),
+            ],
         ),
-        value_type=str,
     )
 
     return [
@@ -182,7 +188,7 @@ def launch_setup(
                 target_action=wait_for_non_zero_joints_node,
                 on_exit=[
                     agimus_controller_node,
-                    mpc_debugger_node,
+                    mpc_debugger,
                     orchestrator_node,
                     plotjuggler_node,
                 ],

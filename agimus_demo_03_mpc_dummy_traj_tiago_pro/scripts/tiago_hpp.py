@@ -41,9 +41,32 @@ v = vf.createViewer()
 
 q0 = robot.getCurrentConfig()
 
-# Lock all joint except left arm in neutral positions
+# Offer pose
+r = robot.rankInConfiguration["tiago/torso_lift_joint"]
+q0[r] = 0.14
+r = robot.rankInConfiguration["tiago/arm_left_1_joint"]
+# left pose
+q0[r]     = -0.25843 
+q0[r + 1] = -0.57522 
+q0[r + 2] = 0.50314 
+q0[r + 3] = -2.0337 
+q0[r + 4] = 0.0 
+q0[r + 5] = 1.0543 
+q0[r + 6] = 1.5708 
+# right pose
+r = robot.rankInConfiguration["tiago/arm_right_1_joint"]
+q0[r]     = 0.25843
+q0[r + 1] = -0.57522 
+q0[r + 2] = -0.50314 
+q0[r + 3] = -2.0337 
+q0[r + 4] = 0.0 
+q0[r + 5] = 1.0543 
+q0[r + 6] = -1.5708 
+v(q0)
+
+# Lock all joint except right arm in neutral positions
 lockedJoints = list(
-    filter(lambda j: not j.startswith("tiago/arm_left"), robot.jointNames)
+    filter(lambda j: not j.startswith("tiago/arm_right"), robot.jointNames)
 )
 
 lockedJointNames = list()
@@ -54,18 +77,6 @@ for j in lockedJoints:
     lockedJointNames.append(name)
     ps.createLockedJoint(name, j, q0[r : r + size])
     ps.setConstantRightHandSide(name, True)
-
-# Fold left arm to move away from singularity
-r = robot.rankInConfiguration["tiago/arm_left_1_joint"]
-q0[r]     = -0.25843 
-q0[r + 1] = -0.57522 
-q0[r + 2] = 0.50314 
-q0[r + 3] = -2.0337 
-q0[r + 4] = 0.0 
-q0[r + 5] = 1.0543 
-q0[r + 6] = 1.5708 
-v(q0)
-
 
 # Create an EndEffectorTrajectory steering method
 cmp = wd(ps.client.basic.problem.getProblem())
@@ -87,7 +98,7 @@ for lj in lockedJointNames:
 
 # Create constraint and set it to config projector
 robot.setCurrentConfig(q0) # add first way point
-first_way_point_in_world = robot.getJointPosition("tiago/arm_left_6_joint")
+first_way_point_in_world = robot.getJointPosition("tiago/arm_right_7_joint")
 first_way_point_in_world_se3 = pin.XYZQUATToSE3(first_way_point_in_world)
 base_in_world = robot.getJointPosition("tiago/base_link")
 base_in_world_se3 = pin.XYZQUATToSE3(base_in_world)
@@ -102,8 +113,8 @@ ps.client.basic.problem.createTransformationR3xSO3Constraint(
     "ee-pose",
     # "", # in world
     "tiago/base_link", # in base
-    "tiago/arm_left_6_joint",
-    pin.SE3ToXYZQUAT(first_way_point_in_base_se3).tolist(),
+    "tiago/arm_right_7_joint",
+    first_way_point_in_base,
     [0, 0, 0, 0, 0, 0, 1],
     6 * [True],
 )
@@ -126,8 +137,8 @@ irot = first_way_point_in_base[3:]
 print(f"[ipos irot]: {ipos + irot}")
 rhs0 = [0, 0, 0, 0, 0, 0, 1]
 rhs1 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1], ipos[2]] + irot)).tolist()
-rhs2 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1] + r, ipos[2]] + irot)).tolist()
-rhs3 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1] + r, ipos[2]] + irot)).tolist()
+rhs2 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1] - r, ipos[2]] + irot)).tolist()
+rhs3 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1] - r, ipos[2]] + irot)).tolist()
 rhs4 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1], ipos[2]] + irot)).tolist()
 print("Way points in base frame:")
 print("rhs0:", rhs0)

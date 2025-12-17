@@ -1,12 +1,8 @@
-from math import pi
-
-from agimus_controller.trajectory import (
-    TrajectoryPoint,
-    TrajectoryPointWeights,
-    WeightedTrajectoryPoint,
-)
+from agimus_controller.trajectory import TrajectoryPoint
+import example_robot_data
 from hpp.corbaserver import loadServerPlugin, wrap_delete as wd
 from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
+from hpp.gepetto.manipulation import ViewerFactory
 import matplotlib.pyplot as plt
 import numpy as np
 import pinocchio as pin
@@ -17,20 +13,50 @@ from spline import SplineBezier, SplineBezierRobot
 plt.ion()
 
 
-def plan_trajectory(q0, dt):
+def plan_trajectory(_, dt):
+    tiago_pro = example_robot_data.ROBOTS['tiago_pro']()
     Robot.urdfFilename = (
-        "package://example-robot-data/robots/tiago_pro_description/robots/tiago_pro.urdf"
+        tiago_pro.df_path
     )
     Robot.srdfFilename = ""
+    Robot.packageDirs = tiago_pro.model_path + "/" + tiago_pro.path
 
     loadServerPlugin("corbaserver", "manipulation-corba.so")
     Client().problem.resetProblem()
     robot = Robot("tiago-manip", "tiago", rootJointType="anchor")
     ps = ProblemSolver(robot)
+    vf = ViewerFactory(ps)
+    v = vf.createViewer()
 
-    # Lock all joint except left arm in neutral positions
+    q0 = robot.getCurrentConfig()
+    v(q0)
+
+    # Offer pose
+    r = robot.rankInConfiguration["tiago/torso_lift_joint"]
+    q0[r] = 0.14
+    r = robot.rankInConfiguration["tiago/arm_left_1_joint"]
+    # left pose
+    q0[r]     = -0.25843 
+    q0[r + 1] = -0.57522 
+    q0[r + 2] = 0.50314 
+    q0[r + 3] = -2.0337 
+    q0[r + 4] = 0.0 
+    q0[r + 5] = 1.0543 
+    q0[r + 6] = 1.5708 
+    # right pose
+    r = robot.rankInConfiguration["tiago/arm_right_1_joint"]
+    q0[r]     = 0.25843
+    q0[r + 1] = -0.57522 
+    q0[r + 2] = -0.50314 
+    q0[r + 3] = -2.0337 
+    q0[r + 4] = 0.0 
+    q0[r + 5] = 1.0543 
+    q0[r + 6] = -1.5708 
+    v(q0)
+
+    # Lock all joint except right arm in neutral positions
     lockedJoints = list(
-        filter(lambda j: not j.startswith("tiago/arm_left"), robot.jointNames)
+        filter(lambda j: not j.startswith("tiago/arm_right"), robot.jointNames)
     )
 
     lockedJointNames = list()
@@ -41,8 +67,6 @@ def plan_trajectory(q0, dt):
         lockedJointNames.append(name)
         ps.createLockedJoint(name, j, q0[r : r + size])
         ps.setConstantRightHandSide(name, True)
-
-    v(q0)
 
     # Create an EndEffectorTrajectory steering method
     cmp = wd(ps.client.basic.problem.getProblem())
@@ -64,7 +88,7 @@ def plan_trajectory(q0, dt):
 
     # Create constraint and set it to config projector
     robot.setCurrentConfig(q0) # add first way point
-    first_way_point_in_world = robot.getJointPosition("tiago/arm_left_6_joint")
+    first_way_point_in_world = robot.getJointPosition("tiago/arm_right_7_joint")
     first_way_point_in_world_se3 = pin.XYZQUATToSE3(first_way_point_in_world)
     base_in_world = robot.getJointPosition("tiago/base_link")
     base_in_world_se3 = pin.XYZQUATToSE3(base_in_world)
@@ -76,7 +100,7 @@ def plan_trajectory(q0, dt):
         "ee-pose",
         # "", # in world
         "tiago/base_link", # in base
-        "tiago/arm_left_6_joint",
+        "tiago/arm_right_7_joint",
         pin.SE3ToXYZQUAT(first_way_point_in_base_se3).tolist(),
         [0, 0, 0, 0, 0, 0, 1],
         6 * [True],
@@ -99,8 +123,8 @@ def plan_trajectory(q0, dt):
     irot = first_way_point_in_base[3:]
     rhs0 = [0, 0, 0, 0, 0, 0, 1]
     rhs1 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1], ipos[2]] + irot)).tolist()
-    rhs2 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1] + r, ipos[2]] + irot)).tolist()
-    rhs3 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1] + r, ipos[2]] + irot)).tolist()
+    rhs2 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0], ipos[1] - r, ipos[2]] + irot)).tolist()
+    rhs3 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1] - r, ipos[2]] + irot)).tolist()
     rhs4 = pin.SE3ToXYZQUAT(base_in_first_way_point_se3 * pin.XYZQUATToSE3([ipos[0] - r, ipos[1], ipos[2]] + irot)).tolist()
     derivative = [[0, 0]] * 6
     p1 = wd(spline.createSplinePath(rhs0, rhs1, 1.0, [1, 2], derivative, [1, 2], derivative))
@@ -150,27 +174,49 @@ def plan_trajectory(q0, dt):
     s.appendPath(s4)
     s.appendPath(s5)
 
-    trajectory = []
-    duration = p.length()
-    pin_model = pin.buildModelsFromUrdf(robot.urdfFilename, pin.FreeFlyerJoint())
-    pin_data = pin.Data(pin_model)
-    t0 = 0.0
-    for t in np.arange(0, duration, dt):
-        p_ee, res = p.call(t)
-        assert(res)
-        ee_pose = pin.XYZQUATToSE3(p_ee)
-        q, res = traj.call(t0 + t)
-        assert(res)
-        v = s.derivative(t, 1)
-        a = s.derivative(t, 2)
-        tau = pin.rnea(pin_model, pin_data, q, v, a).copy()
-        trajectory.append(
-            TrajectoryPoint(
-                robot_configuration=np.array(q),
-                robot_velocity=np.array(v),
-                robot_acceleration=np.array(a),
-                robot_effort=tau,
-                end_effector_poses={"arm_left_6_joint": ee_pose.copy()},
+    def discretize_path(dt, p, s, robot, first_way_point_in_base_se3):
+        trajectory = []
+        duration = p.length()
+        pin_model = pin.buildModelFromUrdf(tiago_pro.df_path)
+        pin_data = pin_model.createData()
+        t0 = 0.0
+        for t in np.arange(0, duration, dt):
+            p_ee, res = p.call(t)
+            assert(res)
+            ee_pose =  first_way_point_in_base_se3 * pin.XYZQUATToSE3(p_ee)
+            q, res = traj.call(t0 + t)
+            assert(res)
+            v = s.derivative(t, 1)
+            a = s.derivative(t, 2)
+            q = np.array(q)
+            v = np.array(v)
+            a = np.array(a)
+            tau = pin.rnea(pin_model, pin_data, q, v, a).copy()
+            rq = robot.rankInConfiguration["tiago/arm_right_1_joint"]
+            rv = robot.rankInVelocity["tiago/arm_right_1_joint"]
+            trajectory.append(
+                TrajectoryPoint(
+                    robot_configuration=q[rq: rq+7],
+                    robot_velocity=v[rv: rv+7],
+                    robot_acceleration=a[rv: rv+7],
+                    robot_effort=tau[rv: rv+7],
+                    end_effector_poses={"arm_right_7_joint": ee_pose.copy()},
+                )
             )
-        )
-    return trajectory
+        return trajectory
+    
+    p_reach = p1.asVector()
+    p = p2.asVector()
+    p.appendPath(p3)
+    p.appendPath(p4)
+    p.appendPath(p5)
+
+    s_reach = s1.asVector()
+    s = s2.asVector()
+    s.appendPath(s3)
+    s.appendPath(s4)
+    s.appendPath(s5)
+
+    reach_traj = discretize_path(dt, p_reach, s_reach, robot, first_way_point_in_base_se3)
+    traj = discretize_path(dt, p, s, robot, first_way_point_in_base_se3)
+    return reach_traj, traj
