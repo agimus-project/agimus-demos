@@ -69,6 +69,7 @@ class HPPInterface:
     def __init__(
         self,
         object_name: str = "obj_01",
+        dataset_name: str = "tless",
         robot_urdf_string: str = "",
         robot_srdf_string: str = "",
         start_obj_pose: XYZQuatType = [0.0, -0.2, 0.85, 0.0, 0.0, 0.0, 1.0],
@@ -105,10 +106,10 @@ class HPPInterface:
 
         self.manip_object = BaseObject(
             urdf_path=retrieve_resource(
-                f"{package_location}/urdf/tless/{object_name}.urdf"
+                f"{package_location}/urdf/{dataset_name}/{object_name}.urdf"
             ),
             srdf_path=retrieve_resource(
-                f"{package_location}/srdf/tless/{object_name}.srdf"
+                f"{package_location}/srdf/{dataset_name}/{object_name}.srdf"
             ),
             name="part",
         )

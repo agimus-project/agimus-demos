@@ -37,13 +37,14 @@ def map_object_id(obj_id, dataset="tless"):
 
 
 def get_most_confident_object_pose(
-    detection_msg: Detection2DArray, object_name: str
+    detection_msg: Detection2DArray, object_name: str, dataset_name: str
 ) -> Tuple[str, list[float]]:
     # TODO: change the map if we want to use YCBV
     filtered_detections = [
         (d, d.results[0].hypothesis.score)
         for d in detection_msg.detections
-        if d.results[0].hypothesis.class_id == map_object_id(object_name)
+        if d.results[0].hypothesis.class_id
+        == map_object_id(object_name, dataset=dataset_name)
     ]
     if len(filtered_detections) == 0:
         return ["", None]
@@ -88,14 +89,19 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         return "dest_box/base_link", [0.15, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     if object_name == "obj_22":
         return "dest_box/base_link", [-0.05, -0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
-    elif object_name in ["obj_23", "obj_20"]:
+    elif object_name in [
+        "obj_23",
+        "obj_20",
+    ]:
         return "dest_box/base_link", [0.05, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_25":
         return "dest_box/base_link", [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
+    elif object_name == "obj_03":
+        return "dest_box/base_link", [0.0, 0.0, 0.2, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_26":
         return "dest_box/base_link", [-0.15, 0.0, 0.1, 0.0, 0.0, 0.0, 1.0]
     elif object_name == "obj_31":
-        return "dest_box/base_link", [0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 1.0]
+        return "dest_box/base_link", [0.0, 0.0, 0.07, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
 
@@ -129,6 +135,10 @@ class Orchestrator(object):
         self.set_hardcoded_q0_start_and_above_source_bin()
         self.is_simulation = (
             self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
+        )
+        self._node.declare_parameter("dataset_name", "tless")
+        self.dataset_name = (
+            self._node.get_parameter("dataset_name").get_parameter_value().string_value
         )
         self._node.declare_parameter("vision_type", "apriltag_det")
         self.vision_type = (
@@ -254,7 +264,7 @@ class Orchestrator(object):
             if self.vision_type in ["simulate_happypose", "happypose"]:
                 object_detections = self.vision_client.wait_for_future()
                 obj_start_pose = get_most_confident_object_pose(
-                    object_detections, object_name
+                    object_detections, object_name, dataset_name=self.dataset_name
                 )
             elif self.vision_type in ["simulate_apriltag_det", "apriltag_det"]:
                 apriltag_detections: PoseStamped = self.vision_client.wait_for_future()
@@ -301,21 +311,22 @@ class Orchestrator(object):
         )
         # TODO: get this from OCP params somehow
         horizon_size = 40
+        multiplier = 1
         # add complete horizon at the end of the trajectory of the last point
-        q_array += [q_array[-1]] * horizon_size  # OCP horizon
-        dq_array += [dq_array[-1]] * horizon_size  # OCP horizon
-        ddq_array += [ddq_array[-1]] * horizon_size  # OCP horizon
+        q_array += [q_array[-1]] * multiplier * horizon_size  # OCP horizon
+        dq_array += [dq_array[-1]] * multiplier * horizon_size  # OCP horizon
+        ddq_array += [ddq_array[-1]] * multiplier * horizon_size  # OCP horizon
 
         # find trajectory points idx range where to apply visual servoing
-        visual_servoing_idx_range = [0, 0]  # TODO: add a parameter to config
-        # if visual_servoing_time_range is None:
-        #     visual_servoing_idx_range = [0, 0]
-        # else:
-        #     visual_servoing_idx_range = [
-        #         int(t / self.dt) for t in visual_servoing_time_range
-        #     ]
-        #     if visual_servoing_time_range[1] == path_vector.length():
-        # visual_servoing_idx_range[1] += horizon_size
+        # The parameter is the trajectory name in trajectory_weights_params.yaml
+        if visual_servoing_time_range is None:
+            visual_servoing_idx_range = [0, 0]
+        else:
+            visual_servoing_idx_range = [
+                int(t / self.dt) for t in visual_servoing_time_range
+            ]
+            if visual_servoing_time_range[1] == path_vector.length():
+                visual_servoing_idx_range[1] += multiplier * horizon_size
 
         # convert arrays in list of trajectory points
         trajectory = (
@@ -353,7 +364,11 @@ class Orchestrator(object):
     ) -> None:
         """Publish an hpp trajectory to go to desired configuration"""
         self.hpp_client = HPPInterface(
-            object_name=self.default_object_name, use_spline_gradient_based_opt=False
+            object_name=self.default_object_name,
+            dataset_name=self.dataset_name,
+            use_spline_gradient_based_opt=False,
+            source_bin_pose=[0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
+            destination_bin_pose=[0.06, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
         )
         current_robot_state = self.state_client.wait_for_future()
         traj = self.hpp_client.plan_free_motion(
@@ -396,10 +411,13 @@ class Orchestrator(object):
 
         self.hpp_client = HPPInterface(
             object_name=object_name,
+            dataset_name=self.dataset_name,
             use_spline_gradient_based_opt=False,
+            source_bin_pose=[0.5, 0.3, 0.761, 0.0, 0.0, 0.0, 1.0],
+            destination_bin_pose=[0.06, -0.2, 0.761, 0.0, 0.0, 0.0, 1.0],
         )
         self.publish_transform_in_tf(
-            parent_frame=map_object_id(object_name),
+            parent_frame=map_object_id(object_name, dataset=self.dataset_name),
             child_frame="current_object",
             transform=pin.SE3.Identity(),
             stamp=self._node.get_clock().now().to_msg(),
@@ -417,7 +435,7 @@ class Orchestrator(object):
 
         grasp_path, placing_path, freefly_path = self.hpp_client.plan_pick_and_place(
             q_init=list(current_robot_state.position),
-            q_above_source_bin=self.q_above_source_bin,
+            # q_above_source_bin=self.q_above_source_bin,
         )
 
         if enable_visualization_in_gepetto_gui:
@@ -428,13 +446,24 @@ class Orchestrator(object):
         self.open_gripper()
         self.open_gripper()
         time_pre_grasp = grasp_path.pathAtRank(grasp_path.numberPaths() - 1).length()
-        self.add_trajectory_to_publish(
-            grasp_path,
-            visual_servoing_time_range=[
-                grasp_path.length() - time_pre_grasp,
-                grasp_path.length(),
-            ],
-        )
+
+        if (
+            self.trajectory_publisher.params.visual_servoing_enabled
+        ):  # with visual servoing setup in config file
+            print("visual servoing enabled")
+            self.add_trajectory_to_publish(
+                grasp_path,
+                visual_servoing_time_range=[
+                    grasp_path.length() - time_pre_grasp,
+                    grasp_path.length(),
+                ],
+            )
+        else:  # no visual servoing
+            print("visual servoing disabled")
+            self.add_trajectory_to_publish(
+                grasp_path,
+            )
+
         rclpy.spin_until_future_complete(
             self.trajectory_publisher, self.trajectory_publisher.future_trajectory_done
         )
