@@ -105,6 +105,7 @@ vf.loadObjectModel(Plate, "plate")
 vf.loadObjectModel(ReinforcmentBar, "reinforcment_bar")
 
 # ps.selectPathValidation("NoValidation", 1)
+
 # Set joint bounds
 robot.setJointBounds(
     "plate/root_joint", [-3, 3, -3, 3, 0, 2, -1, 1, -1, 1, -1, 1, -1, 1]
@@ -298,4 +299,5 @@ helper = Helper(ps, cg)
 q1, q2 = helper.generateIntermediateConfigs(q_init, q_goal)
 ps.addConfigToRoadmap(q1)
 ps.addConfigToRoadmap(q2)
-# ps.solve()
+ps.solve()
+helper.optimizePath(ps.numberPaths() - 1)
