@@ -91,7 +91,7 @@ class HPPInterface:
 
         self.default_obstacle_pose = source_bin_pose
         self.default_obstacle2_pose = destination_bin_pose
-        self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
+        self.default_object_bounds = [-1.0, 1.5, -1.5, 1.0, 0.0, 2.2]
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
             process_xacro(
@@ -191,7 +191,7 @@ class HPPInterface:
             # TODO Should we always use SimpleTimeParameterization?
             self.ps.addPathOptimizer("SimpleTimeParameterization")
         self.ps.setParameter("SimpleTimeParameterization/order", 2)
-        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.7)
+        self.ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.5)
         self.ps.setParameter("SimpleTimeParameterization/safety", 0.95)
         self.ps.setParameter("BiRRT*/maxStepLength", 0.5 * float(np.sqrt(7)))
 
@@ -390,7 +390,7 @@ class HPPInterface:
         )
         self.v = self.vf.createViewer()
         self.v(self.q_init)
-        input("Initialized the problem")
+        # input("Initialized the problem")
 
         res, q_init, err = self.binPicking.graph.applyNodeConstraints(
             "free", self.q_init
@@ -452,19 +452,34 @@ class HPPInterface:
         self,
         q_init: list[float],
         q_goal: list[float],
+        consider_object=True,
     ):
-        self.q_init = (
-            q_init
-            + self.start_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
-        self.q_goal = (
-            q_goal
-            + self.start_obj_pose
-            + self.default_obstacle_pose
-            + self.default_obstacle2_pose
-        )
+        if consider_object:
+            self.q_init = (
+                q_init
+                + self.start_obj_pose
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
+            )
+            self.q_goal = (
+                q_goal
+                + self.start_obj_pose
+                + self.default_obstacle_pose
+                + self.default_obstacle2_pose
+            )
+        else:  # dont consider the objects if they are seen somehow
+            self.q_init = (
+                q_init
+                + [1, 1, 1, 0, 0, 0, 1]
+                + [1, 1, 1, 0, 0, 0, 1]
+                + [1, 1, 1, 0, 0, 0, 1]
+            )
+            self.q_goal = (
+                q_goal
+                + [1, 1, 1, 0, 0, 0, 1]
+                + [1, 1, 1, 0, 0, 0, 1]
+                + [1, 1, 1, 0, 0, 0, 1]
+            )
 
         self._build_bin_picking(True, only_free_node=True, build_effector=False)
 
