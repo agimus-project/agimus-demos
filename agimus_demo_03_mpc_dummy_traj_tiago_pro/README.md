@@ -52,6 +52,7 @@ Expected result: after starting the demo, a RViz 2 window should be appearing wi
 
 ### Run on the robot
 
+- `export ROS_DOMAIN_ID=2 # for TIAGo-Pro`
 - copy lfc + jse config in tmp
 - set the cyclone DDS config in bashrc. A file is in `agimus_demos_common/config/tiago_pro/cyclone_config.xml`
 - remove the laser from the urdf: `pal robot_info set laser_model no-laser`
