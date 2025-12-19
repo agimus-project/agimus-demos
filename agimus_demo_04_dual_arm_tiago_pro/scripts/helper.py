@@ -27,7 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from CORBA import (Any, TC_long, TC_double)
+from CORBA import Any, TC_long, TC_double
+
 
 class Helper:
     def __init__(self, ps, graph):
@@ -48,12 +49,16 @@ class Helper:
         )
         # get and create some CORBA objects
         self.cproblem = self.problem.getProblem()
-        self.csplineOptimizer = self.problem.createPathOptimizer("SplineGradientBased_bezier3",
-            self.cproblem)
-        self.ctimeParameterization = self.problem.createPathOptimizer("SimpleTimeParameterization",
-            self.cproblem)
-        self.cproblem.setParameter('SimpleTimeParameterization/order', Any(TC_long, 2))
-        self.cproblem.setParameter('SimpleTimeParameterization/maxAcceleration', Any(TC_double, 0.2))
+        self.csplineOptimizer = self.problem.createPathOptimizer(
+            "SplineGradientBased_bezier3", self.cproblem
+        )
+        self.ctimeParameterization = self.problem.createPathOptimizer(
+            "SimpleTimeParameterization", self.cproblem
+        )
+        self.cproblem.setParameter("SimpleTimeParameterization/order", Any(TC_long, 2))
+        self.cproblem.setParameter(
+            "SimpleTimeParameterization/maxAcceleration", Any(TC_double, 0.2)
+        )
 
     # Generate a preplace configuration from reachable from goal
     def generateIntermediateConfigs(self, q_init, q_goal):
@@ -109,7 +114,10 @@ class Helper:
         segment0 = None
         for i in range(p2.numberPaths()):
             p3 = p2.pathAtRank(i)
-            if self.graph.getNode(p3.end()) == 'tiago_pro/left grasps reinforcment_bar/left':
+            if (
+                self.graph.getNode(p3.end())
+                == "tiago_pro/left grasps reinforcment_bar/left"
+            ):
                 break
             if segment0 is None:
                 segment0 = p3.asVector()
@@ -118,13 +126,13 @@ class Helper:
             p3.deleteThis()
         segment1 = p3.asVector()
         p3.deleteThis()
-        p3 = p2.pathAtRank(i+1)
+        p3 = p2.pathAtRank(i + 1)
         segment2 = p3.asVector()
         p3.deleteThis()
         segment3 = None
-        for i in range(i+2, p2.numberPaths()):
+        for i in range(i + 2, p2.numberPaths()):
             p3 = p2.pathAtRank(i)
-            if self.graph.getNode(p3.end()) == 'free':
+            if self.graph.getNode(p3.end()) == "free":
                 break
             if segment3 is None:
                 segment3 = p3.asVector()
@@ -133,15 +141,17 @@ class Helper:
             p3.deleteThis()
         segment4 = p3.asVector()
         p3.deleteThis()
-        p3 = p2.pathAtRank(i+1)
+        p3 = p2.pathAtRank(i + 1)
         segment5 = p3.asVector()
         p3.deleteThis()
         segment6 = None
-        for i in range(i+2, p2.numberPaths()):
+        for i in range(i + 2, p2.numberPaths()):
             p3 = p2.pathAtRank(i)
-            if self.graph.getNode(p3.end()) != 'free':
-                raise RuntimeError("Failed to optimize path: the robot releases the object" +
-                                   " more than once")
+            if self.graph.getNode(p3.end()) != "free":
+                raise RuntimeError(
+                    "Failed to optimize path: the robot releases the object"
+                    + " more than once"
+                )
             if segment6 is None:
                 segment6 = p3.asVector()
             else:
