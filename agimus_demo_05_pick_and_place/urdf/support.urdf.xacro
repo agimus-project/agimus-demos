@@ -170,7 +170,7 @@
     </link>
 
     <joint name="shelf_main_link" type="fixed">
-        <origin rpy="0.0 0.0 -1.5707963267948966" xyz="-1.15 1.51 1.28" />
+        <origin rpy="0.0 0.0 -1.5707963267948966" xyz="0.0 -0.80 1.28" />
         <parent link="support_link" />
         <child link="shelf_top_desk" />
     </joint>
@@ -201,7 +201,7 @@
     </joint>
     <link name="robot_attachment_link" />
     <joint name="support_joint" type="fixed">
-      <origin xyz="-0.422 0.0 .92" rpy="0 0 ${pi}" />
+      <origin xyz="0.422 0.0 .92" rpy="0 0 ${pi}" />
       <parent link="support_link" />
       <child link="robot_attachment_link" />
     </joint>
