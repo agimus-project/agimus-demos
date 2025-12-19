@@ -83,3 +83,7 @@ simple_trajectory_publisher:
     w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
     w_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     mask: [false, false, false, false, false, false]
+
+- install mcap plugin for rosbags
+
+  sudo apt install ros-humble-rosbag2-storage-mcap
