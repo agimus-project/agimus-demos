@@ -495,7 +495,7 @@ class DeburringPathPlanner(Node):
         except TransformException:
             self.get_logger().info(
                 "Waiting for transformation between "
-                f"'{self._params.world_frame_id}' and '{self._params.pylone_frame_id}'...",
+                f"'{self._params.world_frame_id}' and '{self._params.deburred_object_frame_id}'...",
                 throttle_duration_sec=5.0,
             )
             return

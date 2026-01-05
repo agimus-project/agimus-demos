@@ -3,9 +3,7 @@ from agimus_demos_common.launch_utils import (
     generate_include_launch,
     get_use_sim_time,
 )
-from agimus_demos_common.static_transform_publisher_node import (
-    static_transform_publisher_node,
-)
+from launch.conditions import UnlessCondition
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -55,6 +53,9 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     object_material = LaunchConfiguration("object_material")
+    use_vision = LaunchConfiguration("use_vision")
+    arm_id = LaunchConfiguration("arm_id")
+    arm_id_str = arm_id.perform(context)
 
     rviz_config_path = PathJoinSubstitution(
         [
@@ -123,12 +124,24 @@ def launch_setup(
         ],
     )
 
-    # TODO remove once vision module is working
-    tf_node_pylone_link = static_transform_publisher_node(
-        frame_id="fer_link0",
-        child_frame_id="pylone_link",
-        xyz=["0.45", "-0.116", "0.739"],
-        rot_xyzw=["0.0, 0.0, 0.0, 1.0"],
+    dummy_pylone_detection_publisher = Node(
+        package="agimus_demo_07_deburring",
+        executable="dummy_pylone_detection_publisher",
+        name="dummy_pylone_detection_publisher",
+        output="both",
+        parameters=[
+            get_use_sim_time(),
+            {
+                "parent_frame_id": f"{arm_id_str}_link0",
+                "child_frame_id": "pylone_link",
+                "xyz": [0.45, -0.116, 0.739],
+                "xyzw": [0.0, 0.0, 0.0, 1.0],
+                # Execute a dummy sine motion in Y axis to see
+                # if the pose is updating correctly
+                "test_sine_motion": True,
+            },
+        ],
+        condition=UnlessCondition(use_vision),
     )
 
     return [
@@ -136,7 +149,7 @@ def launch_setup(
         environment_publisher_node_with_sc,
         environment_publisher_node_without_sc,
         deburring_path_planner,
-        tf_node_pylone_link,
+        dummy_pylone_detection_publisher,
     ]
 
 
@@ -153,6 +166,13 @@ def generate_launch_description():
             default_value="plastic",
             description="Which deburred material setup to use.",
             choices=["plastic", "metal"],
+        ),
+        DeclareLaunchArgument(
+            "use_vision",
+            default_value="false",
+            description="Whether to expect Pylone detector to be running "
+            "or to mock it.",
+            choices=["true", "false"],
         ),
     ]
 
