@@ -68,12 +68,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        fer_ati_mini45_no_camera:
+        fer_ati_mini45_with_compact_camera:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        fer_ati_mini45_no_camera_tool:
+        fer_ati_mini45_with_compact_camera_tool:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -143,9 +143,9 @@ Visualization Manager:
           Value: false
         base_box_link:
           Value: true
-        fer_ati_mini45_no_camera:
+        fer_ati_mini45_with_compact_camera:
           Value: true
-        fer_ati_mini45_no_camera_tool:
+        fer_ati_mini45_with_compact_camera_tool:
           Value: true
         fer_link0:
           Value: false
@@ -189,9 +189,9 @@ Visualization Manager:
                       fer_link6:
                         fer_link7:
                           fer_link8:
-                            fer_ati_mini45_no_camera:
+                            fer_ati_mini45_with_compact_camera:
                               ati_mini45_measurement_reference:
-                                fer_ati_mini45_no_camera_tool:
+                                fer_ati_mini45_with_compact_camera_tool:
                                   {}
             pylone_link:
               base_box_link:

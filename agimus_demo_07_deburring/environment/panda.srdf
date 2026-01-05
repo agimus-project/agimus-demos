@@ -26,13 +26,13 @@
         <joint name="fer_joint7" value="0.785398"/>
     </group_state>
 
-    <end_effector name="end_effector" parent_link="fer_ati_mini45_no_camera_tool" group="arm"/>
+    <end_effector name="end_effector" parent_link="fer_ati_mini45_with_compact_camera_tool" group="arm"/>
 
-    <disable_collisions link1="fer_ati_mini45_no_camera" link2="fer_link3" reason="Never"/>
-    <disable_collisions link1="fer_ati_mini45_no_camera" link2="fer_link4" reason="Never"/>
-    <disable_collisions link1="fer_ati_mini45_no_camera" link2="fer_link5" reason="Default"/>
-    <disable_collisions link1="fer_ati_mini45_no_camera" link2="fer_link6" reason="Never"/>
-    <disable_collisions link1="fer_ati_mini45_no_camera" link2="fer_link7" reason="Adjacent"/>
+    <disable_collisions link1="fer_ati_mini45_with_compact_camera" link2="fer_link3" reason="Never"/>
+    <disable_collisions link1="fer_ati_mini45_with_compact_camera" link2="fer_link4" reason="Never"/>
+    <disable_collisions link1="fer_ati_mini45_with_compact_camera" link2="fer_link5" reason="Default"/>
+    <disable_collisions link1="fer_ati_mini45_with_compact_camera" link2="fer_link6" reason="Never"/>
+    <disable_collisions link1="fer_ati_mini45_with_compact_camera" link2="fer_link7" reason="Adjacent"/>
     <disable_collisions link1="fer_link0" link2="fer_link1" reason="Adjacent"/>
     <disable_collisions link1="fer_link0" link2="fer_link2" reason="Never"/>
     <disable_collisions link1="fer_link0" link2="fer_link3" reason="Never"/>

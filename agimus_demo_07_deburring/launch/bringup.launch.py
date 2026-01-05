@@ -93,8 +93,8 @@ def launch_setup(
             "rviz_config_path": rviz_config_path,
             "plotjuggler_config_path": plotjuggler_config_path,
             "use_ft_sensor": "true",
-            "use_camera": "false",
-            "ee_id": "ati_mini45_no_camera",
+            "use_camera": "true",
+            "ee_id": "ati_mini45_with_compact_camera",
         },
     )
 
