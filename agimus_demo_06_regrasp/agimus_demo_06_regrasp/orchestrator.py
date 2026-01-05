@@ -87,7 +87,6 @@ class OrchestratorParams:
     """Orchestrator parameters."""
 
     max_holding_force: float = 40.0
-    use_simulation: bool = True
     use_hardcoded_poses: bool = True
     use_smoothing_at_waypoints: bool = True
     ocp_horizon: int = 40
