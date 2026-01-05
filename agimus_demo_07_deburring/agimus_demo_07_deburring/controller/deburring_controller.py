@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
+from pinocchio.visualize import MeshcatVisualizer
 import yaml
 import resource_retriever as r
 from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
@@ -31,6 +32,7 @@ from agimus_pytroller_py.agimus_pytroller_base import ControllerImplBase
 from std_msgs.msg import Int64, String
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
+
 
 try:
     import crocoddyl_plotter
@@ -122,6 +124,18 @@ class ControllerImpl(ControllerImplBase):
                 plotter_cfg["cost_plotter_url"]
             )
 
+        self._viz = None
+        meshcat_cfg = cfg["meshcat"]
+        self._use_meshcat = meshcat_cfg["use_meshcat"]
+        if self._use_meshcat:
+            self._viz = MeshcatVisualizer(
+                self._robot_models.robot_model,
+                self._robot_models.collision_model,
+                self._robot_models.visual_model,
+            )
+            self._viz.initViewer(zmq_url=meshcat_cfg["meshcat_zmq_url"])
+            self._viz.loadViewerModel()
+
     def mpc_input_cb(self, msg: MpcInputArray):
         for mpc_input in msg.inputs:
             self.mpc.append_trajectory_point(
@@ -145,7 +159,7 @@ class ControllerImpl(ControllerImplBase):
 
         assert state.size == nq + nv + 6 + 1
         # Extract state values
-        q = state[:nq]
+        self._last_q = state[:nq]
         dq = state[nq : nq + nv]
         force = state[-7:-1]
         # Currently unused, kept for compatibility
@@ -153,12 +167,12 @@ class ControllerImpl(ControllerImplBase):
 
         # Compute gravity torque
         rmodel = self._robot_models.robot_model
-        pin.framesForwardKinematics(rmodel, self._robot_data, q)
+        pin.framesForwardKinematics(rmodel, self._robot_data, self._last_q)
 
         # On first call, initialize warmstart and return zero control
         if self._first_call:
-            self._q_init = q.copy()
-            pin.computeJointJacobians(rmodel, self._robot_data, q)
+            self._q_init = self._last_q.copy()
+            pin.computeJointJacobians(rmodel, self._robot_data, self._last_q)
             frame_of_interest_id = rmodel.getFrameId(self.mpc._ocp.frame_id)
             oMc = self._robot_data.oMf[frame_of_interest_id]
             oMc.translation += self.mpc._ocp.oPc
@@ -170,7 +184,7 @@ class ControllerImpl(ControllerImplBase):
             tau_g = pin.rnea(
                 rmodel,
                 self._robot_data,
-                q,
+                self._last_q,
                 dq,
                 self._nv_zeros,
                 self._external_forces,
@@ -181,7 +195,7 @@ class ControllerImpl(ControllerImplBase):
             if sum(directions) == 3:
                 states = state[:-4]
             else:
-                states = np.concatenate((q, dq, force[:3][directions]))
+                states = np.concatenate((self._last_q, dq, force[:3][directions]))
             dummy_warmstart = OCPResults(
                 states=[states] * (T + 1), feed_forward_terms=[tau_g] * T
             )
@@ -192,7 +206,7 @@ class ControllerImpl(ControllerImplBase):
 
         x0_traj_point = TrajectoryPoint(
             time_ns=now,
-            robot_configuration=q,
+            robot_configuration=self._last_q,
             robot_velocity=dq,
             robot_acceleration=self._nv_zeros,
             forces=pin.Force(force),
@@ -204,7 +218,9 @@ class ControllerImpl(ControllerImplBase):
             self._ocp_res_is_none = True
             if self._in_pd_mode:
                 # Compute safety PD control
-                return (self._q_init - q) * self._p_gains - dq * self._d_gains
+                return (
+                    self._q_init - self._last_q
+                ) * self._p_gains - dq * self._d_gains
             return self._u_zeros
         self._ocp_res_is_none = False
         self._in_pd_mode = False
@@ -212,7 +228,7 @@ class ControllerImpl(ControllerImplBase):
         tau_g = pin.rnea(
             rmodel,
             self._robot_data,
-            q,
+            self._last_q,
             self._nv_zeros,
             self._nv_zeros,
         )
@@ -224,6 +240,9 @@ class ControllerImpl(ControllerImplBase):
             self._cost_plotter_server.send(
                 self.mpc._ocp._solver.problem, self._iteration_counter
             )
+        if self._use_meshcat:
+            self._viz.display(self._last_q)
+
         self._iteration_counter += 1
 
         self.mpc.update_references()

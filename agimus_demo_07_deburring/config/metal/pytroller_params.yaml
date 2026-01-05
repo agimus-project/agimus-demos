@@ -143,6 +143,9 @@ agimus_pytroller:
       cost_plotter:
         use_cost_plotter: false
         cost_plotter_url: 127.0.0.1:2137
+      meshcat:
+        use_meshcat: true
+        meshcat_zmq_url: tcp://127.0.0.1:6000
       robot_model_params:
         moving_joint_names:
         - fer_joint1
