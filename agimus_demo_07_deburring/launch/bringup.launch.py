@@ -137,8 +137,8 @@ def launch_setup(
                 "child_frame_id": "pylone_link",
                 "xyz": [0.45, -0.116, 0.739],
                 "xyzw": [0.0, 0.0, 0.0, 1.0],
-                # Execute a dummy sine motion in Y axis to see
-                # if the pose is updating correctly
+                # Execute a dummy linear sine along Y xis with rotation around Z
+                # axis to see if the pose is being updated correctly in the system
                 "test_sine_motion": True,
             },
         ],

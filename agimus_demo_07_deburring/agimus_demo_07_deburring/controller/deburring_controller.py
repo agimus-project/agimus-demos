@@ -26,10 +26,12 @@ from agimus_controller.warm_start_reference import WarmStartReference
 from agimus_controller_ros.ros_utils import (
     mpc_debug_data_to_msg,
     mpc_msg_to_weighted_traj_point,
+    transform_msg_to_se3,
 )
 from agimus_msgs.msg import MpcDebug, MpcInputArray
 from agimus_pytroller_py.agimus_pytroller_base import ControllerImplBase
 from std_msgs.msg import Int64, String
+from tf2_msgs.msg import TFMessage
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
 
@@ -135,6 +137,33 @@ class ControllerImpl(ControllerImplBase):
             )
             self._viz.initViewer(zmq_url=meshcat_cfg["meshcat_zmq_url"])
             self._viz.loadViewerModel()
+            self._viz.displayCollisions(True)
+
+        pylone_cfg = cfg["pylone_placement"]
+        self._pylone_parent_frame_id = pylone_cfg["parent_frame_id"]
+        self._pylone_child_frame_id = pylone_cfg["child_frame_id"]
+
+        # This code assumes all self collision geometries in pylone that are
+        # meant to move are attached to one origin (in this case pylone_sc_link)
+        # This is a string assumption and can be easily broken in case of changes
+        # in the environment URDF. Beware to keep this in mind!
+        frame_name = pylone_cfg["parent_visual_frame_id"]
+        frame_id = self._robot_models.robot_model.getFrameId(frame_name)
+        self._geometries = [
+            (geom.name, geom.placement.copy(), pin.GeometryType.VISUAL)
+            for geom in self._robot_models.visual_model.geometryObjects
+            if geom.parentFrame == frame_id
+        ]
+
+        frame_name = pylone_cfg["parent_collision_frame_id"]
+        frame_id = self._robot_models.robot_model.getFrameId(frame_name)
+        self._geometries.extend(
+            [
+                (geom.name, geom.placement.copy(), pin.GeometryType.COLLISION)
+                for geom in self._robot_models.collision_model.geometryObjects
+                if geom.parentFrame == frame_id
+            ]
+        )
 
     def mpc_input_cb(self, msg: MpcInputArray):
         for mpc_input in msg.inputs:
@@ -150,6 +179,21 @@ class ControllerImpl(ControllerImplBase):
 
     def get_buffer_size(self) -> Int64:
         return Int64(data=len(self.mpc._buffer))
+
+    def tf_cb(self, msg: TFMessage) -> None:
+        for t in msg.transforms:
+            if (
+                t.header.frame_id == self._pylone_parent_frame_id
+                and t.child_frame_id == self._pylone_child_frame_id
+            ):
+                measured = transform_msg_to_se3(t.transform)
+                for name, placement, type in self._geometries:
+                    self.mpc._ocp.update_geometry_placement(
+                        name,
+                        measured * placement,
+                        type,
+                    )
+                break
 
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
         # return self._u_zeros
