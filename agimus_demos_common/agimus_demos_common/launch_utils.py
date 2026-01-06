@@ -9,7 +9,11 @@ import yaml
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.substitutions import FindPackageShare
 
 # Constants used to synchronize paths expected on remote between launch files
@@ -20,7 +24,7 @@ EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
 FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
 
-def safe_remove(path: Path)-> None:
+def safe_remove(path: Path) -> None:
     """Remove the file if it exists; do nothing if it is already gone."""
     if path and os.path.exists(path):
         try:
@@ -29,7 +33,12 @@ def safe_remove(path: Path)-> None:
             pass
 
 
-def parse_config(replacements: Mapping[str, str], path: Optional[str] = None, data: Optional[Dict[str, Any]] = None, output_path: Optional[str] = None) -> str:
+def parse_config(
+    replacements: Mapping[str, str],
+    path: Optional[str] = None,
+    data: Optional[Dict[str, Any]] = None,
+    output_path: Optional[str] = None,
+) -> str:
     """Load a YAML file, replace all occurrences of ${VAR} in keys and values,
     and optionally save the result.
 

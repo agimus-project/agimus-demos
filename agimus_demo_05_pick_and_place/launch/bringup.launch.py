@@ -50,7 +50,7 @@ def launch_setup(
         ]
     )
     replacements = {"arm_id": arm_id_str}
-    
+
     ocp_definition_yaml_file = parse_config(
         path=ocp_definition_yaml.perform(context), replacements=replacements
     )
