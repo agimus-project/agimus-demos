@@ -307,3 +307,40 @@ terminal_model:
         residual:
           class: ResidualDistanceCollision
           collision_pair: [fer_link5_sc_capsule_1, pylone_sc_link_capsule_2]
+    # Camera to pylone
+    - name: collision_22
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.02
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ref_camera_link_capsule_0, pylone_sc_link_capsule_0]
+    - name: collision_23
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.02
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ref_camera_link_capsule_0, pylone_sc_link_capsule_1]
+    - name: collision_24
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.02
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ref_camera_link_capsule_0, pylone_sc_link_capsule_2]
+    - name: collision_25
+      active: true
+      constraint:
+        class: ConstraintModelResidual
+        lower: 0.02
+        upper: inf
+        residual:
+          class: ResidualDistanceCollision
+          collision_pair: [fer_ref_camera_link_capsule_0, pylone_sc_link_capsule_3]
