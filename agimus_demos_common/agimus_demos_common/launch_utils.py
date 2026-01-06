@@ -1,15 +1,16 @@
+import os
+import re
+import tempfile
 from pathlib import Path
+from typing import Any, Dict, Mapping, Optional
+
+import yaml
 
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.substitutions import EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-import os
-import re
-import yaml
-import tempfile
 
 # Constants used to synchronize paths expected on remote between launch files
 COMPOSE_REMOTE_PATH: Path = Path("/tmp/compose.yaml")
@@ -19,7 +20,7 @@ EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH: Path = Path(
 FRANKA_PARAMS_REMOTE_PATH: Path = Path("/tmp/franka_controllers.yaml")
 
 
-def safe_remove(path):
+def safe_remove(path: Path)-> None:
     """Remove the file if it exists; do nothing if it is already gone."""
     if path and os.path.exists(path):
         try:
@@ -28,17 +29,21 @@ def safe_remove(path):
             pass
 
 
-def parse_config(path=None, data=None, replacements=None, output_path=None):
-    """
-    Load a YAML file, replace all occurrences of ${VAR}
-    in keys and values, and save the result if requested.
-    args:
+def parse_config(replacements: Mapping[str, str], path: Optional[str] = None, data: Optional[Dict[str, Any]] = None, output_path: Optional[str] = None) -> str:
+    """Load a YAML file, replace all occurrences of ${VAR} in keys and values,
+    and optionally save the result.
+
+    Args:
         path (str): Path to the YAML file to load.
-        data (str): YAML content as a string.
-        replacements (dict): Dictionary of variable replacements.
-        output_path (str): If provided, save the modified YAML to this path.
-    returns:
-        str: Path to the modified YAML temporary file or output_path.
+        data (Dict[str, Any]): YAML content already loaded as a dictionary.
+        replacements (Mapping[str, str]): Mapping of variable names to their replacement values.
+        output_path (Optional[str], optional):  If provided, the modified YAML is written to this path. Defaults to None.
+
+    Raises:
+        ValueError: If a variable placeholder cannot be resolved from either ``replacements`` or environment variables.
+
+    Returns:
+        str: Path to the parsed YAML file.
     """
 
     pattern = re.compile(r"\${(\w+)}")
@@ -66,13 +71,10 @@ def parse_config(path=None, data=None, replacements=None, output_path=None):
                 new_key = replace_in_string(key) if isinstance(key, str) else key
                 new_dict[new_key] = replace_recursive(val)
             return new_dict
-
         elif isinstance(obj, list):
             return [replace_recursive(item) for item in obj]
-
         elif isinstance(obj, str):
             return replace_in_string(obj)
-
         return obj
 
     if path:
@@ -85,7 +87,6 @@ def parse_config(path=None, data=None, replacements=None, output_path=None):
 
     # --- Apply replacements ---
     config = replace_recursive(config)
-
     # --- Saving ---
     if output_path:
         with open(output_path, "w") as f:
@@ -95,7 +96,6 @@ def parse_config(path=None, data=None, replacements=None, output_path=None):
         with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as tmp:
             yaml.dump(config, tmp)
             tmp_path = tmp.name
-
     return tmp_path
 
 

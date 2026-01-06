@@ -35,9 +35,7 @@ def launch_setup(
         ]
     )
     # Parsing franka_controllers_params with arm_id replacement
-    replacements = {
-        "arm_id": arm_id_str,
-    }
+    replacements = {"arm_id": arm_id_str}
     agimus_controller_yaml_file = parse_config(
         path=agimus_controller_yaml.perform(context), replacements=replacements
     )

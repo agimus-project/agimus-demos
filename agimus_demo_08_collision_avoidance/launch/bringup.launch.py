@@ -55,11 +55,12 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
-    arm_id_str = LaunchConfiguration("arm_id").perform(context)
+
+    arm_id = LaunchConfiguration("arm_id")
+
+    arm_id_str = arm_id.perform(context)
     # Parsing franka_controllers_params with arm_id replacement
-    replacements = {
-        "arm_id": arm_id_str,
-    }
+    replacements = {"arm_id": arm_id_str}
     ocp_definition_params_file = parse_config(
         path=ocp_definition_params.perform(context), replacements=replacements
     )
@@ -134,7 +135,7 @@ def launch_setup(
         executable="obstacle_pose_publisher",
         name="obstacle_pose_publisher_node",
         output="both",
-        parameters=[get_use_sim_time(), {"arm_id": arm_id_str}],
+        parameters=[get_use_sim_time(), {"arm_id": arm_id}],
     )
 
     # Cleanup temporary file on shutdown

@@ -88,7 +88,7 @@ linear_feedback_controller:
       - ${arm_id}_joint5/effort
       - ${arm_id}_joint6/effort
       - ${arm_id}_joint7/effort
-      re${arm_id}ence_prefix: ''
+      reference_prefix: ''
     joint_velocity_filter_coefficient: 0.9
     pd_to_lf_transition_duration: 0.1
     remove_gravity_compensation_effort: true
