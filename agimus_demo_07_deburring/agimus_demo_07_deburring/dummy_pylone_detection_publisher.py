@@ -1,4 +1,6 @@
 import math
+import numpy as np
+import pinocchio as pin
 
 import rclpy
 from rclpy.node import Node
@@ -20,7 +22,8 @@ class DummyPyloneDetectionPublisher(Node):
         self.declare_parameter("child_frame_id", "pylone_link")
         self.declare_parameter("xyz", [0.0, 0.0, 0.0])
         self.declare_parameter("xyzw", [1.0, 0.0, 0.0, 0.0])
-        # Execute a dummy sine motion in Y axis to see if the pose is updating correctly
+        # Execute a dummy linear sine along Y xis with rotation around Z
+        # axis to see if the pose is being updated correctly in the system
         self.declare_parameter("test_sine_motion", False)
 
         self._parent_frame_id = (
@@ -31,7 +34,11 @@ class DummyPyloneDetectionPublisher(Node):
         )
 
         self._pose = self.get_parameter("xyz").get_parameter_value().double_array_value
-        self._quat = self.get_parameter("xyzw").get_parameter_value().double_array_value
+        self._quat = pin.Quaternion(
+            np.array(
+                self.get_parameter("xyzw").get_parameter_value().double_array_value
+            )
+        )
         self._pose_y_init = self._pose[1]
 
         self._test_sine_motion = (
@@ -44,14 +51,16 @@ class DummyPyloneDetectionPublisher(Node):
         self._transform.child_frame_id = self._child_frame_id
         self._transform.transform = Transform(
             translation=Vector3(**dict(zip("xyz", self._pose))),
-            rotation=Quaternion(**dict(zip("xyzw", self._quat))),
+            rotation=Quaternion(**dict(zip("xyzw", self._quat.coeffs()))),
         )
 
         self._dummy_motion_cnt = 0
-        self._publish_frequency = 0.1
+        self._publish_frequency = 0.25
 
         self._tf_broadcaster = TransformBroadcaster(self)
-        self._tf_publisher_timer = self.create_timer(0.1, self._tf_publisher_timer_cb)
+        self._tf_publisher_timer = self.create_timer(
+            self._publish_frequency, self._tf_publisher_timer_cb
+        )
 
         self.get_logger().info("Node started.")
 
@@ -63,6 +72,26 @@ class DummyPyloneDetectionPublisher(Node):
             self._transform.transform.translation.y = (
                 self._pose_y_init
                 + math.sin(self._dummy_motion_cnt * self._publish_frequency) * 0.02
+            )
+            self._transform.transform.translation.y = (
+                self._pose_y_init
+                + math.sin(self._dummy_motion_cnt * self._publish_frequency) * 0.02
+            )
+            q = self._quat * pin.Quaternion(
+                pin.rpy.rpyToMatrix(
+                    np.array(
+                        [
+                            0.0,
+                            0.0,
+                            math.sin(self._dummy_motion_cnt * self._publish_frequency)
+                            * np.pi
+                            / 32,
+                        ]
+                    )
+                )
+            )
+            self._transform.transform.rotation = Quaternion(
+                **dict(zip("xyzw", q.coeffs()))
             )
             self._dummy_motion_cnt += 1
 
