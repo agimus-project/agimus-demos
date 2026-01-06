@@ -93,7 +93,10 @@ class HPPInterface:
         self.default_object_bounds = [-1.0, 1.5, -1.0, 1.0, 0.0, 2.2]
         package_location = "package://agimus_demo_05_pick_and_place"
         urdf_string = (
-            process_xacro(package_location + "/urdf/demo.urdf.xacro")
+            process_xacro(
+                package_location + "/urdf/demo.urdf.xacro",
+                "use_camera:=true",
+            ).replace("file://", "")
             if robot_urdf_string == ""
             else robot_urdf_string
         )
@@ -130,6 +133,7 @@ class HPPInterface:
     def set_relative_start_obj_pose(
         self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
     ):
+        # kz: in base of hpp robot ( i guess)
         frame_pose = pinocchio.XYZQUATToSE3(
             self.get_robot_link_position(q_robot, frame_name)
         )
@@ -137,7 +141,11 @@ class HPPInterface:
             frame_pose * pinocchio.XYZQUATToSE3(obj_pose_in_frame)
         )
         pose[3:] = pose[3:] / np.linalg.norm(pose[3:])
+        # pose wrt base of hpp robot
         self.start_obj_pose = pose.tolist()
+        print(
+            f"Start object pose w.r.t root of hpp robot is set to {self.start_obj_pose} with {frame_name} being the reference pose"
+        )
 
     @property
     def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:

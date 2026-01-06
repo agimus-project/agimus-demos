@@ -65,12 +65,12 @@ repositories:
   vcs_planning/gepetto-viewer:
     type: git
     url: https://github.com/gepetto/gepetto-viewer
-    version: 977431fa29c20afef473e372db9d3f19b6914e59
+    version: v6.1.0
 
   vcs_planning/gepetto-viewer-corba:
     type: git
     url: https://github.com/gepetto/gepetto-viewer-corba
-    version: 1bd5202aad4c9c60a2e04566a75de99dbdaf9d0f
+    version: v6.1.0
 
   vcs_planning/hpp-gepetto-viewer:
     type: git
