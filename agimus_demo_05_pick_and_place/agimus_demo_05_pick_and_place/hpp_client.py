@@ -99,7 +99,7 @@ class HPPInterface:
                 package_location + "/urdf/demo.urdf.xacro",
                 {"arm_id": arm_id},
                 "use_camera:=true",
-            ).replace("file://", "", {"arm_id": arm_id})
+            ).replace("file://", "")
             if robot_urdf_string == ""
             else robot_urdf_string
         )
