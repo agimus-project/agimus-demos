@@ -11,7 +11,7 @@ Panels:
         - /MarkerArray1
         - /Pose1
       Splitter Ratio: 0.8176470398902893
-    Tree Height: 913
+    Tree Height: 820
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -68,6 +68,51 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         fer_ati_mini45_with_compact_camera:
           Alpha: 1
           Show Axes: false
@@ -122,7 +167,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        world:
+        fer_ref_camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -135,72 +180,19 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        ati_mini45_measurement_reference:
-          Value: false
-        base_box_link:
-          Value: true
-        fer_ati_mini45_with_compact_camera:
-          Value: true
-        fer_ati_mini45_with_compact_camera_tool:
-          Value: true
-        fer_link0:
-          Value: false
-        fer_link1:
-          Value: false
-        fer_link2:
-          Value: false
-        fer_link3:
-          Value: false
-        fer_link4:
-          Value: false
-        fer_link5:
-          Value: false
-        fer_link6:
-          Value: false
-        fer_link7:
-          Value: false
-        fer_link8:
-          Value: false
-        pylone_link:
-          Value: true
-        pylone_sc_link:
-          Value: true
-        table_link:
-          Value: true
-        world:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        world:
-          fer_link0:
-            fer_link1:
-              fer_link2:
-                fer_link3:
-                  fer_link4:
-                    fer_link5:
-                      fer_link6:
-                        fer_link7:
-                          fer_link8:
-                            fer_ati_mini45_with_compact_camera:
-                              ati_mini45_measurement_reference:
-                                fer_ati_mini45_with_compact_camera_tool:
-                                  {}
-            pylone_link:
-              base_box_link:
-                table_link:
-                  {}
-              pylone_sc_link:
-                {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: true
@@ -351,33 +343,33 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 2.0313961505889893
+      Distance: 1.5061285495758057
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.2453249990940094
-        Y: 0.4744282364845276
-        Z: 0.17701321840286255
+        X: 0.29927197098731995
+        Y: 0.10224214196205139
+        Z: 0.4608028531074524
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5153984427452087
+      Pitch: 0.4353984594345093
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.127245903015137
+      Yaw: 0.6572454571723938
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1136
+  Height: 1043
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000001aa0000041afc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000041a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000041afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b0000041a000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000005d00000041a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001aa000003bdfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000003bd000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000041afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b0000041a000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000005d0000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -386,4 +378,4 @@ Window Geometry:
     collapsed: true
   Width: 1920
   X: 0
-  Y: 27
+  Y: 0

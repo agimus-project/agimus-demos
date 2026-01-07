@@ -555,7 +555,7 @@ class DeburringPathPlanner(Node):
             # Compute minimum number of interpolation steps
             n_interp = np.ceil(velocity_scale / dt)
             # Multiply by two just to make sure it is slow enough
-            n_interp = int(np.max(np.append(n_interp, 2))) * 2.5
+            n_interp = int(np.max(np.append(n_interp, 2)) * 2.5)
 
             interpolated = np.zeros((n_interp, self._nq))
             # Perform linear interpolation between configurations
