@@ -127,7 +127,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -136,7 +136,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -146,7 +146,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -155,7 +155,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -164,7 +164,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -173,7 +173,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -182,7 +182,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -192,7 +192,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -201,7 +201,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -210,7 +210,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -219,7 +219,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -228,7 +228,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -238,7 +238,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -247,7 +247,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -256,7 +256,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -265,7 +265,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -274,7 +274,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -284,7 +284,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -293,7 +293,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -302,7 +302,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -312,7 +312,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -321,7 +321,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -330,7 +330,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision
@@ -339,7 +339,7 @@ terminal_model:
       active: true
       constraint:
         class: ConstraintModelResidual
-        lower: 0.02
+        lower: 0.001
         upper: inf
         residual:
           class: ResidualDistanceCollision

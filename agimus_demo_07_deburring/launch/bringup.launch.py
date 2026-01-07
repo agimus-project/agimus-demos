@@ -140,7 +140,7 @@ def launch_setup(
                 "xyzw": [0.0, 0.0, 0.0, 1.0],
                 # Execute a dummy linear sine along Y xis with rotation around Z
                 # axis to see if the pose is being updated correctly in the system
-                "test_sine_motion": True,
+                "test_sine_motion": False,
             },
         ],
         condition=UnlessCondition(use_vision),

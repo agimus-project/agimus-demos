@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
-from pinocchio.visualize import MeshcatVisualizer
 import yaml
 import resource_retriever as r
 from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
@@ -42,6 +41,8 @@ try:
     with_cost_plotter = True
 except ImportError:
     with_cost_plotter = False
+
+from pinocchio.visualize import MeshcatVisualizer
 
 
 class ControllerImpl(ControllerImplBase):
@@ -130,14 +131,18 @@ class ControllerImpl(ControllerImplBase):
         meshcat_cfg = cfg["meshcat"]
         self._use_meshcat = meshcat_cfg["use_meshcat"]
         if self._use_meshcat:
-            self._viz = MeshcatVisualizer(
-                self._robot_models.robot_model,
-                self._robot_models.collision_model,
-                self._robot_models.visual_model,
-            )
-            self._viz.initViewer(zmq_url=meshcat_cfg["meshcat_zmq_url"])
-            self._viz.loadViewerModel()
-            self._viz.displayCollisions(True)
+            try:
+                self._viz = MeshcatVisualizer(
+                    self._robot_models.robot_model,
+                    self._robot_models.collision_model,
+                    self._robot_models.visual_model,
+                )
+                self._viz.initViewer(zmq_url=meshcat_cfg["meshcat_zmq_url"])
+                self._viz.loadViewerModel()
+                self._viz.displayCollisions(True)
+            except ImportError:
+                print("Meshcat is not installed, skipping initialization!", flush=True)
+                self._use_meshcat = False
 
         pylone_cfg = cfg["pylone_placement"]
         self._pylone_parent_frame_id = pylone_cfg["parent_frame_id"]
@@ -164,6 +169,8 @@ class ControllerImpl(ControllerImplBase):
                 if geom.parentFrame == frame_id
             ]
         )
+
+        self._pylone_pose_updated = False
 
     def mpc_input_cb(self, msg: MpcInputArray):
         for mpc_input in msg.inputs:
@@ -193,6 +200,7 @@ class ControllerImpl(ControllerImplBase):
                         measured * placement,
                         type,
                     )
+                self._pylone_pose_updated = True
                 break
 
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
@@ -258,7 +266,7 @@ class ControllerImpl(ControllerImplBase):
 
         ocp_res = self.mpc.run(x0_traj_point, now)
 
-        if ocp_res is None:
+        if not self._pylone_pose_updated or ocp_res is None:
             self._ocp_res_is_none = True
             if self._in_pd_mode:
                 # Compute safety PD control

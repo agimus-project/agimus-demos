@@ -74,17 +74,17 @@ deburring_path_planner_node:
         n_repeat: 1
     weights:
       schedule:
-        interpolation_time: 1.0
+        interpolation_time: 2.0
       follow_joint_trajectory:
-        w_robot_configuration: [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]
+        w_robot_configuration: [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
         w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
         w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003]
-        w_frame_rotation: [0.3, 0.3, 0.3]
-        w_frame_translation: [1.0, 1.0, 1.0]
+        w_frame_rotation: [0.6, 0.6, 0.6]
+        w_frame_translation: [2.5, 2.5, 2.5]
         w_desired_force: [0.0, 0.0, 0.0]
         w_collision_avoidance: 0.008
       insert_retract_tool:
-        w_robot_configuration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1]
+        w_robot_configuration: [0.005, 0.005, 0.0, 0.0, 0.0, 0.0, 0.1]
         w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.05]
         w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
         w_frame_rotation: [50.0, 50.0, 0.0]
