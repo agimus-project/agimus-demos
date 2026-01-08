@@ -72,7 +72,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._deburred_object_name = deburred_object_name
 
         # Load the robot
-        Robot.urdfString = robot_description
+        Robot.urdfString = robot_description.replace("file://", "")
         Robot.srdfString = robot_self_collision_config.read_text()
 
         with open(handles_configurations_path, "r") as stream:
