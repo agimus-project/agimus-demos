@@ -1,3 +1,4 @@
+import sys
 import time
 
 import rclpy
@@ -55,23 +56,42 @@ class SequencerNode(Node):
         rclpy.spin_once(self)
 
 
-def main(args=None):
+def main(args=None) -> int:
+    if args is None:
+        args = sys.argv
+    if "--help" in args or "-h" in args:
+        print("Simple helper script automating selection of holes to sequence.")
+        print(
+            "  usage: ros2 run agimus_demo_07_deburring "
+            + "sequencer_node <demo material type>"
+        )
+        print("  available materials: plastic, metal")
+        print("  example: ros2 run agimus_demo_07_deburring sequencer_node metal")
+        return 0
+
+    if len(args) != 2 or len({"metal", "plastic"} & set(args)) == 0:
+        print("Incorrect parameters! Use -h or --help for more information.")
+        return 1
+
     rclpy.init(args=args)
 
-    weighted_handles = [
-        ([0.000009, 0.000009, 0.000009], "hole_left_41"),
-        ([0.000009, 0.000009, 0.000009], "hole_left_01"),
-        ([0.000009, 0.000009, 0.000009], "hole_left_04"),
-        ([0.000002, 0.000002, 0.000002], "hole_back_left_4"),
-        ([0.000002, 0.000002, 0.000002], "hole_back_right_2"),
-        ([0.000009, 0.000009, 0.000009], "hole_left_inside_33"),
-        ([0.0000015, 0.0000015, 0.0000015], "hole_back_left_8"),
-        # Metal
-        # ([0.000009, 0.000009, 0.000009], "hole_left_31"),
-        # ([0.000009, 0.000009, 0.000009], "hole_left_16"),
-        # ([0.000009, 0.000009, 0.000009], "hole_left_inside_43"),
-        # ([0.000009, 0.000009, 0.000009], "hole_left_12"),
-    ]
+    if "metal" in args:
+        weighted_handles = [
+            ([0.000009, 0.000009, 0.000009], "hole_left_31"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_16"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_inside_43"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_12"),
+        ]
+    else:
+        weighted_handles = [
+            ([0.000009, 0.000009, 0.000009], "hole_left_41"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_01"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_04"),
+            ([0.000002, 0.000002, 0.000002], "hole_back_left_4"),
+            ([0.000002, 0.000002, 0.000002], "hole_back_right_2"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_inside_33"),
+            ([0.0000015, 0.0000015, 0.0000015], "hole_back_left_8"),
+        ]
 
     try:
         sequencer_node = SequencerNode()
@@ -93,6 +113,8 @@ def main(args=None):
     except (KeyboardInterrupt, ParameterException):
         pass
     rclpy.try_shutdown()
+
+    return 0
 
 
 if __name__ == "__main__":
