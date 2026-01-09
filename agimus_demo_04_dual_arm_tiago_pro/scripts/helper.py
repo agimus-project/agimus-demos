@@ -36,17 +36,6 @@ class Helper:
         self.problem = ps.client.basic.problem
         self.graph = graph
         self.problem.resetConstraints()
-        self.problem.addNumericalConstraints(
-            "cp",
-            [
-                "tiago_pro/left grasps reinforcment_bar/left",
-                "tiago_pro/right grasps reinforcment_bar/right",
-                "preplace_reinforcment_bar",
-                "locked_plate/root_joint",
-                "place_reinforcment_bar/complement",
-            ],
-            [0, 0, 0, 0, 0],
-        )
         # get and create some CORBA objects
         self.cproblem = self.problem.getProblem()
         self.csplineOptimizer = self.problem.createPathOptimizer(
@@ -62,6 +51,17 @@ class Helper:
 
     # Generate a preplace configuration from reachable from goal
     def generateIntermediateConfigs(self, q_init, q_goal):
+        self.problem.addNumericalConstraints(
+            "cp",
+            [
+                "tiago_pro/left grasps reinforcment_bar/left",
+                "tiago_pro/right grasps reinforcment_bar/right",
+                "preplace_reinforcment_bar",
+                "locked_plate/root_joint",
+                "place_reinforcment_bar/complement",
+            ],
+            [0, 0, 0, 0, 0],
+        )
         q1 = q_goal[:]
         # Build projector to project a configuration in preplacement with placement
         # complement initialized with q_init
