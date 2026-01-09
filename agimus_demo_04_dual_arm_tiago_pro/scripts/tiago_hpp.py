@@ -292,7 +292,7 @@ ps.loadPlugin("spline-gradient-based.so")
 
 ps.selectPathProjector("Progressive", 0.1)
 ps.addPathOptimizer("RandomShortcut")
-ps.setParameter('PathOptimization/RandomShortcut/NumberOfLoops', 20)
+ps.setParameter("PathOptimization/RandomShortcut/NumberOfLoops", 20)
 ps.setInitialConfig(q_init)
 ps.addGoalConfig(q_goal)
 
