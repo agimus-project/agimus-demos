@@ -26,7 +26,7 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_09_glue_spreading"),
             "rviz",
-            "config.rviz",
+            "config_mpc_traj.rviz",
         ]
     )
 
