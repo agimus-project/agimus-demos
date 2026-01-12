@@ -18,8 +18,8 @@ MPC:
   weights:
     regulation:
       stage_joint : 1e-2 #1e-4
-      stage_vel : 1e-2
-      command : 1e-4
+      stage_vel : 1e-1 # 1e-2
+      command : 2e-1 # 1e-2
       term_state : 1e-30
     waypoints:
       frame_pos : 100
@@ -30,5 +30,5 @@ MPC:
 trajectory:
   tool_orientation : "np.array([np.pi, 0., 0.])"
   velocity :
-    spread : 0.3
-    start : 0.3
+    spread : 0.1
+    start : 0.1

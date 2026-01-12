@@ -26,7 +26,7 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_09_glue_spreading"),
             "rviz",
-            "config.rviz",
+            "config_mpc_traj.rviz",
         ]
     )
 
@@ -126,7 +126,22 @@ def launch_setup(
     frame_id="fer_link0",
     child_frame_id="pannel_base_link",
     xyz=["0.6", "0", "0.0"],
-    rot_xyzw= ["0", "0", "0", "1"],#["-0.7071","0.0"," 0.0", "0.7071"],
+    rot_xyzw= ["0", "0", "0", "1"],
+    )
+
+    mpc_params = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_09_glue_spreading"),
+            "config",
+            "mpc.yaml",
+        ]
+    )
+
+    mpc_node = Node(
+        package = "agimus_demo_09_glue_spreading",
+        executable = "aligator_MPC",
+        name = "aligator_mpc",
+        parameters = [{'config':mpc_params.perform(context)}]
     )
 
 
@@ -136,6 +151,8 @@ def launch_setup(
         plate_publisher_node,
         tf_node,
         tf_node_plate_mpc,
+        mpc_node,
+
         # wait_for_non_zero_joints_node,
         # RegisterEventHandler(
         #     event_handler=OnProcessExit(
