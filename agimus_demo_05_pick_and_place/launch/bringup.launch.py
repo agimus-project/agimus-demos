@@ -62,10 +62,6 @@ def launch_setup(
         path=agimus_controller_yaml.perform(context),
         replacements=replacements_agimus_controller,
     )
-    agimus_controller_yaml_file = parse_config(
-        path=agimus_controller_yaml.perform(context),
-        replacements=replacements_agimus_controller,
-    )
 
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
