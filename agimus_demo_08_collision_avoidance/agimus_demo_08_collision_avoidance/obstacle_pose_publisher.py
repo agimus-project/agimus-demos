@@ -27,7 +27,7 @@ class ObstaclePosePublisher(Node):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
-        self._obstacle_pose_pub = self.create_publisher(Pose, "obstacle_0", 10)
+        self._obstacle_pose_pub = self.create_publisher(Pose, "obstacle_capsule_0", 10)
 
         self._pose_publisher_timer = self.create_timer(
             0.1, self._pose_publisher_timer_cb
