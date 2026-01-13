@@ -113,7 +113,7 @@ robot.setJointBounds(
 robot.setJointBounds(
     "reinforcment_bar/root_joint", [-3, 3, -3, 3, 0, 2, -1, 1, -1, 1, -1, 1, -1, 1]
 )
-robot.setJointBounds("tiago_pro/root_joint", [-3, 3, -3, 3, -1, 1, -1, 1])
+robot.setJointBounds("tiago_pro/root_joint", [0.1, 2.6, -2, 0.05, -1, 1, -1, 1])
 
 # Define grippers and handles
 c = sqrt(2) / 2
@@ -268,7 +268,7 @@ cg.initialize()
 # Set initial configuration
 q0 = robot.getCurrentConfig()
 r = robot.rankInConfiguration["tiago_pro/root_joint"]
-q0[r : r + 4] = [3, 0, -1, 0]
+q0[r : r + 4] = [2.6, 0, -1, 0]
 r = robot.rankInConfiguration["plate/root_joint"]
 q0[r : r + 3] = [0.6, 0, 0.66]
 r = robot.rankInConfiguration["reinforcment_bar/root_joint"]
@@ -292,12 +292,10 @@ ps.loadPlugin("spline-gradient-based.so")
 
 ps.selectPathProjector("Progressive", 0.1)
 ps.addPathOptimizer("RandomShortcut")
+ps.setParameter("PathOptimization/RandomShortcut/NumberOfLoops", 20)
 ps.setInitialConfig(q_init)
 ps.addGoalConfig(q_goal)
 
 helper = Helper(ps, cg)
-q1, q2 = helper.generateIntermediateConfigs(q_init, q_goal)
-ps.addConfigToRoadmap(q1)
-ps.addConfigToRoadmap(q2)
-ps.solve()
+t = ps.solve()
 helper.optimizePath(ps.numberPaths() - 1)
