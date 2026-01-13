@@ -34,7 +34,7 @@ def launch_setup(
     vision_type = context.perform_substitution(vision_type_arg).lower()
     dataset_name_arg = LaunchConfiguration("dataset_name")
     dataset_name = context.perform_substitution(dataset_name_arg).lower()
-
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
     agimus_controller_yaml = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_05_pick_and_place"),
@@ -55,8 +55,6 @@ def launch_setup(
         path=ocp_definition_yaml.perform(context), replacements=replacements
     )
     replacements_agimus_controller = {
-        "arm_id": arm_id_str,
-        "ocp_file": ocp_definition_yaml_file,
         "arm_id": arm_id_str,
         "ocp_file": ocp_definition_yaml_file,
     }

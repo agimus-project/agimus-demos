@@ -67,8 +67,6 @@ def launch_setup(
     replacements_agimus_controller = {
         "arm_id": arm_id_str,
         "ocp_file": ocp_definition_params_file,
-        "arm_id": arm_id_str,
-        "ocp_file": ocp_definition_params_file,
     }
     agimus_controller_params_file = parse_config(
         path=agimus_controller_params.perform(context),
