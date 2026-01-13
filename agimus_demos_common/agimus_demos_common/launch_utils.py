@@ -107,7 +107,8 @@ def parse_config(
             tmp_path = tmp.name
     return tmp_path
 
-def safe_remove(path: Path)-> None:
+
+def safe_remove(path: Path) -> None:
     """Remove the file if it exists; do nothing if it is already gone."""
     if path and os.path.exists(path):
         try:
@@ -116,7 +117,12 @@ def safe_remove(path: Path)-> None:
             pass
 
 
-def parse_config(replacements: Mapping[str, str], path: Optional[str] = None, data: Optional[Dict[str, Any]] = None, output_path: Optional[str] = None) -> str:
+def parse_config(
+    replacements: Mapping[str, str],
+    path: Optional[str] = None,
+    data: Optional[Dict[str, Any]] = None,
+    output_path: Optional[str] = None,
+) -> str:
     """Load a YAML file, replace all occurrences of ${VAR} in keys and values,
     and optionally save the result.
 
