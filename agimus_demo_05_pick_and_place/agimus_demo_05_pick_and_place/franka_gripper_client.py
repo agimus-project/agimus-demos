@@ -1,3 +1,4 @@
+import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from control_msgs.action import GripperCommand
@@ -43,9 +44,27 @@ class FrankaGripperClient(object):
         goal_msg.epsilon.outer = 0.1
 
         self._node.get_logger().info("Sending goal to close the gripper...")
-        _ = self._action_client.send_goal_async(
+        send_goal_future = self._action_client.send_goal_async(
             goal_msg, feedback_callback=self.fake_feedback_callback
         )
+        # 1️⃣ Wait until goal is accepted
+        rclpy.spin_until_future_complete(self._node, send_goal_future)
+        goal_handle = send_goal_future.result()
+
+        if not goal_handle.accepted:
+            self._node.get_logger().error("Grasp goal was rejected")
+            return False
+
+        self._node.get_logger().info("Grasp goal accepted, waiting for result...")
+
+        # 2️⃣ Wait until gripper finishes closing
+        result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self._node, result_future)
+
+        result = result_future.result().result
+
+        self._node.get_logger().info(f"Grasp finished: success={result.success}")
+        return result.success
 
     def goal_response_callback(self, future):
         """Handles the response when the goal is accepted/rejected."""

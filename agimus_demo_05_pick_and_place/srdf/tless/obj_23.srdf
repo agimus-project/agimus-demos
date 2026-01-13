@@ -11,72 +11,105 @@
     <handle name="goal_handle_up" clearance="0.03">
         <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 -0.70710678118"/>
         <link name="base_link"/>
-        <mask>1 1 1 0 1 1</mask>
+        <mask>1 1 1 0 0 0</mask>
     </handle>
-    <handle name="goal_handle_down" clearance="0.03">
+    <!-- <handle name="goal_handle_down" clearance="0.03">
         <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 0.70710678118"/>
         <link name="base_link"/>
         <mask>1 1 1 0 1 1</mask>
-    </handle>
+    </handle> -->
     <!-- <handle name="goal_handle2" clearance="0.03">
         <position xyz="0.0 0.0 0.0" xyzw="0.0 0.0 0.0 1.0"/>
         <link name="base_link"/>
         <mask>1 1 1 0 1 1</mask>
     </handle> -->
-    <handle name="side_A_zp_yp" clearance="0.075">
+    <handle name="side_A_zp_yp" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.0 -0.7071067811865475 0.0 0.7071067811865476"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_xn_yp" clearance="0.075">
+    <handle name="side_A_xn_yp" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.0 1.0 0.0 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_zn_yp" clearance="0.075">
+    <handle name="side_A_zn_yp" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.0 0.7071067811865475 0.0 0.7071067811865476"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_zn_yn" clearance="0.075">
+    <handle name="side_A_zn_yn" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.7071067811865476 0.0 -0.7071067811865475 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_xn_yn" clearance="0.075">
+    <handle name="side_A_xn_yn" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.0 0.0 1.0 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_zp_yn" clearance="0.075">
+    <handle name="side_A_zp_yn" clearance="0.03">
         <position xyz="0.05 -0.019 0.0" xyzw="0.7071067811865476 0.0 0.7071067811865475 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_zp_yp" clearance="0.075">
+    <handle name="side_B_zp_yp" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="0.0 -0.7071067811865475 0.0 0.7071067811865476"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_xp_yp" clearance="0.075">
+    <handle name="side_B_xp_yp" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="0.0 0.0 0.0 1.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_zn_yp" clearance="0.075">
+    <handle name="side_B_zn_yp" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="0.0 0.7071067811865475 0.0 0.7071067811865476"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_zn_yn" clearance="0.075">
+    <handle name="side_B_zn_yn" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="0.7071067811865476 0.0 -0.7071067811865475 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_xp_yn" clearance="0.075">
+    <handle name="side_B_xp_yn" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="1.0 0.0 0.0 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_zp_yn" clearance="0.075">
+    <handle name="side_B_zp_yn" clearance="0.03">
         <position xyz="-0.05 -0.019 0.0" xyzw="0.7071067811865476 0.0 0.7071067811865475 0.0"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_A_yp_zp" clearance="0.075">
+    <handle name="side_A_yp_zp" clearance="0.03">
         <position xyz="0.043 -0.01975 0.0" xyzw="0.5 -0.5 0.5 -0.5"/>
         <link name="base_link"/>
     </handle>
-    <handle name="side_B_yp_zp" clearance="0.075">
+    <handle name="side_B_yp_zp" clearance="0.03">
         <position xyz="-0.043 -0.01975 0.0" xyzw="0.5 -0.5 0.5 -0.5"/>
+        <link name="base_link"/>
+    </handle>
+
+    <handle name="side_B_zn_yp_45deg" clearance="0.03">
+        <position xyz="-0.05 -0.019 0.0" xyzw="0.0 0.3826834323650896 0.0 0.9238795325112868"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_zn_yp_45deg_rotated" clearance="0.03">
+        <position xyz="-0.05 -0.019 2.326828918379971e-18" xyzw="0.9238795325112868 2.3432602026631478e-17 0.3826834323650896 5.657130561438503e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_zn_yp_135deg" clearance="0.03">
+        <position xyz="-0.05 -0.019 0.0" xyzw="0.0 -0.38268343236508984 0.0 0.9238795325112867"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_zn_yp_135deg_rotated" clearance="0.03">
+        <position xyz="-0.05 -0.019 2.326828918379971e-18" xyzw="0.9238795325112867 -2.3432602026631496e-17 -0.38268343236508984 5.657130561438503e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_zn_yn_45deg" clearance="0.03">
+        <position xyz="0.05 -0.019 0.0" xyzw="-0.38268343236508984 0.0 0.9238795325112867 0.0"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_zn_yn_135deg" clearance="0.03">
+        <position xyz="0.05 -0.019 0.0" xyzw="0.3826834323650896 0.0 0.9238795325112868 -0.0"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_zn_yn_45deg_rotated" clearance="0.03">
+        <position xyz="0.05 -0.019 2.326828918379971e-18" xyzw="2.3432602026631496e-17 0.9238795325112867 -5.657130561438503e-17 -0.38268343236508984"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_zn_yn_135deg_rotated" clearance="0.03">
+        <position xyz="0.05 -0.019 2.326828918379971e-18" xyzw="-2.3432602026631478e-17 0.9238795325112868 -5.657130561438503e-17 0.3826834323650896"/>
         <link name="base_link"/>
     </handle>
 </robot>

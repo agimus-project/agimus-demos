@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Naming convention for manually created handles: -->
+<!-- the object axis that points to robot hand is: so _x, _y or _z -->
+<!-- with the sign of axis, p is positive, n is negative  -->
+<!-- so if it is _zp this means that robot hand is in positive direction along z-axis -->
+<!-- Next is same convention for which object axis points in the tele-button direction -->
+<robot name="tless_20">
+    <!-- <handle name="goal_handle" clearance="0.03">
+        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.70710678118 0.0 -0.70710678118"/>
+        <link name="base_link"/>
+        <mask>1 1 1 0 0 0</mask>
+    </handle> -->
+    <handle name="goal_handle" clearance="0.03">
+        <position xyz="0.0 0.0 0.0" xyzw="0.0 0.0 0.70710678118 0.70710678118"/>
+        <link name="base_link"/>
+        <mask>1 1 1 0 0 0</mask>
+    </handle>
+
+
+    <handle name="side_A_zp_yp" clearance="0.03">
+        <position xyz="-0.03 -0.019 0.0" xyzw="0.0 0.7071067811865475 0.0 0.7071067811865476"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_zp_yn" clearance="0.03">
+        <position xyz="-0.03 -0.019 0.0" xyzw="0.7071067811865476 4.329780281177466e-17 -0.7071067811865475 4.329780281177467e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_zp_yp" clearance="0.03">
+        <position xyz="0.03 -0.019 0.0" xyzw="0.0 0.7071067811865475 0.0 0.7071067811865476"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="B_zp_yn" clearance="0.03">
+        <position xyz="0.03 -0.019 0.0" xyzw="0.7071067811865476 4.329780281177466e-17 -0.7071067811865475 4.329780281177467e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_xn_yn" clearance="0.03">
+        <position xyz="0.03 -0.019 0.0" xyzw="-2.220446049250313e-16 0.0 1.0 -6.123233995736766e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_xn_yn" clearance="0.03">
+        <position xyz="-0.03 -0.019 0.0" xyzw="1.0 6.123233995736766e-17 0.0 1.359631073446891e-32"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_45deg" clearance="0.03">
+        <position xyz="0.03 -0.019 0.0" xyzw="-0.38268343236508984 -2.343260202663148e-17 0.9238795325112867 -5.657130561438503e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_B_135deg" clearance="0.03">
+        <position xyz="0.03 -0.019 0.0" xyzw="0.3826834323650896 2.343260202663149e-17 0.9238795325112868 -5.657130561438501e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_45deg" clearance="0.03">
+        <position xyz="-0.03 -0.019 0.0" xyzw="0.9238795325112868 5.657130561438501e-17 -0.3826834323650896 2.343260202663149e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_135deg" clearance="0.03">
+        <position xyz="-0.03 -0.019 0.0" xyzw="0.9238795325112867 5.657130561438503e-17 0.38268343236508984 -2.343260202663148e-17"/>
+        <link name="base_link"/>
+    </handle>
+    <handle name="side_A_xp_zp" clearance="0.03">
+    <position xyz="-0.03 -0.019 0.0" xyzw="-0.7071067811865475 0.0 0.0 0.7071067811865476"/>
+    <link name="base_link"/>
+    </handle>
+    <handle name="side_A_yn_zp" clearance="0.03">
+    <position xyz="-0.03 -0.019 0.0" xyzw="-0.5 -0.5 0.4999999999999999 0.5000000000000001"/>
+    <link name="base_link"/>
+    </handle>
+    <handle name="middle1_yn_zp" clearance="0.03">
+    <position xyz="-0.009999999999999998 -0.019000000000000003 -9.860761315262648e-34" xyzw="-0.5 -0.5 0.4999999999999999 0.5000000000000001"/>
+    <link name="base_link"/>
+    </handle>
+    <handle name="middle2_yn_zp" clearance="0.03">
+    <position xyz="0.010000000000000002 -0.01900000000000001 -1.9721522630525296e-33" xyzw="-0.5 -0.5 0.4999999999999999 0.5000000000000001"/>
+    <link name="base_link"/>
+    </handle>
+    <handle name="sideB_yn_zp" clearance="0.03">
+    <position xyz="0.03 -0.019000000000000013 -2.958228394578794e-33" xyzw="-0.5 -0.5 0.4999999999999999 0.5000000000000001"/>
+    <link name="base_link"/>
+    </handle>
+</robot>

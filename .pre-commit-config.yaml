@@ -11,7 +11,7 @@ repos:
   rev: v6.0.0
   hooks:
   - id: check-added-large-files
-    exclude: agimus_demo_07_deburring/urdf/meshes/*
+    exclude: agimus_demo_07_deburring/urdf/meshes/*|agimus_demo_05_pick_and_place/urdf/.*\.obj$
   - id: check-ast
   - id: check-executables-have-shebangs
   - id: check-json

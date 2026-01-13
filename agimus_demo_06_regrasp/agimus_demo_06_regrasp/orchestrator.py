@@ -87,7 +87,6 @@ class OrchestratorParams:
     """Orchestrator parameters."""
 
     max_holding_force: float = 40.0
-    use_simulation: bool = True
     use_hardcoded_poses: bool = True
     use_smoothing_at_waypoints: bool = True
     ocp_horizon: int = 40
@@ -102,7 +101,9 @@ class Orchestrator(object):
 
         self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "cont_grasp_net_obj"
-        self.use_sim = self.param.use_simulation
+        self.use_sim = (
+            self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
+        )
         self.use_hardcoded_poses = self.param.use_hardcoded_poses
         self.smooth = self.param.use_smoothing_at_waypoints
 

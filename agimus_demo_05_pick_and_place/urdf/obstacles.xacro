@@ -6,78 +6,92 @@
     </material>
     <link name="big_box_link">
         <inertial>
-            <origin xyz="0 0 0" rpy="0 0 0" />
-            <mass value="0.6" />
-            <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                iyy="0.001" iyz="0.0"
-                izz="0.001" />
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <mass value="0.6" />
+          <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                   iyy="0.001" iyz="0.0"
+                   izz="0.001" />
         </inertial>
+
+        <!-- New target outer size: 0.40 x 0.305, bottom thickness 0.001 -->
         <visual>
-            <origin xyz="0 0 0.0155" rpy="0 0 0" />
-            <geometry>
-                <box size="0.597 0.397 0.001" />
-            </geometry>
-            <material name="red" />
+          <origin xyz="0 0 0.0155" rpy="0 0 0" />
+          <geometry>
+            <box size="0.40 0.305 0.001" />
+          </geometry>
+          <material name="red" />
         </visual>
         <collision>
-            <origin xyz="0 0 0.0155" rpy="0 0 0" />
-            <geometry>
-                <box size="0.597 0.397 0.001" />
-            </geometry>
+          <origin xyz="0 0 0.0155" rpy="0 0 0" />
+          <geometry>
+            <box size="0.40 0.305 0.001" />
+          </geometry>
         </collision>
+
+        <!-- Walls: thickness 0.001, height 0.093 -->
+        <!-- Wall center z = bottom_z + bottom_thickness/2 + wall_height/2
+             = 0.0155 + 0.0005 + 0.0465 = 0.0625 -->
+
+        <!-- +Y wall -->
         <visual>
-            <origin xyz="0 0.1835 0.12" />
-            <geometry>
-                <box size="0.567 0.001 0.22" />
-            </geometry>
-            <material name="red" />
+          <origin xyz="0 0.152 0.0625" />
+          <geometry>
+            <box size="0.398 0.001 0.093" />
+          </geometry>
+          <material name="red" />
         </visual>
         <collision>
-            <origin xyz="0 0.1835 0.12" />
-            <geometry>
-                <box size="0.567 0.001 0.22" />
-            </geometry>
+          <origin xyz="0 0.152 0.0625" />
+          <geometry>
+            <box size="0.398 0.001 0.093" />
+          </geometry>
         </collision>
+
+        <!-- -Y wall -->
         <visual>
-            <origin xyz="0 -0.1835 0.12" />
-            <geometry>
-                <box size="0.567 0.001 0.22" />
-            </geometry>
-            <material name="red" />
+          <origin xyz="0 -0.152 0.0625" />
+          <geometry>
+            <box size="0.398 0.001 0.093" />
+          </geometry>
+          <material name="red" />
         </visual>
         <collision>
-            <origin xyz="0 -0.1835 0.12" />
-            <geometry>
-                <box size="0.567 0.001 0.22" />
-            </geometry>
+          <origin xyz="0 -0.152 0.0625" />
+          <geometry>
+            <box size="0.398 0.001 0.093" />
+          </geometry>
         </collision>
+
+        <!-- +X wall -->
         <visual>
-            <origin xyz="0.2835 0 0.12" />
-            <geometry>
-                <box size="0.001 0.367 0.22" />
-            </geometry>
-            <material name="red" />
+          <origin xyz="0.1995 0 0.0625" />
+          <geometry>
+            <box size="0.001 0.303 0.093" />
+          </geometry>
+          <material name="red" />
         </visual>
         <collision>
-            <origin xyz="0.2835 0 0.12" />
-            <geometry>
-                <box size="0.001 0.367 0.22" />
-            </geometry>
+          <origin xyz="0.1995 0 0.0625" />
+          <geometry>
+            <box size="0.001 0.303 0.093" />
+          </geometry>
         </collision>
+
+        <!-- -X wall -->
         <visual>
-            <origin xyz="-0.2835 0 0.12" />
-            <geometry>
-                <box size="0.001 0.367 0.22" />
-            </geometry>
-            <material name="red" />
+          <origin xyz="-0.1995 0 0.0625" />
+          <geometry>
+            <box size="0.001 0.303 0.093" />
+          </geometry>
+          <material name="red" />
         </visual>
         <collision>
-            <origin xyz="-0.2835 0 0.12" />
-            <geometry>
-                <box size="0.001 0.367 0.22" />
-            </geometry>
+          <origin xyz="-0.1995 0 0.0625" />
+          <geometry>
+            <box size="0.001 0.303 0.093" />
+          </geometry>
         </collision>
-    </link>
+      </link>
 
     <joint name="box_to_obstacle" type="fixed">
         <parent link="big_box_link" />

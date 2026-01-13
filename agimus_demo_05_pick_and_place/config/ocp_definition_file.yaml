@@ -6,7 +6,7 @@ running_model:
     costs:
     - name: control_reg
       update: true
-      weight: 1.0
+      weight: 10.0
       active: true
       cost:
         class: CostModelResidual
