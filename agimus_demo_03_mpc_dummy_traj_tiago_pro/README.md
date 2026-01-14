@@ -152,4 +152,27 @@ gepetto-gui
 ros2 launch agimus_demo_03_mpc_dummy_traj_tiago_pro bringup.launch.py use_gazebo:=false use_rviz:=true
 ```
 
-On the python terminal:
+This procedure spawns many windows:
+- A rviz windows with the robot moving.
+- A plot window showing the behavior of the solver inside the agimus_controller.
+- A xterm that asks for pressing enter to start the controller.
+- A xterm that display a ipython terminal.
+
+Once the user is ready with an emergency stop at hand. The user can press enter
+in the xterm that is asking for it and the robot will switch from position control
+to torque control.
+
+The degrees of freedom controlled (here the right arm by default (14/01/2026))
+will perform an impedance control with low gains. The user can move the joints
+and they acts like springs.
+
+On the ipython terminal:
+```
+o.continuously_send_trajectory()
+```
+This will start the AGIMUS architecture. HPP will plan a square for the right hand,
+the plan is send to the agimus_controller. In turn the MPC in the agimus_controller
+will stream the control to the linear-feedback-controller running on the robot.
+
+The result is the tiago robot drawing a square with it's right hand. One can
+play with the redundancy if it's setup using the cartesian control in the `simple_trajectory_publisher`.
