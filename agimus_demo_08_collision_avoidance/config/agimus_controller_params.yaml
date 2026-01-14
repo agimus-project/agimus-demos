@@ -22,6 +22,6 @@ agimus_controller_node:
     collision_pairs_names: [cp_1]
     cp_1:
       first: ${arm_id}_hand_sc_capsule_0
-      second: obstacle_0
-    moving_geometries_names: [obstacle_0]
+      second: obstacle_capsule_0
+    moving_geometries_names: [obstacle_capsule_0]
     robot_attachment_frame: universe
