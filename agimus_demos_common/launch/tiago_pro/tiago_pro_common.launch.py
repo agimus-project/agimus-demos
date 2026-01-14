@@ -3,9 +3,8 @@ from controller_manager.launch_utils import (
 )
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -38,8 +37,8 @@ def launch_setup(
         jse_file = "joint_state_estimator_params.yaml"
         lfc_file = "linear_feedback_controller_params.yaml"
     lfc_controllers_params = [
-        f"/tmp/{jse_file}", # JSE params file
-        f"/tmp/{lfc_file}", # LFC params file
+        f"/tmp/{jse_file}",  # JSE params file
+        f"/tmp/{lfc_file}",  # LFC params file
     ]
     lfc_controllers = [
         "linear_feedback_controller",

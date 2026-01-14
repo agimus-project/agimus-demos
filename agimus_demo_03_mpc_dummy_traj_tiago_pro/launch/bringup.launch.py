@@ -29,7 +29,6 @@ from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
-    
     #
     # Robot
     #
@@ -67,7 +66,7 @@ def launch_setup(
             ("robot_description_semantic", "robot_srdf_description"),
         ],
     )
-    
+
     #
     # Orchestrator
     #
@@ -162,7 +161,7 @@ def launch_setup(
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    
+
     #
     # Debugger node
     #

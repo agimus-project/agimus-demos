@@ -56,6 +56,7 @@ class SplineBezier:
             wayPoint1, order1, derivative1, wayPoint2, order2, derivative2, length
         )
 
+
 class SplineBezierRobot:
     def __init__(self, problemSolver):
         self.ps = problemSolver

@@ -26,10 +26,8 @@ linear_feedback_controller:
       p: 5.0
       d: 0.0
     chainable_controller:
-      command_interfaces: [arm_right_1_joint/force,
-        arm_right_2_joint/force, arm_right_3_joint/force,
-        arm_right_4_joint/force, arm_right_5_joint/force,
-        arm_right_6_joint/force, arm_right_7_joint/force]
+      command_interfaces: [arm_right_1_joint/force, arm_right_2_joint/force, arm_right_3_joint/force,
+        arm_right_4_joint/force, arm_right_5_joint/force, arm_right_6_joint/force, arm_right_7_joint/force]
       reference_prefix: ''
     joint_velocity_filter_coefficient: 0.9
     pd_to_lf_transition_duration: 0.1

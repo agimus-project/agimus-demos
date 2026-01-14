@@ -1,6 +1,5 @@
 import time
 
-from agimus_controller_ros.ros_utils import pose_msg_to_se3, se3_to_transform_msg
 from agimus_controller_ros.simple_trajectory_publisher import (
     SimpleTrajectoryPublisher,
 )
@@ -20,7 +19,7 @@ class Orchestrator(object):
 
     def __init__(self):
         self._node = Node("orchestrator")
-        
+
         self._trajectory_reach = None
         self._trajectory = None
         self._trajectory_publisher = SimpleTrajectoryPublisher()
@@ -36,8 +35,8 @@ class Orchestrator(object):
     def plan(self):
         if self._trajectory_reach is None and self._trajectory is None:
             current_robot_state = self.state_client.wait_for_future()
-            q0 = [0,0,0, 0,0,0,1] + current_robot_state.position.tolist()
-            print (q0)
+            q0 = [0, 0, 0, 0, 0, 0, 1] + current_robot_state.position.tolist()
+            print(q0)
             self._trajectory_reach, self._trajectory = plan_trajectory(q0, self.dt)
             self.planned_once = True
 
@@ -46,15 +45,17 @@ class Orchestrator(object):
         self._trajectory_publisher.add_trajectory(self._trajectory_reach)
         self._trajectory_publisher.add_trajectory(self._trajectory)
         rclpy.spin_until_future_complete(
-            self._trajectory_publisher, self._trajectory_publisher.future_trajectory_done
+            self._trajectory_publisher,
+            self._trajectory_publisher.future_trajectory_done,
         )
 
     def resend_trajectory(self):
         self._trajectory_publisher.add_trajectory(self._trajectory)
         rclpy.spin_until_future_complete(
-            self._trajectory_publisher, self._trajectory_publisher.future_trajectory_done
+            self._trajectory_publisher,
+            self._trajectory_publisher.future_trajectory_done,
         )
-    
+
     def continuously_send_trajectory(self):
         self.execute_square()
         while rclpy.ok():
