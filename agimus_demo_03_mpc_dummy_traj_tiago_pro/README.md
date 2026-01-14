@@ -132,7 +132,7 @@ By default the cartesian control is setup.
       mask: [false, false, false, false, false, false]
   ```
 
-#### Start the demo on the robot. 
+#### Start the demo on the robot.
 
 Restart the controller on the robot.
 ```bash
