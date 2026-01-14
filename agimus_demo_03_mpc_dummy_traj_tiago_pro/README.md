@@ -41,49 +41,115 @@ safety of people around.
 > [!NOTE]
 > Robot will start oscillating around it's starting point. When restarting the demo make sure robot was stopped with sufficient joint motion left, as during a re-run it might trigger joint limit safety!
 
-Launch the demo
-
-```bash
-ros2 launch agimus_demo_03_mpc_dummy_traj_tiago_pro bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
-```
-Expected result: after starting the demo, a RViz 2 window should be appearing with Tiago robot. The robot's joints oscillating gently.
-
-
-
 ### Run on the robot
 
-- `export ROS_DOMAIN_ID=2 # for TIAGo-Pro`
-- copy lfc + jse config in tmp
-- set the cyclone DDS config in bashrc. A file is in `agimus_demos_common/config/tiago_pro/cyclone_config.xml`
-- remove the laser from the urdf: `pal robot_info set laser_model no-laser`
+#### Install the linear-feedback-controller
 
-parameter for cartesian:
+- Get an alum docker which is a mirror of the robot OS.
+- Create a workspace with the following 2 packages:
+  - https://github.com/loco-3d/linear-feedback-controller
+  - https://github.com/loco-3d/linear-feedback-controller-msgs
+- Use the pal deploy tooling to install this workspace onto the desired robot.
+  See the official PAL documentation.
 
-simple_trajectory_publisher:
-  ros__parameters:
-    ee_frame_name: arm_right_7_joint
-    trajectory_name: generic_trajectory
-    w_q: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
-    w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
-    w_pose: [60.0, 60.0, 60.0, 10.0, 10.0, 10.0]
-    mask: [true, true, true, true, true, true]
+Further down the line this step will be useless as the linear-feedback-controller packages will be part of the debian packages available for install. Like `apt install pal-alum-linear-feedback-controller`.
 
+#### Setup the environment
 
-parameter for joint space:
-
-simple_trajectory_publisher:
-  ros__parameters:
-    ee_frame_name: arm_right_7_joint
-    trajectory_name: generic_trajectory
-    w_q: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
-    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
-    w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
-    w_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    mask: [false, false, false, false, false, false]
-
-- install mcap plugin for rosbags
-
+- In the docker install cyclonedds and mcap plugin for rosbags.
+  ```bash
+  sudo apt update
+  sudo apt install ros-humble-cyclonedds
+  sudo apt install ros-humble-rmw-cyclonedds-cpp
   sudo apt install ros-humble-rosbag2-storage-mcap
+  ```
+- Install the tiago-pro packages:
+  ```bash
+  cd ros2_ws/src
+  git clone git@github.com/agimus-project/agimus-demos
+  git clone git@github.com/agimus-project/agimus_controller
+  # tmp branches are:
+  # git clone git@github.com/MaximilienNaveau/agimus-demos -b feature/mnaveau/demo3-tiago-square
+  # git clone git@github.com/MaximilienNaveau/agimus_controller -b bugfix/mnaveau/resource_retriver_and_bag_reading
+  vcs-import agimus-demos/tiago_pro.repos
+  ```
+- Change the network interface in the
+  `agimus-demos/agimus_demos_common/config/tiago_pro/cyclone_config.xml` with your own.
+- copy the lfc + jse config in `/tmp` in the docker and on the robot
+  ```bash
+  cp agimus-demos/agimus_demos_common/config/tiago_pro/* /tmp/
+  scp agimus-demos/agimus_demos_common/config/tiago_pro/* pal@tiago-pro:/tmp/
+  ```
+- Set the cyclone DDS config in bashrc in the docker.
+  The file got copied in the previous step in
+  `/tmp/cyclone_config.xml`.
+  ```bash
+  echo "" >> ~/.bashrc
+  echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
+  echo "export CYCLONEDDS_URI=/tmp/cyclone_config.xml" >> ~/.bashrc
+  echo "export ROS_DOMAIN_ID=2 # for TIAGo-Pro" >> ~/.bashrc
+  ```
+- On the robot remove the laser from the urdf: `pal robot_info set laser_model no-laser`
+- Lastly setup and build all
+  ```bash
+  cd ~/ros2_ws
+  ./setup.sh
+  ./build.sh
+  ```
+
+#### Set the behavior of the tracking.
+
+To set the parameters of the trajectory publisher one need to edit
+`agimus-demos/demo_03_mpc_dummy_traj_tiago_pro/config/trajectory_weights_params.yaml `
+
+By default the cartesian control is setup.
+
+- for a cartesian control:
+  ```yaml
+  simple_trajectory_publisher:
+    ros__parameters:
+      ee_frame_name: arm_right_7_joint
+      trajectory_name: generic_trajectory
+      w_q: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
+      w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      w_pose: [60.0, 60.0, 60.0, 10.0, 10.0, 10.0]
+      mask: [true, true, true, true, true, true]
+  ```
+
+- for a joint space control:
+  ```yaml
+  simple_trajectory_publisher:
+    ros__parameters:
+      ee_frame_name: arm_right_7_joint
+      trajectory_name: generic_trajectory
+      w_q: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+      w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
+      w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      w_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      mask: [false, false, false, false, false, false]
+  ```
+
+#### Start the demo on the robot. 
+
+Restart the controller on the robot.
+```bash
+pal module_manager restart
+```
+Start the demo (with `ssh -X` in remote because terminal window will appear to start the different controllers.)
+- Terminal 1
+```bash
+hppcorbaserver
+```
+- Terminal2
+```bash
+gepetto-gui
+```
+- Terminal3
+```bash
+ros2 launch agimus_demo_03_mpc_dummy_traj_tiago_pro bringup.launch.py use_gazebo:=false use_rviz:=true
+```
+
+On the python terminal:
