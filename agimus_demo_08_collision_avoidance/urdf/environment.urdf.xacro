@@ -1,21 +1,14 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="obstacle">
+  <xacro:include filename="$(find franka_description)/robots/common/utils.xacro" />
+
+
   <material name="blue">
     <color rgba="0.1 0.1 0.8 0.5"/>
   </material>
 
   <link name="obstacle">
-    <visual>
-      <geometry>
-        <sphere radius="0.1"/>
-      </geometry>
-      <material name="blue"/>
-    </visual>
-    <collision>
-      <geometry>
-        <sphere radius="0.1"/>
-      </geometry>
-    </collision>
+    <xacro:collision_capsule xyz="0 0 0" direction="x" radius="0.1" length="0.1" />
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="10.0"/>
