@@ -6,12 +6,15 @@ from franka_msgs.action import Grasp
 
 
 class FrankaGripperClient(object):
-    def __init__(self, node: Node):
+    def __init__(self, node: Node, arm_id: str) -> None:
         self._node = node
+        self.arm_id = arm_id
         self._client = ActionClient(
-            self._node, GripperCommand, "/fer_gripper/gripper_action"
+            self._node, GripperCommand, f"/{self.arm_id}_gripper/gripper_action"
         )
-        self._action_client = ActionClient(self._node, Grasp, "/fer_gripper/grasp")
+        self._action_client = ActionClient(
+            self._node, Grasp, f"/{self.arm_id}_gripper/grasp"
+        )
 
     def send_goal(self, position: float, max_effort: float):
         """Sends a goal to the GripperCommand action server."""

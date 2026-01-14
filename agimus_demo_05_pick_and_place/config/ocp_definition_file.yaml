@@ -35,7 +35,7 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelVisualServoing
-          world_frame: base
+          world_frame: support_link
           robot_frame: ${arm_id}_hand_tcp
           object_frame: current_object
     - name: avoid_collision

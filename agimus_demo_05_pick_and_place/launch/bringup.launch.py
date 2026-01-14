@@ -35,6 +35,7 @@ def launch_setup(
     dataset_name_arg = LaunchConfiguration("dataset_name")
     dataset_name = context.perform_substitution(dataset_name_arg).lower()
     arm_id_str = LaunchConfiguration("arm_id").perform(context)
+
     agimus_controller_yaml = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_05_pick_and_place"),
@@ -125,7 +126,7 @@ def launch_setup(
 
     # add simulation of vision detection
     if vision_type in ["simulate_happypose", "simulate_apriltag_det"]:
-        simulated_object_pose = [0.2, -0.1, 0.95, 0.0, 0.0, 0.707, 0.707]
+        simulated_object_pose = [0.15, -0.2, 1.05, 0.0, 0.0, 0.707, 0.707]
         if vision_type == "simulate_apriltag_det":
             simulated_object_pose_as_str = [str(val) for val in simulated_object_pose]
             tf_node_object_detection = static_transform_publisher_node(
@@ -154,13 +155,12 @@ def launch_setup(
         [
             FindPackageShare("agimus_demo_05_pick_and_place"),
             "config",
-            "trajectory_weights_params.yaml",
+            "trajectory_weigths_params.yaml",
         ]
     )
     trajectory_weights_yaml_file = parse_config(
         path=trajectory_weights_yaml.perform(context), replacements=replacements
     )
-
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
     pick_and_place_node = ExecuteProcess(
@@ -169,7 +169,7 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} --params-file {trajectory_weights_yaml}"',  #
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} -p arm_id:={arm_id_str} --params-file {trajectory_weights_yaml_file}"',  #
         ],
         output="screen",
     )

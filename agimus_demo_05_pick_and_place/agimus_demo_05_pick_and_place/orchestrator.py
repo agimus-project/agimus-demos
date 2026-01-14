@@ -106,12 +106,12 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         raise ValueError(f"Object {object_name} not found")
 
 
-def get_in_fer_link0_M_support_link():
-    in_fer_link0_M_support_link = pin.SE3.Identity()
-    in_fer_link0_M_support_link.translation = np.array([0.563, -0.165, -0.780])
-    in_fer_link0_M_support_link.rotation[0, 0] = -1.0
-    in_fer_link0_M_support_link.rotation[1, 1] = -1.0
-    return in_fer_link0_M_support_link
+def get_in_arm_link0_M_support_link():
+    in_arm_link0_M_support_link = pin.SE3.Identity()
+    in_arm_link0_M_support_link.translation = np.array([0.563, -0.165, -0.780])
+    in_arm_link0_M_support_link.rotation[0, 0] = -1.0
+    in_arm_link0_M_support_link.rotation[1, 1] = -1.0
+    return in_arm_link0_M_support_link
 
 
 @dataclass
@@ -134,7 +134,6 @@ class Orchestrator(object):
         self.destination_bin_pose = [-0.1, -0.1, 0.9, 0.0, 0.0, 0.0, 1.0]
         self.min_opening_for_grasp = 0.01
 
-        self.franka_gripper_cient = FrankaGripperClient(self._node)
         self.default_object_name = "obj_23"
         self.set_hardcoded_q0_start_and_above_source_bin()
         self.is_simulation = (
@@ -148,9 +147,12 @@ class Orchestrator(object):
         self.vision_type = (
             self._node.get_parameter("vision_type").get_parameter_value().string_value
         )
+        self._node.declare_parameter("arm_id", "fer")
         self.arm_id = (
             self._node.get_parameter("arm_id").get_parameter_value().string_value
         )
+
+        self.franka_gripper_cient = FrankaGripperClient(self._node, arm_id=self.arm_id)
 
         self.object_to_grasp_name = None
         self.start_obj_pose = None
@@ -162,7 +164,7 @@ class Orchestrator(object):
         self.gripper_reader = AsyncSubscriber(
             self._node,
             JointState,
-            "/fer_gripper/joint_states",
+            f"/{self.arm_id}_gripper/joint_states",
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT),
         )
 
@@ -200,7 +202,7 @@ class Orchestrator(object):
             self.trajectory_publisher, self.trajectory_publisher.future_init_done
         )
 
-        self.in_fer_link0_M_support_link = get_in_fer_link0_M_support_link()
+        self.in_arm_link0_M_support_link = get_in_arm_link0_M_support_link()
 
     def set_source_bin_pose(self, pose):
         self.source_bin_pose = pose
@@ -379,15 +381,15 @@ class Orchestrator(object):
             in_support_link_M_object = pin.XYZQUATToSE3(
                 self.hpp_client.start_obj_pose.copy()
             )
-            in_fer_link0_M_object = (
-                self.in_fer_link0_M_support_link * in_support_link_M_object
+            in_arm_link0_M_object = (
+                self.in_arm_link0_M_support_link * in_support_link_M_object
             )
-            print(f"starting visual servoing for the pose {in_fer_link0_M_object}...")
+            print(f"starting visual servoing for the pose {in_arm_link0_M_object}...")
 
             self.trajectory_publisher.add_visual_servoing_trajectory(
                 trajectory,
                 visual_servoing_idx_range,
-                pin.SE3ToXYZQUAT(in_fer_link0_M_object),
+                pin.SE3ToXYZQUAT(in_arm_link0_M_object),
             )
 
     def go_to(
@@ -402,6 +404,7 @@ class Orchestrator(object):
             use_spline_gradient_based_opt=False,
             source_bin_pose=self.source_bin_pose,
             destination_bin_pose=self.destination_bin_pose,
+            arm_id=self.arm_id,
         )
         current_robot_state = self.state_client.wait_for_future()
         traj = self.hpp_client.plan_free_motion(
@@ -451,6 +454,7 @@ class Orchestrator(object):
             use_spline_gradient_based_opt=False,
             source_bin_pose=self.source_bin_pose,
             destination_bin_pose=self.destination_bin_pose,
+            arm_id=self.arm_id,
         )
         self.publish_transform_in_tf(
             parent_frame=map_object_id(object_name, dataset=self.dataset_name),

@@ -9,6 +9,6 @@
     <origin xyz="0.06 -0.2 0.761" />
   </joint>
 
-  <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/obstacles.xacro" />
+  <xacro:include filename="$(find agimus_demo_05_pick_and_place)/urdf/obstacles.xacro"/>
 
 </robot>
