@@ -10,7 +10,7 @@ from launch.actions import (
     RegisterEventHandler,
 )
 from launch.conditions import IfCondition, UnlessCondition
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -32,6 +32,8 @@ from controller_manager.launch_utils import (
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     get_use_sim_time,
+    parse_config,
+    safe_remove,
 )
 
 
@@ -164,6 +166,30 @@ def launch_setup(
             "`use_ft_sensor:=false` and `ee_id:=ati_mini45_with_camera`."
         )
 
+    # Parsing franka_controllers_params with arm_id replacement
+    replacements = {
+        "arm_id": arm_id.perform(context),
+    }
+
+    franka_controllers_params = parse_config(
+        path=franka_controllers_params.perform(context), replacements=replacements
+    )
+    external_controllers_params_str = parse_config(
+        path=external_controllers_params_str, replacements=replacements
+    )
+    # Cleanup temporary file on shutdown
+    cleanup_action = RegisterEventHandler(
+        OnShutdown(
+            on_shutdown=lambda event, context: (
+                safe_remove(franka_controllers_params),
+                safe_remove(external_controllers_params_str),
+            )
+        )
+    )
+    print(
+        f"Temporary franka_controllers_params file: {franka_controllers_params}, {external_controllers_params_str}"
+    )
+
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -192,7 +218,6 @@ def launch_setup(
         ],
     )
 
-    print("external_controllers_names_list = ", external_controllers_names_list)
     activate_external_controllers = ExecuteProcess(
         cmd=[
             "ros2",
@@ -493,6 +518,7 @@ def launch_setup(
         joint_state_publisher_node,
         rviz_node,
         plotjuggler_node,
+        cleanup_action,
     ]
 
 

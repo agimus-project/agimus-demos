@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /Status1
         - /RobotModel2
       Splitter Ratio: 0.5
@@ -224,7 +225,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: fer_link0
+    Fixed Frame: world
     Frame Rate: 30
   Name: root
   Tools:

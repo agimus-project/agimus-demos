@@ -22,6 +22,7 @@ class ObstaclePosePublisher(Node):
             position=Point(x=0.5, y=0.0, z=0.2),
             orientation=Quaternion(x=1.0, y=0.0, z=0.0, w=0.0),
         )
+        self.declare_parameter("arm_id", "fer")
 
         self._tf_broadcaster = TransformBroadcaster(self)
         self._tf_buffer = Buffer()
@@ -32,7 +33,7 @@ class ObstaclePosePublisher(Node):
         self._pose_publisher_timer = self.create_timer(
             0.1, self._pose_publisher_timer_cb
         )
-
+        self._arm_id = self.get_parameter("arm_id").get_parameter_value().string_value
         self.get_logger().info("Node started.")
 
     def _pose_publisher_timer_cb(self) -> None:
@@ -40,7 +41,7 @@ class ObstaclePosePublisher(Node):
 
         transform = TransformStamped()
         transform.header.stamp = self.get_clock().now().to_msg()
-        transform.header.frame_id = "fer_link0"
+        transform.header.frame_id = self._arm_id + "_link0"
         transform.child_frame_id = "obstacle"
         transform.transform = Transform(
             translation=Vector3(

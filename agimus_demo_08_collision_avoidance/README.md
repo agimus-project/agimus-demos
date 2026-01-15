@@ -16,6 +16,17 @@ This demo requires source built of dependencies found in:
 - [control.repos](../control.repos)
 - [agimus_dev.repos](../agimus_dev.repos)
 
+### Robot model selection
+
+The demo support two different Franka robot models, selectable via the `arm_id` parameter:
+
+| arm_id | Models |
+|--------|-------------------------------|
+| fer | Franka Emika Panda |
+| fr3 | Franka Research 3 |
+
+If not specified, the parameter `arm_id` is set to fer.
+
 ### Simulation
 
 > [!NOTE]
@@ -37,6 +48,9 @@ First turn on the robot and unlock joint in the web-ui. Move the robot a safe po
 
 > [!CAUTION]
 > Position the robot facing forward, to avoid an abrupt motion during the initialization. In case the robot start in collision it might perform a very abrupt motion causing it to lock the joints. To avoid this happening move the robot to a collision free configuration that is not too far from the workspace.
+
+> [!NOTE]
+> The libfranka version differs depending on the robot model. Make sure you use the correct control container to operate the real robot.
 
 Launch the demo
 

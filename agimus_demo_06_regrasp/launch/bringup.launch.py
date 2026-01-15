@@ -1,8 +1,8 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, FindExecutable
@@ -12,6 +12,8 @@ from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
     get_use_sim_time,
+    parse_config,
+    safe_remove,
 )
 
 from agimus_demos_common.static_transform_publisher_node import (
@@ -23,6 +25,7 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     franka_robot_launch = generate_include_launch("franka_common_lfc.launch.py")
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -31,6 +34,12 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
+    # Parsing franka_controllers_params with arm_id replacement
+    replacements = {"arm_id": arm_id_str}
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context), replacements=replacements
+    )
+    print(f"Using agimus_controller file: {agimus_controller_yaml_file}")
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -40,7 +49,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml],
+        parameters=[get_use_sim_time(), agimus_controller_yaml_file],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -80,11 +89,18 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            'ros2 run agimus_demo_06_regrasp regrasp_node"',
+            f'ros2 run agimus_demo_06_regrasp regrasp_node --ros-args -p arm_id:={arm_id_str}"',
         ],
         output="screen",
     )
-
+    # Cleanup temporary file on shutdown
+    cleanup_action = RegisterEventHandler(
+        OnShutdown(
+            on_shutdown=lambda event, context: (
+                safe_remove(agimus_controller_yaml_file),
+            )
+        )
+    )
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
@@ -99,6 +115,7 @@ def launch_setup(
                 ],
             )
         ),
+        cleanup_action,
     ]
 
 

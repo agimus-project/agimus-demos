@@ -34,8 +34,8 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelVisualServoing
-          world_frame: fer_link0
-          robot_frame: fer_hand_tcp
+          world_frame: ${arm_id}_link0
+          robot_frame: ${arm_id}_hand_tcp
           object_frame: current_object
     - name: avoid_collision
       update: false
@@ -48,7 +48,7 @@ running_model:
           alpha: 2e-2
         residual:
           class: ResidualDistanceCollision
-          collision_pair: [fer_hand_sc_capsule_0, big_box_link_1]
+          collision_pair: ['${arm_id}_hand_sc_capsule_0', big_box_link_1]
 
 terminal_model:
   class: IntegratedActionModelEuler

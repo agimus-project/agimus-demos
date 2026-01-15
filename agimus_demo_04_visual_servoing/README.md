@@ -22,6 +22,16 @@ This demo is done using apriltag (but could also be done with happypose in the f
 the apriltag used can be found  [here](https://triagechallenge.darpa.mil/docs/AprilTag_0-20_family36h11.pdf),
 the apriltag side size used was 44 mm, but can be modified [here](https://github.com/TheoMF/olt_ros2_pipeline/blob/topic/tmartinez/apriltag/config/tags_36h11.yaml#L22)
 
+### Robot model selection
+
+The demo support two different Franka robot models, selectable via the `arm_id` parameter:
+
+| arm_id | Models |
+|--------|-------------------------------|
+| fer | Franka Emika Panda |
+| fr3 | Franka Research 3 |
+
+If not specified, the parameter `arm_id` is set to fer.
 
 ## Start the demo in simulation using the Panda robot.
 ```bash
@@ -48,6 +58,8 @@ for the vision side you'll have to launch
 ```bash
 ros2 launch olt_ros2_pipeline vision_bringup.launch.py
 ```
+> [!NOTE]
+> The libfranka version differs depending on the robot model. Make sure you use the correct control container to operate the real robot.
 
 for the control side you'll have to launch
 ```bash

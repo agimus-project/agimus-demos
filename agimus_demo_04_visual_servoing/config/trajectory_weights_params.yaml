@@ -6,4 +6,4 @@ reference_publisher:
     w_qddot: [0.0]
     w_robot_effort: [0.0012]
     w_pose: [10.0, 10.0, 10.0, 3.0, 3.0, 3.0]
-    ee_frame_name: fer_hand_tcp
+    ee_frame_name: ${arm_id}_hand_tcp

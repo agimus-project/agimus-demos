@@ -40,6 +40,7 @@ class ManipulationPlanner:
         gripper_open_value: float = 0.04,
         package_location: str = "package://agimus_demo_06_regrasp",
         verbose: bool = True,
+        arm_id: str = "fer",
     ):
         """
         :param object_name: Name of the object to manipulate (e.g., "tless_20")
@@ -56,6 +57,7 @@ class ManipulationPlanner:
         self.gripper_open_value = gripper_open_value
         self.package_location = package_location
         self.verbose = verbose
+        self.arm_id = arm_id
 
         self.create_problem()
         self.create_graph()
@@ -71,7 +73,7 @@ class ManipulationPlanner:
         newProblem()
         # Load robot
         Robot.urdfString = process_xacro(
-            self.package_location + "/urdf/demo.urdf.xacro"
+            self.package_location + "/urdf/demo.urdf.xacro", f"arm_id:={self.arm_id}"
         )
         Robot.srdfString = ""
         self.robot = Robot("robot", "panda", rootJointType="anchor")

@@ -1,7 +1,7 @@
 ---
 simple_trajectory_publisher:
   ros__parameters:
-    ee_frame_name: fer_hand_tcp
+    ee_frame_name: ${arm_id}_hand_tcp
 
     # trajectory_name: sine_wave_cartesian_space
     # w_q: [0.1]

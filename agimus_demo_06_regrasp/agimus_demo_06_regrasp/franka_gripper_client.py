@@ -5,10 +5,10 @@ from franka_msgs.action import Grasp
 
 
 class FrankaGripperClient(object):
-    def __init__(self, node: Node):
+    def __init__(self, node: Node, arm_id="fer"):
         self._node = node
         self._client = ActionClient(
-            self._node, GripperCommand, "/fer_gripper/gripper_action"
+            self._node, GripperCommand, "/" + arm_id + "_gripper/gripper_action"
         )
         self._action_client = ActionClient(self._node, Grasp, "/fer_gripper/grasp")
 

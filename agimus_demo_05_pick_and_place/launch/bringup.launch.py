@@ -1,4 +1,3 @@
-from pathlib import Path
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     OpaqueFunction,
@@ -6,7 +5,7 @@ from launch.actions import (
     ExecuteProcess,
     DeclareLaunchArgument,
 )
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
@@ -19,8 +18,9 @@ from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
     get_use_sim_time,
+    parse_config,
+    safe_remove,
 )
-
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
@@ -34,6 +34,7 @@ def launch_setup(
     vision_type = context.perform_substitution(vision_type_arg).lower()
     dataset_name_arg = LaunchConfiguration("dataset_name")
     dataset_name = context.perform_substitution(dataset_name_arg).lower()
+    arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
     agimus_controller_yaml = PathJoinSubstitution(
         [
@@ -42,6 +43,27 @@ def launch_setup(
             "agimus_controller_params.yaml",
         ]
     )
+    ocp_definition_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_05_pick_and_place"),
+            "config",
+            "ocp_definition_file.yaml",
+        ]
+    )
+    replacements = {"arm_id": arm_id_str}
+
+    ocp_definition_yaml_file = parse_config(
+        path=ocp_definition_yaml.perform(context), replacements=replacements
+    )
+    replacements_agimus_controller = {
+        "arm_id": arm_id_str,
+        "ocp_file": ocp_definition_yaml_file,
+    }
+    agimus_controller_yaml_file = parse_config(
+        path=agimus_controller_yaml.perform(context),
+        replacements=replacements_agimus_controller,
+    )
+
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
@@ -51,7 +73,7 @@ def launch_setup(
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
-        parameters=[get_use_sim_time(), agimus_controller_yaml],
+        parameters=[get_use_sim_time(), agimus_controller_yaml_file],
         output="screen",
         remappings=[("robot_description", "robot_description_with_collision")],
     )
@@ -129,14 +151,15 @@ def launch_setup(
                 output="screen",
             )
 
-    trajectory_weights_yaml = Path(
-        FindPackageShare("agimus_demo_05_pick_and_place").find(
-            "agimus_demo_05_pick_and_place"
-        )
+    trajectory_weights_yaml = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_05_pick_and_place"),
+            "config",
+            "trajectory_weigths_params.yaml",
+        ]
     )
-
-    trajectory_weights_yaml = str(
-        trajectory_weights_yaml / "config" / "trajectory_weigths_params.yaml"
+    trajectory_weights_yaml_file = parse_config(
+        path=trajectory_weights_yaml.perform(context), replacements=replacements
     )
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
@@ -146,9 +169,19 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} --params-file {trajectory_weights_yaml}"',  #
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} -p arm_id:={arm_id_str} --params-file {trajectory_weights_yaml_file}"',  #
         ],
         output="screen",
+    )
+    # Cleanup temporary file on shutdown
+    cleanup_action = RegisterEventHandler(
+        OnShutdown(
+            on_shutdown=lambda event, context: (
+                safe_remove(ocp_definition_yaml_file),
+                safe_remove(agimus_controller_yaml_file),
+                safe_remove(trajectory_weights_yaml_file),
+            )
+        )
     )
 
     nodes_to_launch = [
@@ -165,6 +198,7 @@ def launch_setup(
                 ],
             )
         ),
+        cleanup_action,
     ]
     if vision_type == "simulate_happypose":
         nodes_to_launch.append(happypose_simulation_node)

@@ -35,7 +35,7 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameTranslationStatic
-          frame_id: fer_hand
+          frame_id: ${arm_id}_hand
     - name: target_rotation_tracking
       update: true
       weight: 1.0
@@ -46,7 +46,7 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameRotationStatic
-          frame_id: fer_hand
+          frame_id: ${arm_id}_hand
     constraints:
     - name: collision
       active: true
@@ -56,7 +56,7 @@ running_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision2
-          collision_pair: [fer_hand_sc_capsule_0, obstacle_capsule_0]
+          collision_pair: ['${arm_id}_hand_sc_capsule_0', obstacle_capsule_0]
 
 terminal_model:
   class: IntegratedActionModelEuler
@@ -83,7 +83,7 @@ terminal_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameTranslationStatic
-          frame_id: fer_hand
+          frame_id: ${arm_id}_hand
     - name: target_rotation_tracking
       update: true
       weight: 1.0
@@ -94,7 +94,7 @@ terminal_model:
           weights: 1.0
         residual:
           class: ResidualModelFrameRotationStatic
-          frame_id: fer_hand
+          frame_id: ${arm_id}_hand
     constraints:
     - name: collision
       active: true
@@ -104,4 +104,4 @@ terminal_model:
         upper: inf
         residual:
           class: ResidualDistanceCollision2
-          collision_pair: [fer_hand_sc_capsule_0, obstacle_capsule_0]
+          collision_pair: ['${arm_id}_hand_sc_capsule_0', obstacle_capsule_0]

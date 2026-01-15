@@ -97,9 +97,14 @@ class Orchestrator(object):
 
     def __init__(self):
         self._node = Node("regrasp")
+        self._node.declare_parameter("arm_id")
+        self.arm_id = (
+            self._node.get_parameter("arm_id").get_parameter_value().string_value
+        )
+
         self.param = OrchestratorParams()
 
-        self.franka_gripper_cient = FrankaGripperClient(self._node)
+        self.franka_gripper_cient = FrankaGripperClient(self._node, arm_id=self.arm_id)
         self.default_object_name = "cont_grasp_net_obj"
         self.use_sim = (
             self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
@@ -108,7 +113,6 @@ class Orchestrator(object):
         self.smooth = self.param.use_smoothing_at_waypoints
 
         self.trajectory_publisher = TrajectoryPublisher(self._node)
-
         self.state_client = AsyncSubscriber(
             self._node,
             JointState,
@@ -265,7 +269,7 @@ class Orchestrator(object):
             0.0,
             1.0,
         ]
-        self.planner = ManipulationPlanner(object_name)
+        self.planner = ManipulationPlanner(object_name, arm_id=self.arm_id)
         # self.hpp_client = HPPInterface(
         #     object_name=object_name, use_spline_gradient_based_opt=False
         # )
