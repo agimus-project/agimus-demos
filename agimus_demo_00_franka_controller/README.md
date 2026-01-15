@@ -8,6 +8,17 @@ This demo checks whether of ROS 2 dependencies for Franka robots was done correc
 This demo requires source built of dependencies found in:
 - [franka.repos](../franka.repos)
 
+### Robot model selection
+
+The demo support two different Franka robot models, selectable via the `arm_id` parameter:
+
+| arm_id | Models |
+|--------|-------------------------------|
+| fer | Franka Emika Panda |
+| fr3 | Franka Research 3 |
+
+If not specified, the parameter `arm_id` is set to fer.
+
 ### Simulation
 
 > [!NOTE]
@@ -31,6 +42,9 @@ First turn on the robot and unlock joint in the web-ui. Move the robot a safe po
 
 > [!NOTE]
 > Robot will start oscillating around starting point. When restarting the demo make sure robot was stopped with sufficient joint motion left, as during a re-run it might trigger joint limit safety!
+
+> [!NOTE]
+> The libfranka version differs depending on the robot model. Make sure you use the correct control container to operate the real robot.
 
 Launch the demo
 

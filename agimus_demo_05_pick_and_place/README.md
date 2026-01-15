@@ -31,6 +31,17 @@ In the code the object is introduced as the tless_obj-31 to add it more easily i
 ### Available tless objects for happypose
 Five tless objects can be used with happypose in this demo their tless numbers are 21, 22, 23, 25, 26.
 
+### Robot model selection
+
+The demo support two different Franka robot models, selectable via the `arm_id` parameter:
+
+| arm_id | Models |
+|--------|-------------------------------|
+| fer | Franka Emika Panda |
+| fr3 | Franka Research 3 |
+
+If not specified, the parameter `arm_id` is set to fer.
+
 ## Start the demo in simulation using the Panda robot.
 ```bash
 cd workspace
@@ -40,6 +51,10 @@ After the xterm terminal is opened, type there `o.pick_and_place('obj_<tless obj
 
 ## Start the demo on hardware using the Panda robot.
 To place the source and destination box as it is in hpp, you may have first to calibrate the position of the two boxes, for that you can use in the xterm terminal `o.calibrate`.
+
+> [!NOTE]
+> The libfranka version differs depending on the robot model. Make sure you use the correct control container to operate the real robot.
+
 To start the demo :
 ```bash
 ros2 launch agimus_demo_05_pick_and_place bringup.launch.py arm_id:=fer vision_type:=apriltag_det robot_ip:=<fci-ip> use_ft_sensor:=false
