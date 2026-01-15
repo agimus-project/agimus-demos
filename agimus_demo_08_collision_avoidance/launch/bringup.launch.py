@@ -72,10 +72,6 @@ def launch_setup(
         path=agimus_controller_params.perform(context),
         replacements=replacements_agimus_controller,
     )
-    agimus_controller_params_file = parse_config(
-        path=agimus_controller_params.perform(context),
-        replacements=replacements_agimus_controller,
-    )
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
