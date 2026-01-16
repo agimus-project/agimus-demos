@@ -42,7 +42,7 @@
   <link name="base_box_link">
     <visual>
       <geometry>
-        <box size="0.55 0.52 0.435"/>
+        <box size="0.55 0.60 0.435"/>
       </geometry>
       <material name="blue"/>
     </visual>

@@ -78,9 +78,9 @@ def main(args=None) -> int:
     if "metal" in args:
         weighted_handles = [
             ([0.000009, 0.000009, 0.000009], "hole_left_31"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_16"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_inside_43"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_12"),
+            ([0.000007, 0.000007, 0.000007], "hole_left_16"),
+            ([0.0000045, 0.0000045, 0.0000045], "hole_left_inside_43"),
+            ([0.000007, 0.000007, 0.000007], "hole_left_12"),
         ]
     else:
         weighted_handles = [
