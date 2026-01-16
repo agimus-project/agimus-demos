@@ -65,7 +65,7 @@ class SequencerNode(Node):
         future = self._deburring_action_client.send_goal_async(
             goal_msg, feedback_callback=self._feedback_callback
         )
-        self._deburring_action_client.add_done_callback(self._goal_response_callback)
+        future.add_done_callback(self._goal_response_callback)
 
         return future
 

@@ -216,9 +216,13 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._ps.client.basic.problem.addPath(p)
 
         length = p.length()
-        n_traj_points = int(np.ceil(length / self._ocp_dt)) * 4
+        slowdown = 4
+        n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
         trajectory = np.array(
-            [p.call(i * self._ocp_dt / 4)[0][: self._nq] for i in range(n_traj_points)]
+            [
+                p.call(i * self._ocp_dt / slowdown)[0][: self._nq]
+                for i in range(n_traj_points)
+            ]
         )
         p.deleteThis()
 

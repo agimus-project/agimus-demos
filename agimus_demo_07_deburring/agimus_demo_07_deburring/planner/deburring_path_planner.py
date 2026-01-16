@@ -1,6 +1,8 @@
 import copy
 import xml.etree.ElementTree as ET
 from collections import deque
+import threading
+import time
 
 from pathlib import Path
 import pickle
@@ -18,7 +20,8 @@ from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 from agimus_msgs.msg import MpcInputArray
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Vector3
 import rclpy
-from rclpy.action import ActionServer
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
 from rclpy.exceptions import ParameterException
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
@@ -78,6 +81,7 @@ class DeburringPathPlanner(Node):
         self._robot_description: str | None = None
         self._environment_description: str | None = None
         self._T_pylone: pin.SE3 | None = None
+        self._buffer_len: int | None = None
         # Rotation used as a conversion between TCP coordinates and HPP handles
         self._R_insert = pin.SE3(
             pin.rpy.rpyToMatrix(np.array(self._params.hpp_handle_to_ee_rot)),
@@ -126,6 +130,8 @@ class DeburringPathPlanner(Node):
             )
 
         self._node_initialized = False
+        self._waiting_for_planner = False
+        self._trajectory_buffer_lock = threading.Lock()
         self._trajectory_buffer = deque()
 
         self._update_params(first_call=True)
@@ -189,7 +195,13 @@ class DeburringPathPlanner(Node):
 
         # Actions
         self._action_server = ActionServer(
-            self, DeburringPlanner, "/plan_deburring", self._planner_cb
+            self,
+            DeburringPlanner,
+            "/plan_deburring",
+            execute_callback=self._planner_cb,
+            goal_callback=self._goal_callback,
+            cancel_callback=self._cancel_callback,
+            callback_group=ReentrantCallbackGroup(),
         )
 
         # Create a timer that calls the _maybe_run_prediction method every 2 seconds
@@ -198,7 +210,7 @@ class DeburringPathPlanner(Node):
         )
 
         self._mpc_input_publisher_timer = self.create_timer(
-            self._params.ocp_dt / 10.0, self._publish_mpc_input_cb
+            self._params.ocp_dt * 10.0, self._publish_mpc_input_cb
         )
 
         self._last_handle = "none"
@@ -317,7 +329,8 @@ class DeburringPathPlanner(Node):
         self, generator_name: str, q: npt.ArrayLike, T_taget: pin.SE3, T_init: pin.SE3
     ) -> int:
         generator = self._path_generators[generator_name]
-        wp = self._trajectory_buffer[-1]
+        with self._trajectory_buffer_lock:
+            wp = self._trajectory_buffer[-1]
         point = wp.point
         w1 = wp.weights
         w2 = generator["weights"]
@@ -335,14 +348,16 @@ class DeburringPathPlanner(Node):
             for i in range(gain_schedule_points)
         ]
         trajectory_len = len(weighted_trajectory)
-        self._trajectory_buffer.extend(weighted_trajectory)
+        with self._trajectory_buffer_lock:
+            self._trajectory_buffer.extend(weighted_trajectory)
 
         # Compute and insert actual trajectory
         trajectory = generator["generator"].get_path(q, T_taget, T_init=T_init)
         weighted_trajectory = [
             WeightedTrajectoryPoint(point=p, weights=copy.copy(w2)) for p in trajectory
         ]
-        self._trajectory_buffer.extend(weighted_trajectory)
+        with self._trajectory_buffer_lock:
+            self._trajectory_buffer.extend(weighted_trajectory)
         trajectory_len += len(weighted_trajectory)
         return trajectory_len
 
@@ -503,35 +518,54 @@ class DeburringPathPlanner(Node):
         self._node_initialized = True
         self.get_logger().info("Node initialized.", once=True)
 
-        if len(self._trajectory_buffer) <= 1:
-            self.get_logger().info(
-                "Waiting for goal to be set via action...",
-                throttle_duration_sec=5.0,
+        with self._trajectory_buffer_lock:
+            if len(self._trajectory_buffer) <= 1 and not self._waiting_for_planner:
+                self.get_logger().info(
+                    "Waiting for goal to be set via action...",
+                    throttle_duration_sec=5.0,
+                )
+                return
+
+    def _goal_callback(self, goal_request) -> GoalResponse:
+        if not self._node_initialized:
+            self.get_logger().error(
+                "Unable to start planning. The node is not initialized yet!"
             )
-            return
+            return GoalResponse.REJECT
+        if self._waiting_for_planner:
+            self.get_logger().error(
+                "Unable to start planning. Waiting for the planner!"
+            )
+            return GoalResponse.REJECT
+        with self._trajectory_buffer_lock:
+            if len(self._trajectory_buffer) > 1:
+                self.get_logger().error(
+                    "Unable to accept new goals. Still execution previous one!"
+                )
+                return GoalResponse.REJECT
+        if goal_request.handle_name not in self._handles.keys():
+            self.get_logger().error(f"Invalid handle name '{goal_request.handle_name}'")
+            return GoalResponse.REJECT
+
+        return GoalResponse.ACCEPT
+
+    def _cancel_callback(self, _) -> CancelResponse:
+        self.get_logger().info("Trajectory execution was canceled.")
+        with self._trajectory_buffer_lock:
+            self._trajectory_buffer.clear()
+        return CancelResponse.ACCEPT
 
     def _planner_cb(self, goal_handle) -> DeburringPlanner.Result:
-        if not self._node_initialized:
-            error_msg = "Unable to start planning. The node is not initialized yet!"
-            self.get_logger().error(error_msg)
-            return DeburringPlanner.Result(error_msg=error_msg)
-
         self._update_params()
 
-        self.get_logger().warning(f"\n\n\n\n\n{goal_handle}\n\n\n")
+        handle_name = goal_handle.request.handle_name
 
-        if goal_handle.handle_name not in self._handles.keys():
-            error_msg = f"Invalid handle name '{goal_handle.handle_name}'"
-            self.get_logger().error(error_msg)
-            return DeburringPlanner.Result(error_msg=error_msg)
-        else:
-            self.get_logger().info(
-                f"Received new goal handle point: {goal_handle.handle_name}"
-            )
+        self.get_logger().info(f"Received new goal handle point: {handle_name}")
 
         initial_trajectory_len = None
+        self._waiting_for_planner = True
         try:
-            target_handle = self._T_pylone * self._handles[goal_handle.handle_name]
+            target_handle = self._T_pylone * self._handles[handle_name]
 
             robot_configuration = self._get_remapped_joints()
 
@@ -540,7 +574,7 @@ class DeburringPathPlanner(Node):
             if self._use_precomputed_trajectories:
                 trajectory_filename = (
                     self._trajectories_folder
-                    / f"{self._last_handle}_to_{goal_handle.handle_name}.pickle"
+                    / f"{self._last_handle}_to_{handle_name}.pickle"
                 )
                 compute_new_trajectory = (
                     self._last_handle == "none" or not trajectory_filename.is_file()
@@ -549,7 +583,7 @@ class DeburringPathPlanner(Node):
             if compute_new_trajectory:
                 trajectory = self._path_generators["follow_joint_trajectory"][
                     "generator"
-                ].get_path(robot_configuration, target_handle, goal_handle.handle_name)
+                ].get_path(robot_configuration, target_handle, handle_name)
                 if self._use_precomputed_trajectories and self._last_handle != "none":
                     self.get_logger().info(
                         f"Saving new trajectory: {trajectory_filename}"
@@ -604,12 +638,14 @@ class DeburringPathPlanner(Node):
                 for p in trajectory
             ]
 
-            self._trajectory_buffer.clear()
-            self._trajectory_buffer.extend(weighted_trajectory)
-            initial_trajectory_len = len(weighted_trajectory)
+            with self._trajectory_buffer_lock:
+                self._trajectory_buffer.clear()
+                self._trajectory_buffer.extend(weighted_trajectory)
+                initial_trajectory_len = len(weighted_trajectory)
 
-            if goal_handle.do_insertion:
-                q = self._trajectory_buffer[-1].point.robot_configuration
+            if goal_handle.request.do_insertion:
+                with self._trajectory_buffer_lock:
+                    q = self._trajectory_buffer[-1].point.robot_configuration
                 T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
                     self._tool_frame_id_name
                 ]
@@ -623,7 +659,8 @@ class DeburringPathPlanner(Node):
                 )
                 initial_trajectory_len += segment_len
                 # Perform deburring
-                q = self._trajectory_buffer[-1].point.robot_configuration
+                with self._trajectory_buffer_lock:
+                    q = self._trajectory_buffer[-1].point.robot_configuration
                 segment_len = self._insert_sequence_to_buffer(
                     "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
                 )
@@ -632,7 +669,8 @@ class DeburringPathPlanner(Node):
                 self._path_generators["insert_retract_tool"][
                     "generator"
                 ].set_retract_mode()
-                q = self._trajectory_buffer[-1].point.robot_configuration
+                with self._trajectory_buffer_lock:
+                    q = self._trajectory_buffer[-1].point.robot_configuration
                 segment_len = self._insert_sequence_to_buffer(
                     "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
                 )
@@ -643,7 +681,8 @@ class DeburringPathPlanner(Node):
                 now = self.get_clock().now().to_msg()
 
                 # Keep the markers avlive for the time of validity of the path
-                lifetime = len(self._trajectory_buffer) * self._params.ocp_dt * 1.25
+                with self._trajectory_buffer_lock:
+                    lifetime = len(self._trajectory_buffer) * self._params.ocp_dt * 1.25
 
                 def _crate_marker(id: int, point: TrajectoryPoint) -> Marker:
                     pose = pin.SE3ToXYZQUAT(
@@ -659,36 +698,46 @@ class DeburringPathPlanner(Node):
                     marker.lifetime = Duration(seconds=lifetime).to_msg()
                     return marker
 
-                self._path_publisher.publish(
-                    MarkerArray(
-                        markers=[
-                            _crate_marker(i, point.point)
-                            for i, point in enumerate(self._trajectory_buffer)
-                        ],
+                with self._trajectory_buffer_lock:
+                    self._path_publisher.publish(
+                        MarkerArray(
+                            markers=[
+                                _crate_marker(i, point.point)
+                                for i, point in enumerate(self._trajectory_buffer)
+                            ],
+                        )
                     )
-                )
         except Exception as e:
-            self._trajectory_buffer.clear()
+            self._waiting_for_planner = False
+            with self._trajectory_buffer_lock:
+                self._trajectory_buffer.clear()
             error_msg = (
                 "Failed to plan a trajectory to a handle "
-                + f"'{goal_handle.handle_name}'. Reason: {str(e)}"
+                + f"'{handle_name}'. Reason: {str(e)}"
             )
             self.get_logger().error(error_msg)
-            return DeburringPlanner.Result(error_msg=error_msg)
+            result = DeburringPlanner.Result()
+            result.error_msgs = error_msg
+            return result
+
+        self._waiting_for_planner = False
 
         feedback_msg = DeburringPlanner.Feedback()
-        while rclpy.ok() and len(self._trajectory_buffer) > 1:
+        while rclpy.ok() and self._buffer_len > 1:
             feedback_msg.progress = 1.0 - (
                 len(self._trajectory_buffer) / initial_trajectory_len
             )
             goal_handle.publish_feedback(feedback_msg)
+            time.sleep(0.1)
 
         goal_handle.succeed()
         return DeburringPlanner.Result()
 
     def _publish_mpc_input_cb(self) -> None:
         # Skip if buffer is empty
-        if not len(self._trajectory_buffer):
+        with self._trajectory_buffer_lock:
+            self._buffer_len = len(self._trajectory_buffer)
+        if not self._buffer_len:
             return
 
         if self._buffer_size >= self._params.ocp_buffer_size:
@@ -701,12 +750,13 @@ class DeburringPathPlanner(Node):
                 return self._trajectory_buffer.popleft()
 
         n_points = self._params.ocp_buffer_size - self._buffer_size
-        mpc_input_array = MpcInputArray(
-            inputs=[
-                weighted_traj_point_to_mpc_msg(_get_traj_point())
-                for _ in range(n_points)
-            ]
-        )
+        with self._trajectory_buffer_lock:
+            mpc_input_array = MpcInputArray(
+                inputs=[
+                    weighted_traj_point_to_mpc_msg(_get_traj_point())
+                    for _ in range(n_points)
+                ]
+            )
         if self._params.visualization.publish_path:
             self._mpc_target_pose.publish(
                 PoseStamped(
