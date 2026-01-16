@@ -192,7 +192,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
 
     def get_path(
         self,
-        q0,
+        q0: npt.ArrayLike,
         T_final: pin.SE3,
         handle_name: str,
         T_init: pin.SE3 | None = None,

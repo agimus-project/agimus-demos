@@ -3,19 +3,23 @@ import time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionClient
 from rclpy.exceptions import ParameterException
 from rclpy.parameter import Parameter
+from rclpy.task import Future
 
 from rcl_interfaces.srv import SetParametersAtomically
 
-from std_msgs.msg import String
+from agimus_msgs.action import DeburringPlanner
 
 
 class SequencerNode(Node):
     def __init__(self):
         super().__init__("sequencer_node")
 
-        self._handle_publisher = self.create_publisher(String, "/target_handle", 10)
+        self._deburring_action_client = ActionClient(
+            self, DeburringPlanner, "/plan_deburring"
+        )
 
         self._set_param_cli = self.create_client(
             SetParametersAtomically,
@@ -51,9 +55,35 @@ class SequencerNode(Node):
             ]
         )
 
-    def set_handle_name(self, handle: str) -> None:
-        self._handle_publisher.publish(String(data=handle))
-        rclpy.spin_once(self)
+    def plan_to_handle(self, handle: str, do_insertion: bool) -> Future:
+        goal_msg = DeburringPlanner.Goal(
+            handle_name=handle,
+            do_insertion=do_insertion,
+        )
+        self._deburring_action_client.wait_for_server()
+
+        future = self._deburring_action_client.send_goal_async(
+            goal_msg, feedback_callback=self._feedback_callback
+        )
+        self._deburring_action_client.add_done_callback(self._goal_response_callback)
+
+        return future
+
+    def _goal_response_callback(self, future: Future) -> None:
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().warn(
+                f"Target goal rejected. Reason: '{goal_handle.error_msgs}'"
+            )
+            return
+
+        self.get_logger().info("Target goal accepted.")
+
+        self._get_result_future = goal_handle.get_result_async()
+
+    def _feedback_callback(self, feedback_msg):
+        feedback = feedback_msg.feedback
+        self.get_logger().info(f"Received feedback: {format(feedback.progress)}")
 
 
 def main(args=None) -> int:
@@ -105,7 +135,11 @@ def main(args=None) -> int:
             ):
                 continue
             sequencer_node.set_weights_value(weight)
-            sequencer_node.set_handle_name(handle_name)
+            future = sequencer_node.plan_to_handle(handle_name, False)
+            rclpy.spin_until_future_complete(sequencer_node, future)
+            input("Please refine the pose")
+            future = sequencer_node.plan_to_handle(handle_name, True)
+            rclpy.spin_until_future_complete(sequencer_node, future)
 
         print("Sequencing done, stopping the node")
 

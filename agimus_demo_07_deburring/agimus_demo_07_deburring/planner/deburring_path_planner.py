@@ -18,8 +18,10 @@ from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 from agimus_msgs.msg import MpcInputArray
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Vector3
 import rclpy
+from rclpy.action import ActionServer
 from rclpy.duration import Duration
 from rclpy.exceptions import ParameterException
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import (
     DurabilityPolicy,
@@ -29,6 +31,8 @@ from rclpy.qos import (
 from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA, Header, Int64, String
 from visualization_msgs.msg import Marker, MarkerArray
+
+from agimus_msgs.action import DeburringPlanner
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -73,6 +77,7 @@ class DeburringPathPlanner(Node):
         self._nq = len(self._params.moving_joints)
         self._robot_description: str | None = None
         self._environment_description: str | None = None
+        self._T_pylone: pin.SE3 | None = None
         # Rotation used as a conversion between TCP coordinates and HPP handles
         self._R_insert = pin.SE3(
             pin.rpy.rpyToMatrix(np.array(self._params.hpp_handle_to_ee_rot)),
@@ -120,7 +125,7 @@ class DeburringPathPlanner(Node):
                 )
             )
 
-        self._target_handle_name = None
+        self._node_initialized = False
         self._trajectory_buffer = deque()
 
         self._update_params(first_call=True)
@@ -159,10 +164,6 @@ class DeburringPathPlanner(Node):
             Int64, "/agimus_pytroller/buffer_size", self._buffer_size_cb, 10
         )
 
-        self._target_handle_sub = self.create_subscription(
-            String, "/target_handle", self._target_handle_cb, 10
-        )
-
         # Publishers
         self._mpc_input_pub = self.create_publisher(
             MpcInputArray,
@@ -186,9 +187,14 @@ class DeburringPathPlanner(Node):
             self._path_publisher = None
             self._mpc_target_pose = None
 
+        # Actions
+        self._action_server = ActionServer(
+            self, DeburringPlanner, "/plan_deburring", self._planner_cb
+        )
+
         # Create a timer that calls the _maybe_run_prediction method every 2 seconds
-        self._planner_timer = self.create_timer(
-            1.0 / self._params.rate, self._planner_cb
+        self._initialization_watchdog = self.create_timer(
+            1.0 / self._params.rate, self._initialization_watchdog_cb
         )
 
         self._mpc_input_publisher_timer = self.create_timer(
@@ -282,15 +288,6 @@ class DeburringPathPlanner(Node):
     def _buffer_size_cb(self, msg: Int64) -> None:
         self._buffer_size = msg.data
 
-    def _target_handle_cb(self, msg: String) -> None:
-        if msg.data not in self._handles.keys():
-            self.get_logger().error(f"Invalid handle name '{msg.data}'")
-            return
-
-        self._target_handle_name = msg.data
-
-        self.get_logger().info(f"Received new goal handle point: {msg.data}")
-
     def _get_remapped_joints(self) -> npt.ArrayLike:
         joint_map = [
             self._joint_states.name.index(joint_name)
@@ -318,7 +315,7 @@ class DeburringPathPlanner(Node):
 
     def _insert_sequence_to_buffer(
         self, generator_name: str, q: npt.ArrayLike, T_taget: pin.SE3, T_init: pin.SE3
-    ) -> None:
+    ) -> int:
         generator = self._path_generators[generator_name]
         wp = self._trajectory_buffer[-1]
         point = wp.point
@@ -337,6 +334,7 @@ class DeburringPathPlanner(Node):
             )
             for i in range(gain_schedule_points)
         ]
+        trajectory_len = len(weighted_trajectory)
         self._trajectory_buffer.extend(weighted_trajectory)
 
         # Compute and insert actual trajectory
@@ -345,8 +343,10 @@ class DeburringPathPlanner(Node):
             WeightedTrajectoryPoint(point=p, weights=copy.copy(w2)) for p in trajectory
         ]
         self._trajectory_buffer.extend(weighted_trajectory)
+        trajectory_len += len(weighted_trajectory)
+        return trajectory_len
 
-    def _planner_cb(self) -> None:
+    def _initialization_watchdog_cb(self) -> None:
         self._update_params()
 
         for topic_name, object in (
@@ -485,13 +485,13 @@ class DeburringPathPlanner(Node):
                 self._params.deburred_object_frame_id,
                 rclpy.time.Time(),
             ).transform
-            T_pylone = pin.SE3(
+            self._T_pylone = pin.SE3(
                 pin.Quaternion(np.array([getattr(T_msg.rotation, v) for v in "xyzw"])),
                 np.array([getattr(T_msg.translation, v) for v in "xyz"]),
             )
             self._path_generators["follow_joint_trajectory"][
                 "generator"
-            ].update_deburred_object_pose(T_pylone)
+            ].update_deburred_object_pose(self._T_pylone)
         except TransformException:
             self.get_logger().info(
                 "Waiting for transformation between "
@@ -500,15 +500,38 @@ class DeburringPathPlanner(Node):
             )
             return
 
-        if self._target_handle_name is None:
+        self._node_initialized = True
+        self.get_logger().info("Node initialized.", once=True)
+
+        if len(self._trajectory_buffer) <= 1:
             self.get_logger().info(
-                f"Waiting for goal message on topic '{self._target_handle_sub.topic}'...",
+                "Waiting for goal to be set via action...",
                 throttle_duration_sec=5.0,
             )
             return
 
+    def _planner_cb(self, goal_handle) -> DeburringPlanner.Result:
+        if not self._node_initialized:
+            error_msg = "Unable to start planning. The node is not initialized yet!"
+            self.get_logger().error(error_msg)
+            return DeburringPlanner.Result(error_msg=error_msg)
+
+        self._update_params()
+
+        self.get_logger().warning(f"\n\n\n\n\n{goal_handle}\n\n\n")
+
+        if goal_handle.handle_name not in self._handles.keys():
+            error_msg = f"Invalid handle name '{goal_handle.handle_name}'"
+            self.get_logger().error(error_msg)
+            return DeburringPlanner.Result(error_msg=error_msg)
+        else:
+            self.get_logger().info(
+                f"Received new goal handle point: {goal_handle.handle_name}"
+            )
+
+        initial_trajectory_len = None
         try:
-            target_handle = T_pylone * self._handles[self._target_handle_name]
+            target_handle = self._T_pylone * self._handles[goal_handle.handle_name]
 
             robot_configuration = self._get_remapped_joints()
 
@@ -517,7 +540,7 @@ class DeburringPathPlanner(Node):
             if self._use_precomputed_trajectories:
                 trajectory_filename = (
                     self._trajectories_folder
-                    / f"{self._last_handle}_to_{self._target_handle_name}.pickle"
+                    / f"{self._last_handle}_to_{goal_handle.handle_name}.pickle"
                 )
                 compute_new_trajectory = (
                     self._last_handle == "none" or not trajectory_filename.is_file()
@@ -526,7 +549,7 @@ class DeburringPathPlanner(Node):
             if compute_new_trajectory:
                 trajectory = self._path_generators["follow_joint_trajectory"][
                     "generator"
-                ].get_path(robot_configuration, target_handle, self._target_handle_name)
+                ].get_path(robot_configuration, target_handle, goal_handle.handle_name)
                 if self._use_precomputed_trajectories and self._last_handle != "none":
                     self.get_logger().info(
                         f"Saving new trajectory: {trajectory_filename}"
@@ -583,28 +606,37 @@ class DeburringPathPlanner(Node):
 
             self._trajectory_buffer.clear()
             self._trajectory_buffer.extend(weighted_trajectory)
+            initial_trajectory_len = len(weighted_trajectory)
 
-            q = self._trajectory_buffer[-1].point.robot_configuration
-            T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
-                self._tool_frame_id_name
-            ]
+            if goal_handle.do_insertion:
+                q = self._trajectory_buffer[-1].point.robot_configuration
+                T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
+                    self._tool_frame_id_name
+                ]
 
-            # Insert into the hole
-            self._path_generators["insert_retract_tool"]["generator"].set_insert_mode()
-            self._insert_sequence_to_buffer(
-                "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
-            )
-            # Perform deburring
-            q = self._trajectory_buffer[-1].point.robot_configuration
-            self._insert_sequence_to_buffer(
-                "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
-            )
-            # Retract from the hole
-            self._path_generators["insert_retract_tool"]["generator"].set_retract_mode()
-            q = self._trajectory_buffer[-1].point.robot_configuration
-            self._insert_sequence_to_buffer(
-                "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
-            )
+                # Insert into the hole
+                self._path_generators["insert_retract_tool"][
+                    "generator"
+                ].set_insert_mode()
+                segment_len = self._insert_sequence_to_buffer(
+                    "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
+                )
+                initial_trajectory_len += segment_len
+                # Perform deburring
+                q = self._trajectory_buffer[-1].point.robot_configuration
+                segment_len = self._insert_sequence_to_buffer(
+                    "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
+                )
+                initial_trajectory_len += segment_len
+                # Retract from the hole
+                self._path_generators["insert_retract_tool"][
+                    "generator"
+                ].set_retract_mode()
+                q = self._trajectory_buffer[-1].point.robot_configuration
+                segment_len = self._insert_sequence_to_buffer(
+                    "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
+                )
+                initial_trajectory_len += segment_len
 
             # Publish visualization for the path
             if self._params.visualization.publish_path:
@@ -637,12 +669,22 @@ class DeburringPathPlanner(Node):
                 )
         except Exception as e:
             self._trajectory_buffer.clear()
-            self.get_logger().error(
-                f"Failed to plan a trajectory to a handle '{self._target_handle_name}'. "
-                f"Reason: {str(e)}"
+            error_msg = (
+                "Failed to plan a trajectory to a handle "
+                + f"'{goal_handle.handle_name}'. Reason: {str(e)}"
             )
-        self._last_handle = copy.copy(self._target_handle_name)
-        self._target_handle_name = None
+            self.get_logger().error(error_msg)
+            return DeburringPlanner.Result(error_msg=error_msg)
+
+        feedback_msg = DeburringPlanner.Feedback()
+        while rclpy.ok() and len(self._trajectory_buffer) > 1:
+            feedback_msg.progress = 1.0 - (
+                len(self._trajectory_buffer) / initial_trajectory_len
+            )
+            goal_handle.publish_feedback(feedback_msg)
+
+        goal_handle.succeed()
+        return DeburringPlanner.Result()
 
     def _publish_mpc_input_cb(self) -> None:
         # Skip if buffer is empty
@@ -683,9 +725,11 @@ def main(args=None):
     rclpy.init()
     try:
         diffusion_warmstart_node = DeburringPathPlanner()
-        rclpy.spin(diffusion_warmstart_node)
+        executor = MultiThreadedExecutor(num_threads=4)
+        executor.add_node(diffusion_warmstart_node)
+        executor.spin()
         diffusion_warmstart_node.destroy_node()
-    except (KeyboardInterrupt, ParameterException):
+    except (KeyboardInterrupt, ParameterException, ExternalShutdownException):
         pass
     rclpy.try_shutdown()
 
