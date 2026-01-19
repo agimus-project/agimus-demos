@@ -562,86 +562,97 @@ class DeburringPathPlanner(Node):
 
         self.get_logger().info(f"Received new goal handle point: {handle_name}")
 
+        feedback_msg = DeburringPlanner.Feedback()
+        feedback_msg.progress = 0.0
+        feedback_msg.planing = True
+        goal_handle.publish_feedback(feedback_msg)
+
         initial_trajectory_len = None
         self._waiting_for_planner = True
         try:
-            target_handle = self._T_pylone * self._handles[handle_name]
-
-            robot_configuration = self._get_remapped_joints()
-
-            trajectory_filename = None
-            compute_new_trajectory = True
-            if self._use_precomputed_trajectories:
-                trajectory_filename = (
-                    self._trajectories_folder
-                    / f"{self._last_handle}_to_{handle_name}.pickle"
-                )
-                compute_new_trajectory = (
-                    self._last_handle == "none" or not trajectory_filename.is_file()
-                )
-
-            if compute_new_trajectory:
-                trajectory = self._path_generators["follow_joint_trajectory"][
-                    "generator"
-                ].get_path(robot_configuration, target_handle, handle_name)
-                if self._use_precomputed_trajectories and self._last_handle != "none":
-                    self.get_logger().info(
-                        f"Saving new trajectory: {trajectory_filename}"
-                    )
-                    with open(trajectory_filename, "wb") as handle:
-                        pickle.dump(
-                            trajectory, handle, protocol=pickle.HIGHEST_PROTOCOL
-                        )
-            else:
-                self.get_logger().info(
-                    f"Loading trajectory from a file: {trajectory_filename}"
-                )
-                with open(trajectory_filename, "rb") as handle:
-                    trajectory = pickle.load(handle)
-
-            # Update joint configuration after planning
-            robot_configuration = self._get_remapped_joints()
-            # Interpolate joint configuration between where robot is and
-            # where the trajectory starts to avoid abrupt motion
-            q0 = trajectory[0].robot_configuration
-            dt = self._params.ocp_dt
-            # Compute scaling for each joint
-            trajectory_vel = np.abs(q0 - robot_configuration)
-            joint_lim = np.asarray(self._params.max_joint_velocity)
-            velocity_scale = trajectory_vel / joint_lim
-            # Compute minimum number of interpolation steps
-            n_interp = np.ceil(velocity_scale / dt)
-            # Multiply by two just to make sure it is slow enough
-            n_interp = int(np.max(np.append(n_interp, 2)) * 2.5)
-
-            interpolated = np.zeros((n_interp, self._nq))
-            # Perform linear interpolation between configurations
-            for i in range(self._nq):
-                interpolated[:, i] = np.linspace(
-                    robot_configuration[i], q0[i], n_interp
-                )
-
-            interpolated = [
-                self._create_trajectory_point(i, interpolated[i, :])
-                for i in range(n_interp)
-            ]
-
-            trajectory = interpolated + trajectory
-
-            weighted_trajectory = [
-                WeightedTrajectoryPoint(
-                    point=p,
-                    weights=copy.copy(
-                        self._path_generators["follow_joint_trajectory"]["weights"]
-                    ),
-                )
-                for p in trajectory
-            ]
-
             with self._trajectory_buffer_lock:
                 self._trajectory_buffer.clear()
-                self._trajectory_buffer.extend(weighted_trajectory)
-                initial_trajectory_len = len(weighted_trajectory)
+
+            if goal_handle.request.do_insertion:
+                target_handle = self._T_pylone * self._handles[handle_name]
+
+                robot_configuration = self._get_remapped_joints()
+
+                trajectory_filename = None
+                compute_new_trajectory = True
+                if self._use_precomputed_trajectories:
+                    trajectory_filename = (
+                        self._trajectories_folder
+                        / f"{self._last_handle}_to_{handle_name}.pickle"
+                    )
+                    compute_new_trajectory = (
+                        self._last_handle == "none" or not trajectory_filename.is_file()
+                    )
+
+                if compute_new_trajectory:
+                    trajectory = self._path_generators["follow_joint_trajectory"][
+                        "generator"
+                    ].get_path(robot_configuration, target_handle, handle_name)
+                    if (
+                        self._use_precomputed_trajectories
+                        and self._last_handle != "none"
+                    ):
+                        self.get_logger().info(
+                            f"Saving new trajectory: {trajectory_filename}"
+                        )
+                        with open(trajectory_filename, "wb") as handle:
+                            pickle.dump(
+                                trajectory, handle, protocol=pickle.HIGHEST_PROTOCOL
+                            )
+                else:
+                    self.get_logger().info(
+                        f"Loading trajectory from a file: {trajectory_filename}"
+                    )
+                    with open(trajectory_filename, "rb") as handle:
+                        trajectory = pickle.load(handle)
+
+                # Update joint configuration after planning
+                robot_configuration = self._get_remapped_joints()
+                # Interpolate joint configuration between where robot is and
+                # where the trajectory starts to avoid abrupt motion
+                q0 = trajectory[0].robot_configuration
+                dt = self._params.ocp_dt
+                # Compute scaling for each joint
+                trajectory_vel = np.abs(q0 - robot_configuration)
+                joint_lim = np.asarray(self._params.max_joint_velocity)
+                velocity_scale = trajectory_vel / joint_lim
+                # Compute minimum number of interpolation steps
+                n_interp = np.ceil(velocity_scale / dt)
+                # Multiply by two just to make sure it is slow enough
+                n_interp = int(np.max(np.append(n_interp, 2)) * 2.5)
+
+                interpolated = np.zeros((n_interp, self._nq))
+                # Perform linear interpolation between configurations
+                for i in range(self._nq):
+                    interpolated[:, i] = np.linspace(
+                        robot_configuration[i], q0[i], n_interp
+                    )
+
+                interpolated = [
+                    self._create_trajectory_point(i, interpolated[i, :])
+                    for i in range(n_interp)
+                ]
+
+                trajectory = interpolated + trajectory
+
+                weighted_trajectory = [
+                    WeightedTrajectoryPoint(
+                        point=p,
+                        weights=copy.copy(
+                            self._path_generators["follow_joint_trajectory"]["weights"]
+                        ),
+                    )
+                    for p in trajectory
+                ]
+
+                with self._trajectory_buffer_lock:
+                    self._trajectory_buffer.extend(weighted_trajectory)
+                    initial_trajectory_len = len(weighted_trajectory)
 
             if goal_handle.request.do_insertion:
                 with self._trajectory_buffer_lock:
@@ -675,6 +686,9 @@ class DeburringPathPlanner(Node):
                     "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
                 )
                 initial_trajectory_len += segment_len
+
+            feedback_msg.planing = False
+            goal_handle.publish_feedback(feedback_msg)
 
             # Publish visualization for the path
             if self._params.visualization.publish_path:
@@ -721,8 +735,6 @@ class DeburringPathPlanner(Node):
             return result
 
         self._waiting_for_planner = False
-
-        feedback_msg = DeburringPlanner.Feedback()
         while rclpy.ok() and self._buffer_len > 1:
             feedback_msg.progress = 1.0 - (
                 len(self._trajectory_buffer) / initial_trajectory_len
