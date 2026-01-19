@@ -197,7 +197,7 @@ class DeburringPathPlanner(Node):
         self._action_server = ActionServer(
             self,
             DeburringPlanner,
-            "/plan_deburring",
+            "~/plan_deburring",
             execute_callback=self._planner_cb,
             goal_callback=self._goal_callback,
             cancel_callback=self._cancel_callback,
@@ -571,11 +571,18 @@ class DeburringPathPlanner(Node):
         self._waiting_for_planner = True
         try:
             with self._trajectory_buffer_lock:
-                self._trajectory_buffer.clear()
+                has_elements = len(self._trajectory_buffer) >= 1
+                if has_elements:
+                    wp = copy.deepcopy(self._trajectory_buffer[0])
+                    self._trajectory_buffer.clear()
+                    self._trajectory_buffer.append(wp)
+                else:
+                    self._trajectory_buffer.clear()
 
-            if goal_handle.request.do_insertion:
-                target_handle = self._T_pylone * self._handles[handle_name]
+            target_handle = self._T_pylone * self._handles[handle_name]
+            initial_trajectory_len = 0
 
+            if goal_handle.request.do_plan:
                 robot_configuration = self._get_remapped_joints()
 
                 trajectory_filename = None
@@ -652,11 +659,14 @@ class DeburringPathPlanner(Node):
 
                 with self._trajectory_buffer_lock:
                     self._trajectory_buffer.extend(weighted_trajectory)
-                    initial_trajectory_len = len(weighted_trajectory)
+                    initial_trajectory_len += len(weighted_trajectory)
 
             if goal_handle.request.do_insertion:
-                with self._trajectory_buffer_lock:
-                    q = self._trajectory_buffer[-1].point.robot_configuration
+                if goal_handle.request.do_plan:
+                    with self._trajectory_buffer_lock:
+                        q = self._trajectory_buffer[-1].point.robot_configuration
+                else:
+                    q = self._get_remapped_joints()
                 T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
                     self._tool_frame_id_name
                 ]
@@ -731,16 +741,19 @@ class DeburringPathPlanner(Node):
             )
             self.get_logger().error(error_msg)
             result = DeburringPlanner.Result()
-            result.error_msgs = error_msg
+            result.error_msg = error_msg
             return result
 
         self._waiting_for_planner = False
-        while rclpy.ok() and self._buffer_len > 1:
+        buffer_len = len(self._trajectory_buffer)
+        while rclpy.ok() and buffer_len > 1:
             feedback_msg.progress = 1.0 - (
                 len(self._trajectory_buffer) / initial_trajectory_len
             )
             goal_handle.publish_feedback(feedback_msg)
             time.sleep(0.1)
+            with self._trajectory_buffer_lock:
+                buffer_len = len(self._trajectory_buffer)
 
         goal_handle.succeed()
         return DeburringPlanner.Result()

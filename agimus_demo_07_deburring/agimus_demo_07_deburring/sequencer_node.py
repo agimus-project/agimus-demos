@@ -46,11 +46,11 @@ class SequencerNode(Node):
         if use_vision:
             self._detect_pylone_pose_cli = self.create_client(
                 Trigger,
-                "/detect",
+                "/bigpose_ros/detect",
             )
             self._refine_pylone_pose_cli = self.create_client(
                 GetTransformStamped,
-                "/refine",
+                "/bigpose_ros/refine",
             )
 
         self._progress_bar: tqdm | None = None
@@ -86,7 +86,7 @@ class SequencerNode(Node):
         if not ready:
             raise RuntimeError(f"Service {service_client.srv_name} is not ready!")
 
-        future = self._set_param_cli.call_async(request)
+        future = service_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
         return future.result()
 
@@ -101,7 +101,7 @@ class SequencerNode(Node):
         """
         for _ in range(retires):
             res = self._call_service_client(
-                self._set_param_cli, GetTransformStamped.Request()
+                self._refine_pylone_pose_cli, GetTransformStamped.Request()
             )
             if res.success:
                 break
@@ -115,7 +115,7 @@ class SequencerNode(Node):
         Raises:
             RuntimeError: Service server is not reachable.
         """
-        self._call_service_client(self._set_param_cli, Trigger.Request())
+        self._call_service_client(self._detect_pylone_pose_cli, Trigger.Request())
 
     def set_weights_value(self, value: list[float]) -> None:
         """Sets parameter `weights.deburring_motion.w_desired_force` of external
@@ -226,6 +226,10 @@ class SequencerNode(Node):
         self._is_planning = currently_planning
 
 
+def check_for_yes(prompt) -> bool:
+    return input(prompt + " [Y/n]: ").lower() == "n"
+
+
 def main(args=None) -> int:
     if args is None:
         args = sys.argv
@@ -260,7 +264,7 @@ def main(args=None) -> int:
         weighted_handles = [
             ([0.000009, 0.000009, 0.000009], "hole_left_31", True),
             ([0.000006, 0.000006, 0.000006], "hole_left_16", True),
-            ([0.0000045, 0.0000045, 0.0000045], "hole_left_inside_43", False),
+            ([0.0000045, 0.0000045, 0.0000045], "hole_left_inside_43", True),
             ([0.000007, 0.000007, 0.000007], "hole_left_12", True),
         ]
     else:
@@ -277,25 +281,28 @@ def main(args=None) -> int:
     try:
         sequencer_node = SequencerNode(use_vision)
 
-        if use_vision:
-            input("Press enter to detect pylone")
+        if use_vision and not check_for_yes("Do you want to detect the object?"):
             sequencer_node.detect_pylone_pose()
             sequencer_node.refine_pylone_pose()
 
         for weight, handle_name, refine in weighted_handles:
-            if (
-                input(
-                    f"Next handle is '{handle_name}'. Do you want to execute this hole? [Y/n]: "
-                ).lower()
-                == "n"
-            ):
+            prompt = (
+                f"Next handle is '{handle_name}'. Do you want to execute this hole?"
+            )
+            if check_for_yes(prompt):
                 continue
             try:
-                # sequencer_node.set_weights_value(weight)
+                sequencer_node.set_weights_value(weight)
                 if refine and use_vision:
                     sequencer_node.plan_to_handle(handle_name, True, False)
-                    sequencer_node.refine_pylone_pose()
-                sequencer_node.plan_to_handle(handle_name, True, False)
+                    if refine:
+                        input("Press enter to refine.")
+                        sequencer_node.refine_pylone_pose()
+                        while check_for_yes("Is refinement acceptable?"):
+                            sequencer_node.refine_pylone_pose()
+                    sequencer_node.plan_to_handle(handle_name, False, True)
+                else:
+                    sequencer_node.plan_to_handle(handle_name, True, True)
             except RuntimeError as err:
                 print(f"Error. {str(err)}. Skipping the handle!")
 
