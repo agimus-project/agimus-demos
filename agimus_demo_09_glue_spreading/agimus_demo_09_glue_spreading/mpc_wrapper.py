@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 from copy import deepcopy
 import time
+from line_profiler import profile
 
 
 class AligatorMPC(Node):
@@ -51,6 +52,34 @@ class AligatorMPC(Node):
         self.first_mpc_iteration = True
         self.feedback_gain_scaling = 1.0
 
+        # MPC configuration ========================================================
+        self.get_logger().info('Aligator MPC starting...')
+        self.declare_parameter('config',"clearly a wrong value!!")
+        config_path = self.get_parameter('config').value
+
+        self.get_logger().info(config_path)
+        self.mpc_parameters = Params(Path(config_path))
+
+        # Waypoints ================================================================
+        patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
+        mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
+        
+        test_trajs = TestTrajs()
+        # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
+        # end =  pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,np.pi/2), np.array([0.5, 0.2, 0.2]))
+        # mpc_waypoints = [start, end]
+
+        startsin = [0.3, -0., 0.2]
+        mpc_waypoints = test_trajs.sine(start_point=startsin,length=0.3,period=0.03,amplitude=0.15, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
+
+        self.waypoints_marker_msg = Marker() #self.waypoints_to_marker(mpc_waypoints)
+        
+        # Solver setup ============================================================
+        self.robot_state = None
+        self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
+        self.first_mpc_iteration = True
+        self.feedback_gain = 1e-2
+
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
         self.base_control_msg = self.build_base_control_msg()
@@ -76,6 +105,7 @@ class AligatorMPC(Node):
 
         self.get_logger().info('End of Setup')
 
+    # @profile
     def publish_control_callback(self):
         """Iterates the MPC
         \n Publishes the feedforward and feedback gains on topic `/Control`
