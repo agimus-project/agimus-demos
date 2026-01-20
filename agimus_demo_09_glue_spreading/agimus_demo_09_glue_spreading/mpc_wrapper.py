@@ -5,10 +5,12 @@ from rclpy.time import Time
 from std_srvs.srv import Trigger
 from linear_feedback_controller_msgs.msg import Control, Sensor
 from sensor_msgs.msg import JointState
-from std_msgs.msg import MultiArrayDimension, ColorRGBA
+from std_msgs.msg import MultiArrayDimension, ColorRGBA, Float32
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 from rclpy.qos import ReliabilityPolicy, DurabilityPolicy, HistoryPolicy, QoSProfile
+from rclpy.duration import Duration
+import pinocchio as pin
 from pathlib import Path
 import numpy as np
 import sys
@@ -16,16 +18,47 @@ import aligator
 
 # !! ===debug===
 import time
+from line_profiler import profile
 
 
 class AligatorMPC(Node):
     def __init__(self):
         super().__init__('aligator_mpc')
 
+        # MPC configuration ========================================================
+        self.get_logger().info('Aligator MPC starting...')
+        self.declare_parameter('config',"clearly a wrong value!!")
+        config_path = self.get_parameter('config').value
+
+        self.get_logger().info(config_path)
+        self.mpc_parameters = Params(Path(config_path))
+
+        # Waypoints ================================================================
+        patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
+        mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
+        
+        test_trajs = TestTrajs()
+        # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
+        # end =  pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,np.pi/2), np.array([0.5, 0.2, 0.2]))
+        # mpc_waypoints = [start, end]
+
+        startsin = [0.3, -0., 0.2]
+        mpc_waypoints = test_trajs.sine(start_point=startsin,length=0.3,period=0.03,amplitude=0.15, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
+
+        self.waypoints_marker_msg = Marker() #self.waypoints_to_marker(mpc_waypoints)
+        
+        # Solver setup ============================================================
+        self.robot_state = None
+        self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
+        self.first_mpc_iteration = True
+        self.feedback_gain = 1e-2
+
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
         self.mpc_pred_publisher = self.create_publisher(Marker, "mpc_prediction_endeffector",10)
         self.mpc_waypoints_publisher = self.create_publisher(Marker, "mpc_waypoints", 10)
+        self.mpc_time_publisher = self.create_publisher(Float32, "mpc_time",10)
+        self.mpc_warmstart_publisher = self.create_publisher(JointState, "mpc_warmstart", 10)
 
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -37,106 +70,36 @@ class AligatorMPC(Node):
         self.launch_srv = self.create_service(Trigger, 'aligator_mpc/launch_mpc', self.launch_mpc_callback)
         self.mpc_started = False
 
-        self.get_logger().info('Aligator MPC starting...')
-        self.declare_parameter('config',"clearly a wrong value!!")
-        config_path = self.get_parameter('config').value
-
-        self.get_logger().info(config_path)
-        mpc_parameters = Params(Path(config_path))        
-
-        # Waypoints ================================================================
-        # patternGen = PatternGenerator([0.5,0.5,0], (0.6,0,0.3))
-        # mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
-        
-        test_trajs = TestTrajs()
-        start = [0.2, 0.1, 0.4]
-        end = [0.2, 1, 0.4]
-        # mpc_waypoints = test_trajs.line(start, end)
-        mpc_waypoints = test_trajs.sine(start_point=start,length=1,period=0.05,amplitude=0.1, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
-
-        # Solver setup =============================================================
-        #! DEBUG: check correctness of mpc setup
-        # self.get_logger().info(str(parameters))
-        # self.get_logger().info(str(positions))
-
-        self.robot_state = None
-        self.mpc = MPC(mpc_waypoints, mpc_parameters)
-        self.first_mpc_iteration = True
-
-        # Timestamps ===============================================================
-        self.last_timestamp = Time(seconds=0, nanoseconds=0)
-        timer_period = 0.01 # mpc_parameters.dt
-        
-        self.ctrl_timer = self.create_timer(timer_period, self.publish_control_callback)
+        # Publisher timers ===============================================================
+        ctrl_timer_period = self.mpc_parameters.dt
+        ctrl_timer = self.create_timer(ctrl_timer_period, self.publish_control_callback)
+        waypoints_timer_period = 0.1
+        waypoints_timer = self.create_timer(waypoints_timer_period,self.publish_waypoints_callback)
 
         self.get_logger().info('End of Setup')
 
+    # @profile
     def publish_control_callback(self):
-            
-
+            start = time.time()
             if self.mpc_started:
                 
-                
-                if self.first_mpc_iteration:
-                    self.first_mpc_iteration = False
-                    self.mpc.initStages() # once the start pose is set the stages must be computed during before the first solver iteration
-                    
-                start = time.time()
-                time_mpc = self.mpc.iterate(self.robot_state)
-                # self.get_logger().info(f'mpc dt: {(1/time_mpc)}')
-                
+                time_mpc = self.mpc.iterate(self.robot_state, self.last_effort_meas)
+                # self.get_logger().info(f'mpc time: {(time_mpc)}')
 
-                #!!! ============================================================= debug
-                if False:
-                    xs_0 = self.mpc.results.xs.tolist()[0]
-                    state = np.array([i for i in xs_0[:self.mpc.n_q]])
-                    # self.get_logger().info(f'xs[0]:  {(xs_0)}')
-                    # self.get_logger().info(f'MPC state: {(state)}')
-                    mpc_endpoint = self.mpc.get_endpoint(state)
-                    robot_endpoint = self.mpc.get_endpoint(self.robot_state[:self.mpc.n_q])
-                    delta_endpoints = np.subtract(mpc_endpoint,robot_endpoint)
-                    # self.get_logger().info(f'Robot endpoint:  {(robot_endpoint)}')
-                    # self.get_logger().info(f'MPC endpoint:    {(mpc_endpoint)}')
-                    # self.get_logger().info(f'Delta endpoints: {(delta_endpoints)}\n')
-                #! ================================================================
-
+                stage_index_to_send = 0
+                 
+                command = [v for v in self.mpc.results.us.tolist()[stage_index_to_send]]
+                # command = command[:-2]
                 
-                command = [v for v in self.mpc.results.us.tolist()[0]]
-                # self.get_logger().info(f'MPC command: {command}')
-
-                raw_feedback_gains = self.mpc.results.controlFeedbacks().tolist()[0]
+                raw_feedback_gains = self.mpc.results.controlFeedbacks().tolist()[stage_index_to_send]
                 feedback_gains = self.flatten_feedback_gains(raw_feedback_gains)
                 # self.get_logger().info(f'feddb gains: {(feedback_gains)}')
-
 
                 #! ================== debug  predicted ee traj ==============
                 if True:
                     xs_array = self.mpc.results.xs.tolist()
                     marker_array_msg = self.xs_to_marker(xs_array)
                     self.mpc_pred_publisher.publish(marker_array_msg)
-
-                if False:
-                    x_desired = self.mpc.results.xs.tolist()[0]
-                    q_desired = [float(v) for v in x_desired[:self.mpc.n_q-2]] # convert numpy float to regular python float
-                    self.debug_vizer.updatePose( x_desired[:self.mpc.n_q])
-                    self.get_logger().info(f'q robot : {self.robot_state[:self.mpc.n_q-2]}')
-                    self.get_logger().info(f'q desired: {(q_desired)}\n')
-
-                    # v_desired = [float(v) for v in x_desired[self.mpc.n_q:-2]]
-                    
-                    # xs_no_ee[0][self.mpc.n_q - 1] = 0
-                    # xs_no_ee[0][self.mpc.n_q - 2] = 0
-
-                    # self.get_logger().info(f'type qs {type([float(v) for v in (q_desired)][0])}')
-                    # self.get_logger().info(f'size of res us: {len(self.mpc.results.us.tolist())}')
-
-                    # # publish to control
-                    # self.get_logger().info(f'command: {command}')
-                    # self.get_logger().info(f'ctrl feedback: {(feedback_gain)}') # list of riccatti gains tied to 
-                #! ==========================================================
-                if False:
-                    x_desired = self.mpc.results.xs.tolist()[0]
-                    self.debug_vizer.updatePose(self.robot_state[:self.mpc.n_q]) #x_desired[:self.mpc.n_q])
 
                 control_msg = Control()
                 dim_rows_ffw = MultiArrayDimension()
@@ -149,7 +112,7 @@ class AligatorMPC(Node):
                 dim_cols_ffw.size = 1
                 dim_cols_ffw.stride = 1
                 control_msg.feedforward.layout.dim.append(dim_cols_ffw)
-                control_msg.feedforward.data = [i*1 for i in command[:-2]] 
+                control_msg.feedforward.data = [i*1 for i in command] 
 
                 dim_rows_fb = MultiArrayDimension()
                 dim_rows_fb.label = "rows"
@@ -161,58 +124,69 @@ class AligatorMPC(Node):
                 dim_cols_fb.size = 14
                 dim_cols_fb.stride = 14
                 control_msg.feedback_gain.layout.dim.append(dim_cols_fb)
-                control_msg.feedback_gain.data = [i*1 for i in feedback_gains]
+                #!!================================= 
+                id_gains = np.identity(7)
+                id_gains = np.hstack((id_gains, id_gains))
+                id_gains = id_gains.flatten().tolist()
+                control_msg.feedback_gain.data =   [i*self.feedback_gain for i in feedback_gains] 
+                # control_msg.feedback_gain.data = id_gains
 
                 sensor_msg = Sensor()
-                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[0]]
+                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[stage_index_to_send]]
                 joint_state_msg = JointState()
                 joint_state_msg.name = self.last_sensor_msg.joint_state.name
-                joint_state_msg.position = x_desired[:self.mpc.n_q-2]
-                joint_state_msg.velocity = x_desired[self.mpc.n_q:-2]
+                joint_state_msg.position = x_desired[:self.mpc.n_q]
+                joint_state_msg.velocity = x_desired[self.mpc.n_q:]
                 sensor_msg.joint_state = joint_state_msg
 
-                control_msg.initial_state = sensor_msg # self.last_sensor_msg # 
+                control_msg.initial_state =   sensor_msg # self.last_sensor_msg #
 
                 self.control_publisher.publish(control_msg)
-                end = time.time()
-                self.get_logger().info(f' duree control {(end - start)}')
-                # sys.exit()
+                stop = time.time()
+                delta_t = Float32()
+                delta_t.data = stop - start
+                if (stop - start) > self.mpc_parameters.dt:
+                    self.get_logger().warning(f"MPC OVERRUN ({stop-start})")
+                self.mpc_time_publisher.publish(delta_t)
+
+
+    def publish_waypoints_callback(self):
+        self.mpc_waypoints_publisher.publish(self.waypoints_marker_msg)
 
     def sensor_callback(self, msg):
         self.last_sensor_msg = msg
 
         # Get robot state =========================================================
         position = list(msg.joint_state.position)
-        position = np.array(position + [0.0, 0.0])
+        # position = np.array(position  + [0.,0.])
+        position = np.array(position)
 
 
         velocity = list(msg.joint_state.velocity)
-        velocity = np.array(velocity + [0.0, 0.0])
+        # velocity = np.array(velocity  + [0.,0.])
+        velocity = np.array(velocity)
 
-        # ==========================
-        # position = np.array([-np.pi/2, -1, 0, -2.5, 0.0, 2, 0.0, 0.0, 0.0])
-        # velocity = np.array([0.0, 0, 0, 0, 0.0, 0, 0.0, 0.0, 0.0])
-        # ==========================
+        self.last_effort_meas = list(msg.joint_state.effort)
+        # self.last_effort_meas = np.array(self.last_effort_meas + [0.,0.])
+        self.last_effort_meas = np.array(self.last_effort_meas)
 
         self.robot_state = np.concatenate((position, velocity))
-        self.mpc.setStartPose(self.robot_state[:self.mpc.n_q]) # update pinocchio model
-        
-        #!=================================== debug
-        if False:
-            # self.get_logger().info(f'Sensor message:: {str(msg)}')
-            # self.get_logger().info(f'position:: {str(position)}') 
-            # robot_endpoint = self.mpc.get_endpoint(position)
-            # self.get_logger().info(f'Robot state endpoint: {(robot_endpoint)}')
+        self.mpc.setStartPose(position) # update pinocchio model
+        if self.first_mpc_iteration:
+            self.first_mpc_iteration = False
 
-            self.get_logger().info(f'Robot state: {(self.robot_state)}')
+            self.mpc.initStages() # once the start pose is set the stages must be computed before the first solver iteration
+            mpc_traj = self.mpc.stage_factory.getFullTrajectory_pt_by_pt()
+            # self.get_logger().info(f' mpc traj : {mpc_traj}')
+            self.waypoints_marker_msg = self.waypoints_to_marker(mpc_traj)
+                    
 
-        if False:
-            self.debug_vizer.updatePose(self.robot_state[:self.mpc.n_q])
+        # TODO check joints limits
+
         
     def launch_mpc_callback(self, request, response):
         self.mpc_started = True
         response.success = True # TODO : add checks to see if ready to launch
-        self.ctrl_timer.reset()
         response.message = "MPC launched"
         self.get_logger().info('Aligator MPC launched')
 
@@ -235,8 +209,6 @@ class AligatorMPC(Node):
         marker.header.frame_id = "fer_link0";
         marker.type = Marker.LINE_STRIP;
         marker.scale.x = 0.01;
-
-
         nb_points = len(xs_table)
         color_gradient = np.linspace(0.0, 1.0, nb_points)
 
@@ -254,7 +226,6 @@ class AligatorMPC(Node):
             color.g = 0.
             color.b = color_gradient[-id]
             color.a = 1.0
-
 
             points_list.append(point)
             color_list.append(color)
@@ -274,19 +245,41 @@ class AligatorMPC(Node):
         """
         # flatten the gains from a (rows, cols) 2D format to flat list of [row1 row2 row3]
         feedback_gains = []
-        for gains in raw_feedback_gains[:-2]:
+        for gains in raw_feedback_gains:
             # self.get_logger().info(f'feddb gains: {(gains)}')
             gains = [float(k)for k in gains] # convert values to float 
             # self.get_logger().info(f'feddb gains: {type(gains)}')
-            gains = gains[:self.mpc.n_q-2] + gains[self.mpc.n_q:-2] # remove gripper gains on q and on vs
+            # gains = gains[:self.mpc.n_q] + gains[self.mpc.n_q:] # remove gripper gains on q and on vs
 
             feedback_gains = feedback_gains + gains # add gains list at the end of the master list
 
         return feedback_gains
 
     def waypoints_to_marker(self, waypoints):
-        pass
-    #TODO
+
+        points_list = []
+        marker = Marker()
+        marker.header.frame_id = "fer_link0";
+        marker.type = Marker.LINE_STRIP;
+        marker.scale.x = 0.01;
+        marker.lifetime = Duration().to_msg()
+        color = ColorRGBA()
+        color.r = 0.5
+        color.g = 1.
+        color.b = 0.
+        color.a = 0.3
+        
+        for waypoint in waypoints:
+            point = Point()
+            point.x = waypoint[0]
+            point.y = waypoint[1]
+            point.z = waypoint[2]
+            points_list.append(point)
+        
+        marker.points = points_list
+        marker.color = color
+
+        return marker
 
 def main(args=None):
     rclpy.init(args=args)

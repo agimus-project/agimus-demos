@@ -159,7 +159,7 @@ def launch_setup(
         #         target_action=wait_for_non_zero_joints_node,
         #         on_exit=[
         #             # agimus_controller_node,
-        #             # obstacle_pose_publisher_node,
+        #             # obstacle_posstart_posee_publisher_node,
         #         ],
         #     )
         # ),
