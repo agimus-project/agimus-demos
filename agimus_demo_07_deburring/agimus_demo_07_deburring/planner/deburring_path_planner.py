@@ -82,6 +82,7 @@ class DeburringPathPlanner(Node):
         self._environment_description: str | None = None
         self._T_pylone: pin.SE3 | None = None
         self._buffer_len: int | None = None
+        self._last_handle = "none"
         # Rotation used as a conversion between TCP coordinates and HPP handles
         self._R_insert = pin.SE3(
             pin.rpy.rpyToMatrix(np.array(self._params.hpp_handle_to_ee_rot)),
@@ -212,8 +213,6 @@ class DeburringPathPlanner(Node):
         self._mpc_input_publisher_timer = self.create_timer(
             self._params.ocp_dt * 10.0, self._publish_mpc_input_cb
         )
-
-        self._last_handle = "none"
 
         self.get_logger().info("Node initialized!")
 
@@ -754,6 +753,8 @@ class DeburringPathPlanner(Node):
             time.sleep(0.1)
             with self._trajectory_buffer_lock:
                 buffer_len = len(self._trajectory_buffer)
+
+        self._last_handle = handle_name
 
         goal_handle.succeed()
         return DeburringPlanner.Result()
