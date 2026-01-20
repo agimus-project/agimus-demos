@@ -915,7 +915,7 @@
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
-	<handle name="hole_left_inside_43" clearance="0.05">
+	<handle name="hole_left_inside_43" clearance="0.04">
 		<position xyz="0.119 0.192 -0.0975" xyzw="0.707 0.707 -0.000 0.000"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
