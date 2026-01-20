@@ -1131,7 +1131,7 @@
 		<mask>1 1 1 0 1 1</mask>
 	</handle>
 	<handle name="hole_back_right_2" clearance="0.05">
-		<position xyz="-0.165 -0.150 -0.156" xyzw="0.000 0.044 0.000 0.999"/>
+		<position xyz="-0.165 -0.152 -0.160" xyzw="0.000 0.044 0.000 0.999"/>
 		<link name="pylone_link"/>
 		<mask>1 1 1 0 1 1</mask>
 	</handle>

@@ -260,32 +260,32 @@ def main(args=None) -> int:
         return 1
 
     if "metal" in args:
-        # Order of values is: (force weights, handle name)
+        # Order of values is: (force weights, handle name, whether or not refine the pose)
         weighted_handles = [
-            ([0.000009, 0.000009, 0.000009], "hole_left_31"),
-            ([0.000006, 0.000006, 0.000006], "hole_left_16"),
-            ([0.0000045, 0.0000045, 0.0000045], "hole_left_inside_43"),
-            ([0.000007, 0.000007, 0.000007], "hole_left_12"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_31", True),
+            ([0.000006, 0.000006, 0.000006], "hole_left_16", True),
+            ([0.0000045, 0.0000045, 0.0000045], "hole_left_inside_43", True),
+            ([0.000007, 0.000007, 0.000007], "hole_left_12", True),
         ]
     else:
         weighted_handles = [
-            ([0.000009, 0.000009, 0.000009], "hole_left_41"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_01"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_04"),
-            ([0.000002, 0.000002, 0.000002], "hole_back_left_4"),
-            ([0.000002, 0.000002, 0.000002], "hole_back_right_2"),
-            ([0.000009, 0.000009, 0.000009], "hole_left_inside_33"),
-            ([0.0000015, 0.0000015, 0.0000015], "hole_back_left_8"),
+            ([0.000009, 0.000009, 0.000009], "hole_left_41", True),
+            ([0.000009, 0.000009, 0.000009], "hole_left_01", True),
+            ([0.000009, 0.000009, 0.000009], "hole_left_04", True),
+            ([0.000002, 0.000002, 0.000002], "hole_back_left_4", True),
+            ([0.000002, 0.000002, 0.000002], "hole_back_right_2", False),
+            ([0.000009, 0.000009, 0.000009], "hole_left_inside_33", True),
+            ([0.0000015, 0.0000015, 0.0000015], "hole_back_left_8", True),
         ]
 
     try:
         sequencer_node = SequencerNode(use_vision)
 
-        # if use_vision and check_for_yes("Do you want to detect the object?"):
-        #     sequencer_node.detect_pylone_pose()
-        #     sequencer_node.refine_pylone_pose()
+        if use_vision and check_for_yes("Do you want to detect the object?"):
+            sequencer_node.detect_pylone_pose()
+            sequencer_node.refine_pylone_pose()
 
-        for weight, handle_name in weighted_handles:
+        for weight, handle_name, refine in weighted_handles:
             prompt = (
                 f"Next handle is '{handle_name}'. Do you want to execute this hole?"
             )
@@ -293,12 +293,13 @@ def main(args=None) -> int:
                 continue
             try:
                 sequencer_node.set_weights_value(weight)
-                if use_vision:
+                if refine and use_vision:
                     sequencer_node.plan_to_handle(handle_name, True, False)
-                    input("Press enter to refine.")
-                    #     sequencer_node.refine_pylone_pose()
-                    #     while not check_for_yes("Is refinement acceptable?"):
-                    #         sequencer_node.refine_pylone_pose()
+                    if refine:
+                        input("Press enter to refine.")
+                        sequencer_node.refine_pylone_pose()
+                        while not check_for_yes("Is refinement acceptable?"):
+                            sequencer_node.refine_pylone_pose()
                     sequencer_node.plan_to_handle(handle_name, False, True)
                 else:
                     sequencer_node.plan_to_handle(handle_name, True, True)
