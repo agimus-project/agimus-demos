@@ -227,7 +227,7 @@ class SequencerNode(Node):
 
 
 def check_for_yes(prompt) -> bool:
-    return input(prompt + " [Y/n]: ").lower() == "n"
+    return input(prompt + " [Y/n]: ").lower() != "n"
 
 
 def main(args=None) -> int:
@@ -281,7 +281,7 @@ def main(args=None) -> int:
     try:
         sequencer_node = SequencerNode(use_vision)
 
-        if use_vision and not check_for_yes("Do you want to detect the object?"):
+        if use_vision and check_for_yes("Do you want to detect the object?"):
             sequencer_node.detect_pylone_pose()
             sequencer_node.refine_pylone_pose()
 
@@ -289,7 +289,7 @@ def main(args=None) -> int:
             prompt = (
                 f"Next handle is '{handle_name}'. Do you want to execute this hole?"
             )
-            if check_for_yes(prompt):
+            if not check_for_yes(prompt):
                 continue
             try:
                 sequencer_node.set_weights_value(weight)
@@ -298,7 +298,7 @@ def main(args=None) -> int:
                     if refine:
                         input("Press enter to refine.")
                         sequencer_node.refine_pylone_pose()
-                        while check_for_yes("Is refinement acceptable?"):
+                        while not check_for_yes("Is refinement acceptable?"):
                             sequencer_node.refine_pylone_pose()
                     sequencer_node.plan_to_handle(handle_name, False, True)
                 else:
