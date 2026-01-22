@@ -51,6 +51,7 @@ ft_calibration_filter:
       com:
         xyz: [0.0, 0.001, -0.025]
         mass: 0.14862544526369056
+    # 2nd order Butterwoth filter params. Fc = 18 Hz, Sampling 1 kHz
     ati_mini45/force.x:
       a: [-1.8403591709709755, 0.8521922521270615]
       b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
