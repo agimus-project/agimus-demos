@@ -1,4 +1,4 @@
-from aligator_mpc import MPC, Params, PatternGenerator, TestTrajs
+from aligator_mpc import MPC, Config, PatternGenerator, TestTrajs
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
@@ -31,19 +31,19 @@ class AligatorMPC(Node):
         config_path = self.get_parameter('config').value
 
         self.get_logger().info(config_path)
-        self.mpc_parameters = Params(Path(config_path))
+        self.mpc_parameters = Config.from_yaml(Path(config_path))
 
         # Waypoints ================================================================
         patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
         mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
         
-        test_trajs = TestTrajs()
+        # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
         # end =  pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,np.pi/2), np.array([0.5, 0.2, 0.2]))
         # mpc_waypoints = [start, end]
 
-        startsin = [0.3, -0., 0.2]
-        mpc_waypoints = test_trajs.sine(start_point=startsin,length=0.3,period=0.03,amplitude=0.15, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
+        # startsin = [0.3, -0., 0.2]
+        # mpc_waypoints = test_trajs.sine(start_point=startsin,length=0.3,period=0.03,amplitude=0.15, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
 
         self.waypoints_marker_msg = Marker() #self.waypoints_to_marker(mpc_waypoints)
         
@@ -51,7 +51,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain = 1e-2
+        self.feedback_gain = 1e-4
 
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
@@ -71,7 +71,7 @@ class AligatorMPC(Node):
         self.mpc_started = False
 
         # Publisher timers ===============================================================
-        ctrl_timer_period = self.mpc_parameters.dt
+        ctrl_timer_period = self.mpc_parameters.mpc.dt
         ctrl_timer = self.create_timer(ctrl_timer_period, self.publish_control_callback)
         waypoints_timer_period = 0.1
         waypoints_timer = self.create_timer(waypoints_timer_period,self.publish_waypoints_callback)
@@ -85,13 +85,11 @@ class AligatorMPC(Node):
                 
                 time_mpc = self.mpc.iterate(self.robot_state, self.last_effort_meas)
                 # self.get_logger().info(f'mpc time: {(time_mpc)}')
-
-                stage_index_to_send = 0
-                 
-                command = [v for v in self.mpc.results.us.tolist()[stage_index_to_send]]
+                
+                command = [v for v in self.mpc.results.us.tolist()[0]]
                 # command = command[:-2]
                 
-                raw_feedback_gains = self.mpc.results.controlFeedbacks().tolist()[stage_index_to_send]
+                raw_feedback_gains = self.mpc.results.controlFeedbacks().tolist()[0]
                 feedback_gains = self.flatten_feedback_gains(raw_feedback_gains)
                 # self.get_logger().info(f'feddb gains: {(feedback_gains)}')
 
@@ -132,20 +130,30 @@ class AligatorMPC(Node):
                 # control_msg.feedback_gain.data = id_gains
 
                 sensor_msg = Sensor()
-                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[stage_index_to_send]]
+                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[0]]
                 joint_state_msg = JointState()
                 joint_state_msg.name = self.last_sensor_msg.joint_state.name
                 joint_state_msg.position = x_desired[:self.mpc.n_q]
                 joint_state_msg.velocity = x_desired[self.mpc.n_q:]
                 sensor_msg.joint_state = joint_state_msg
 
-                control_msg.initial_state =   sensor_msg # self.last_sensor_msg #
+                control_msg.initial_state =  sensor_msg # self.last_sensor_msg #
+
+                sensor_x1_msg = Sensor()
+                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[1]]
+                joint_state_x1_msg = JointState()
+                joint_state_x1_msg.name = self.last_sensor_msg.joint_state.name
+                joint_state_x1_msg.position = x_desired[:self.mpc.n_q]
+                joint_state_x1_msg.velocity = x_desired[self.mpc.n_q:]
+                sensor_x1_msg.joint_state = joint_state_x1_msg
+
+                control_msg.initial_state_x1 = sensor_x1_msg # sensor_msg #
 
                 self.control_publisher.publish(control_msg)
                 stop = time.time()
                 delta_t = Float32()
                 delta_t.data = stop - start
-                if (stop - start) > self.mpc_parameters.dt:
+                if (stop - start) > self.mpc_parameters.mpc.dt:
                     self.get_logger().warning(f"MPC OVERRUN ({stop-start})")
                 self.mpc_time_publisher.publish(delta_t)
 
@@ -208,7 +216,7 @@ class AligatorMPC(Node):
         marker = Marker()
         marker.header.frame_id = "fer_link0";
         marker.type = Marker.LINE_STRIP;
-        marker.scale.x = 0.01;
+        marker.scale.x = 0.005;
         nb_points = len(xs_table)
         color_gradient = np.linspace(0.0, 1.0, nb_points)
 

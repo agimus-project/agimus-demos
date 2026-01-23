@@ -151,7 +151,7 @@ def launch_setup(
         plate_publisher_node,
         tf_node,
         tf_node_plate_mpc,
-        mpc_node,
+        # mpc_node,
 
         # wait_for_non_zero_joints_node,
         # RegisterEventHandler(

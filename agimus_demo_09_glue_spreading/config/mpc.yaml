@@ -1,37 +1,46 @@
 robot:
   name :  "panda"
   world_frame_name : "universe"
-  start_pose : "np.array([-np.pi/2, -1, 0, -2.5, 0.0, 2, 0.0, 0.0, 0.0])"
   tool_frame_name : "panda_hand_tcp"
-MPC:
+mpc:
   dt :  0.02 # time is in seconds
   total_time : 200
   nb_steps_horizon : 100
-  max_nb_iters_1st_iter : 1000 
-  max_nb_iters : 2
   solver:
-    tolerance : 1e-4
+    presolve:
+      mu_init: 1e-1 # penalite sur les contraintes
+      max_iters : 1000
+      tolerance: 1e-4
+    running:
+      mu_init: 1e-4
+      max_iters : 2
+      tolerance: 1e-4
     rollout_type : aligator.ROLLOUT_LINEAR
     sa_strategy : aligator.SA_LINESEARCH_NONMONOTONE
     linear_solver_choice : aligator.LQ_SOLVER_PARALLEL
+    verbose : aligator.VERBOSE
     num_threads : 10
-    mu_init_1st_iter : 1e-1
-    mu_init : 1e-4  # penalite sur les contraintes
+
   weights:
-    regulation:
-      stage_joint : 1e-3 #1e-3
-      stage_vel : 1e-2 # 1e-2
-      command : 1e-2 # 1e-2
-      term_state : 1e-10
-    waypoints:
-      frame_pos : 100
-      frame_vel : 1
-      orientation : 1
+    running:
+      regulation:
+        joint : 1e-4 #1e-4
+        vel : 1e-2 # 1e-2
+        command : 1e-3 # 1e-2
+      waypoints:
+        frame_pos : 100
+        frame_vel : 1
+        orientation : 1
+    terminal:
+      regulation:
+        joint : 1e-4 #1e-4
+        vel : 1e-2 # 1e-2
+        command : 1e-3 # 1e-2
+
     collision : 0.1 # very sensitive, max around ~ 0.1
 
 trajectory:
-  tool_orientation : "np.array([np.pi, 0., 0.])"
-  velocity :
-    spread : 0.05
-    start : 0.05
+  vel : 0.05
+
+
 
