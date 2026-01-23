@@ -62,7 +62,7 @@ class AligatorMPC(Node):
 
         # Waypoints ================================================================
         patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
-        mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
+        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.05)
         
         # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
