@@ -32,7 +32,7 @@ def launch_setup(
 
     franka_robot_launch = generate_include_launch(
         "franka_common_lfc.launch.py",
-        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str},
+        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str,"use_camera":"false"},
     )
 
     wait_for_non_zero_joints_node = Node(

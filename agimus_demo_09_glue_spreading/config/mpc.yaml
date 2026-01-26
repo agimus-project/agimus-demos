@@ -14,7 +14,7 @@ mpc:
     running:
       mu_init: 1e-4
       max_iters : 2
-      tolerance: 1e-4
+      tolerance: 1e-8
     rollout_type : aligator.ROLLOUT_LINEAR
     sa_strategy : aligator.SA_LINESEARCH_NONMONOTONE
     linear_solver_choice : aligator.LQ_SOLVER_PARALLEL
@@ -24,21 +24,21 @@ mpc:
   weights:
     running:
       regulation:
-        joint : -1. #1e-4
-        vel : -1. # 1e-2
-        command : 1e-3 # 1e-2
+        joint : 1e-1 #1e-4
+        vel : 1e-2 # 1e-2
+        command : 1e-4 # 1e-2
       waypoints:
         pose :
           translation: 100.
-          orientation : 100.
+          orientation : 10.
         vel :
-          translation: 1.
-          orientation : 0.001
+          translation: 0.1
+          orientation : 0.01
     terminal:
       regulation:
-        joint : -1. #1e-4
-        vel : -1. # 1e-2
-        command : 1e-3 # 1e-2
+        joint : 0.001 #1e-4
+        vel : 0.01 # 1e-2
+        command : -1e-3 # 1e-2
 
     collision : 0.1 # very sensitive, max around ~ 0.1
 

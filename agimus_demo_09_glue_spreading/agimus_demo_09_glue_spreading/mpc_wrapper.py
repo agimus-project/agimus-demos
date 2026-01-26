@@ -35,10 +35,10 @@ class AligatorMPC(Node):
         self.mpc_parameters = Config.from_yaml(Path(config_path))
 
         # Waypoints ================================================================
-        # patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.2))
-        patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.3))
+        patternGen = PatternGenerator([0.24,0.3,0], (0.6, -0.16,0.1)) # testing
+        # patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.3)) # real box
 
-        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.035)
+        mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.035)
         
         # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
@@ -54,7 +54,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain_scaling = 1e-1
+        self.feedback_gain_scaling = 5e-2
         self.x_desired = [
          -4.4941237144485114e-07
         ,-0.7808052627058467
