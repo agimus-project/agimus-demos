@@ -54,7 +54,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain_scaling = 1e-1
+        self.feedback_gain_scaling = 3e-2
         self.x_desired = [
          -4.4941237144485114e-07
         ,-0.7808052627058467

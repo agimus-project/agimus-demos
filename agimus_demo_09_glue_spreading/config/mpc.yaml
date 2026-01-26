@@ -30,7 +30,7 @@ mpc:
       waypoints:
         pose :
           translation: 100.
-          orientation : 10.
+          orientation : 20.
         vel :
           translation: -0.02
           orientation : -0.002
