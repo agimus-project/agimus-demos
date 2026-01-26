@@ -24,6 +24,7 @@ from line_profiler import profile
 class AligatorMPC(Node):
     def __init__(self):
         super().__init__('aligator_mpc')
+        
 
         # MPC configuration ========================================================
         self.get_logger().info('Aligator MPC starting...')
@@ -35,7 +36,7 @@ class AligatorMPC(Node):
 
         # Waypoints ================================================================
         patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
-        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.05)
+        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.035)
         
         # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
@@ -51,7 +52,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain = 1e-4
+        self.feedback_gain = 1e-2
 
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
@@ -122,11 +123,17 @@ class AligatorMPC(Node):
                 dim_cols_fb.size = 14
                 dim_cols_fb.stride = 14
                 control_msg.feedback_gain.layout.dim.append(dim_cols_fb)
+
                 #!!================================= 
                 id_gains = np.identity(7)
                 id_gains = np.hstack((id_gains, id_gains))
                 id_gains = id_gains.flatten().tolist()
-                control_msg.feedback_gain.data =   [i*self.feedback_gain for i in feedback_gains] 
+                fb_list = np.array([i*self.feedback_gain for i in feedback_gains]) 
+                a = fb_list.reshape((7,14))
+                a[:,7:14] = 0
+                a_flat = a.flatten().tolist()
+                # __import__('IPython').embed()
+                control_msg.feedback_gain.data =  a_flat 
                 # control_msg.feedback_gain.data = id_gains
 
                 sensor_msg = Sensor()

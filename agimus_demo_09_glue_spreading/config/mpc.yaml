@@ -9,7 +9,7 @@ mpc:
   solver:
     presolve:
       mu_init: 1e-1 # penalite sur les contraintes
-      max_iters : 10000000
+      max_iters : 1000
       tolerance: 1e-4
     running:
       mu_init: 1e-4
@@ -24,23 +24,23 @@ mpc:
   weights:
     running:
       regulation:
-        joint : 1e-4 #1e-4
-        vel : 1e-3 # 1e-2
-        command : 1e-5 # 1e-2
+        joint : 1e-2 #1e-4
+        vel : 1e-2 # 1e-2
+        command : 1e-2 # 1e-2
       waypoints:
         frame_pos : 100
         frame_vel : 1
         orientation : 1
     terminal:
       regulation:
-        joint : 1e-5 #1e-4
+        joint : 0e-5 #1e-4
         vel : 1e-4 # 1e-2
-        command : 1e-5 # 1e-2
+        command : 1e-3 # 1e-2
 
     collision : 0.1 # very sensitive, max around ~ 0.1
 
 trajectory:
-  vel : 0.1
+  vel : 0.05
 
 
 
