@@ -9,7 +9,7 @@ mpc:
   solver:
     presolve:
       mu_init: 1e-1 # penalite sur les contraintes
-      max_iters : 10000000
+      max_iters : 1000
       tolerance: 1e-4
     running:
       mu_init: 1e-4
@@ -43,7 +43,7 @@ mpc:
     collision : 0.1 # very sensitive, max around ~ 0.1
 
 trajectory:
-  vel : 0.1
+  vel : 0.05
 
 
 

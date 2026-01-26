@@ -62,7 +62,7 @@ class AligatorMPC(Node):
 
         # Waypoints ================================================================
         patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
-        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.05)
+        mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.035)
         
         # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
@@ -78,7 +78,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain = 1e-4
+        self.feedback_gain = 1e-2
 
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
