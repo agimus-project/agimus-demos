@@ -54,7 +54,16 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain = 1e-2
+        self.feedback_gain_scaling = 1e-1
+        self.x_desired = [
+         -4.4941237144485114e-07
+        ,-0.7808052627058467
+        , 2.48589228672936e-15
+        ,-2.4126768818223634
+        ,-3.1345563144870245e-14
+        ,1.5703322669120232
+        ,0.7799999999999953
+        ,0, 0, 0, 0, 0, 0, 0] 
 
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
@@ -86,14 +95,12 @@ class AligatorMPC(Node):
             start = time.time()
             if self.mpc_started:
                 
-                time_mpc = self.mpc.iterate(self.robot_state, self.last_effort_meas)
+                time_mpc = self.mpc.iterate(self.robot_state)
                 # self.get_logger().info(f'mpc time: {(time_mpc)}')
-                
-                command = [v for v in self.mpc.results.us.tolist()[0]]
-                # command = command[:-2]
-                
-                raw_feedback_gains = self.mpc.results.controlFeedbacks().tolist()[0]
-                feedback_gains = self.flatten_feedback_gains(raw_feedback_gains)
+
+                feedback_gains = self.feedback_gain_scaling * self.mpc.results.controlFeedbacks()[0]
+                # feedback_gains[:, 7:14] = np.zeros((7,7))
+              
                 # self.get_logger().info(f'feddb gains: {(feedback_gains)}')
 
                 #! ================== debug  predicted ee traj ==============
@@ -113,7 +120,9 @@ class AligatorMPC(Node):
                 dim_cols_ffw.size = 1
                 dim_cols_ffw.stride = 1
                 control_msg.feedforward.layout.dim.append(dim_cols_ffw)
-                control_msg.feedforward.data = [i*1 for i in command] 
+
+                #### MON CONTROL EST ICI
+                control_msg.feedforward.data = self.mpc.results.us[0].tolist()
 
                 dim_rows_fb = MultiArrayDimension()
                 dim_rows_fb.label = "rows"
@@ -127,16 +136,8 @@ class AligatorMPC(Node):
                 control_msg.feedback_gain.layout.dim.append(dim_cols_fb)
 
                 #!!================================= 
-                id_gains = np.identity(7)
-                id_gains = np.hstack((id_gains, id_gains))
-                id_gains = id_gains.flatten().tolist()
-                fb_list = np.array([i*self.feedback_gain for i in feedback_gains]) 
-                a = fb_list.reshape((7,14))
-                a[:,7:14] = 0
-                a_flat = a.flatten().tolist()
-                # __import__('IPython').embed()
-                control_msg.feedback_gain.data =  a_flat 
-                # control_msg.feedback_gain.data = id_gains
+
+                control_msg.feedback_gain.data =  feedback_gains.flatten().tolist()
 
                 sensor_msg = Sensor()
                 x_desired = [float(val) for val in self.mpc.results.xs.tolist()[0]]
@@ -145,15 +146,16 @@ class AligatorMPC(Node):
                 joint_state_msg.position = x_desired[:self.mpc.n_q]
                 joint_state_msg.velocity = x_desired[self.mpc.n_q:]
                 sensor_msg.joint_state = joint_state_msg
+                
 
                 control_msg.initial_state =  sensor_msg # self.last_sensor_msg #
 
                 sensor_x1_msg = Sensor()
-                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[1]]
+                self.x_desired = [float(val) for val in self.mpc.results.xs.tolist()[1]]
                 joint_state_x1_msg = JointState()
                 joint_state_x1_msg.name = self.last_sensor_msg.joint_state.name
-                joint_state_x1_msg.position = x_desired[:self.mpc.n_q]
-                joint_state_x1_msg.velocity = x_desired[self.mpc.n_q:]
+                joint_state_x1_msg.position = self.x_desired[:self.mpc.n_q]
+                joint_state_x1_msg.velocity = self.x_desired[self.mpc.n_q:]
                 sensor_x1_msg.joint_state = joint_state_x1_msg
 
                 control_msg.initial_state_x1 = sensor_x1_msg # sensor_msg #
@@ -174,18 +176,16 @@ class AligatorMPC(Node):
         self.last_sensor_msg = msg
 
         # Get robot state =========================================================
+        # Joint feedback
         position = list(msg.joint_state.position)
-        # position = np.array(position  + [0.,0.])
         position = np.array(position)
 
-
         velocity = list(msg.joint_state.velocity)
-        # velocity = np.array(velocity  + [0.,0.])
         velocity = np.array(velocity)
 
-        self.last_effort_meas = list(msg.joint_state.effort)
-        # self.last_effort_meas = np.array(self.last_effort_meas + [0.,0.])
-        self.last_effort_meas = np.array(self.last_effort_meas)
+        # PErfect feedback
+        # position = np.array(self.x_desired[:7])
+        # velocity = np.array(self.x_desired[self.mpc.n_q:])
 
         self.robot_state = np.concatenate((position, velocity))
         self.mpc.setStartPose(position) # update pinocchio model
@@ -251,26 +251,6 @@ class AligatorMPC(Node):
         marker.points = points_list
         marker.colors = color_list
         return marker
-
-    def flatten_feedback_gains(self,raw_feedback_gains):
-        """Converts the feedback gains from the aligator formatting (2D table) to the /Control message format (1D formatting for a MultiArrayMatrix ros message). Also removes the gains for the gripper (last 2 links).
-
-        Args:
-            raw_feedback_gains (list[list[float]]): raw feedback gains from the aligator solver
-        Return:
-            feedback_gain (list[float]): flattenend feedback gains matrix
-        """
-        # flatten the gains from a (rows, cols) 2D format to flat list of [row1 row2 row3]
-        feedback_gains = []
-        for gains in raw_feedback_gains:
-            # self.get_logger().info(f'feddb gains: {(gains)}')
-            gains = [float(k)for k in gains] # convert values to float 
-            # self.get_logger().info(f'feddb gains: {type(gains)}')
-            # gains = gains[:self.mpc.n_q] + gains[self.mpc.n_q:] # remove gripper gains on q and on vs
-
-            feedback_gains = feedback_gains + gains # add gains list at the end of the master list
-
-        return feedback_gains
 
     def waypoints_to_marker(self, waypoints):
 
