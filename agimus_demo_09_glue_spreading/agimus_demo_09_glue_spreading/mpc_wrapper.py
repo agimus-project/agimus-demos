@@ -35,7 +35,9 @@ class AligatorMPC(Node):
         self.mpc_parameters = Config.from_yaml(Path(config_path))
 
         # Waypoints ================================================================
-        patternGen = PatternGenerator([0.3,0.3,0], (0.5, 0,0.1))
+        # patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.2))
+        patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.3))
+
         mpc_waypoints = patternGen.generate_pattern('zigzag',stride=0.035)
         
         # test_trajs = TestTrajs()
