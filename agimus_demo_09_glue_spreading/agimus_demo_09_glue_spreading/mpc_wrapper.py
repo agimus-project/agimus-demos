@@ -140,22 +140,22 @@ class AligatorMPC(Node):
                 control_msg.feedback_gain.data =  feedback_gains.flatten().tolist()
 
                 sensor_msg = Sensor()
-                x_desired = [float(val) for val in self.mpc.results.xs.tolist()[0]]
+                x_desired = [float(val) for val in self.mpc.results.xs[0]]
                 joint_state_msg = JointState()
                 joint_state_msg.name = self.last_sensor_msg.joint_state.name
-                joint_state_msg.position = x_desired[:self.mpc.n_q]
-                joint_state_msg.velocity = x_desired[self.mpc.n_q:]
+                joint_state_msg.position = x_desired[:self.mpc.n_q].copy()
+                joint_state_msg.velocity = x_desired[self.mpc.n_q:].copy()
                 sensor_msg.joint_state = joint_state_msg
                 
 
                 control_msg.initial_state =  sensor_msg # self.last_sensor_msg #
 
                 sensor_x1_msg = Sensor()
-                self.x_desired = [float(val) for val in self.mpc.results.xs.tolist()[1]]
+                self.x_desired = [float(val) for val in self.mpc.results.xs[1]]
                 joint_state_x1_msg = JointState()
                 joint_state_x1_msg.name = self.last_sensor_msg.joint_state.name
-                joint_state_x1_msg.position = self.x_desired[:self.mpc.n_q]
-                joint_state_x1_msg.velocity = self.x_desired[self.mpc.n_q:]
+                joint_state_x1_msg.position = self.x_desired[:self.mpc.n_q].copy()
+                joint_state_x1_msg.velocity = self.x_desired[self.mpc.n_q:].copy()
                 sensor_x1_msg.joint_state = joint_state_x1_msg
 
                 control_msg.initial_state_x1 = sensor_x1_msg # sensor_msg #

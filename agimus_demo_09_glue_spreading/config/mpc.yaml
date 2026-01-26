@@ -24,16 +24,20 @@ mpc:
   weights:
     running:
       regulation:
-        joint : 1e-4 #1e-4
-        vel : 1e-3 # 1e-2
+        joint : -1. #1e-4
+        vel : -1. # 1e-2
         command : 1e-3 # 1e-2
       waypoints:
-        pose : 100
-        frame_vel : 10
+        pose :
+          translation: 100.
+          orientation : 100.
+        vel :
+          translation: 1.
+          orientation : 0.001
     terminal:
       regulation:
-        joint : 1e-5 #1e-4
-        vel : 1e-4 # 1e-2
+        joint : -1. #1e-4
+        vel : -1. # 1e-2
         command : 1e-3 # 1e-2
 
     collision : 0.1 # very sensitive, max around ~ 0.1
