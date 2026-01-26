@@ -221,7 +221,7 @@ class AligatorMPC(Node):
         color_list = []
 
         marker = Marker()
-        marker.header.frame_id = "fer_link0";
+        marker.header.frame_id = "fr3_link0";
         marker.type = Marker.LINE_STRIP;
         marker.scale.x = 0.005;
         nb_points = len(xs_table)
@@ -274,7 +274,7 @@ class AligatorMPC(Node):
 
         points_list = []
         marker = Marker()
-        marker.header.frame_id = "fer_link0";
+        marker.header.frame_id = "fr3_link0";
         marker.type = Marker.LINE_STRIP;
         marker.scale.x = 0.01;
         marker.lifetime = Duration().to_msg()

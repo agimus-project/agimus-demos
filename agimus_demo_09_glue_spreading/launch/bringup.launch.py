@@ -32,7 +32,7 @@ def launch_setup(
 
     franka_robot_launch = generate_include_launch(
         "franka_common_lfc.launch.py",
-        extra_launch_arguments={"rviz_config_path": rviz_config_path},
+        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str},
     )
 
     wait_for_non_zero_joints_node = Node(
@@ -123,7 +123,7 @@ def launch_setup(
     # )
 
     tf_node_plate_mpc = static_transform_publisher_node(
-    frame_id="fer_link0",
+    frame_id=arm_id_str+"_link0",
     child_frame_id="pannel_base_link",
     xyz=["0.6", "0", "0.0"],
     rot_xyzw= ["0", "0", "0", "1"],

@@ -1,7 +1,7 @@
 robot:
   name :  "panda"
   world_frame_name : "universe"
-  tool_frame_name : "panda_hand_tcp"
+  tool_frame_name : "fr3_hand_tcp"
 mpc:
   dt :  0.02 # time is in seconds
   total_time : 200
