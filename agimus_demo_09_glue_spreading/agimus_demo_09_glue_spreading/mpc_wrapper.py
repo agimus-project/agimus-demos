@@ -98,7 +98,7 @@ class AligatorMPC(Node):
                 time_mpc = self.mpc.iterate(self.robot_state)
                 # self.get_logger().info(f'mpc time: {(time_mpc)}')
 
-                feedback_gains = self.feedback_gain_scaling * self.mpc.results.controlFeedbacks()[0]
+                feedback_gains = - self.feedback_gain_scaling * self.mpc.results.controlFeedbacks()[0]
                 # feedback_gains[:, 7:14] = np.zeros((7,7))
               
                 # self.get_logger().info(f'feddb gains: {(feedback_gains)}')
