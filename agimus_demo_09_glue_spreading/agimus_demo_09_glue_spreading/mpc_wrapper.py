@@ -18,7 +18,6 @@ import aligator
 
 # !! ===debug===
 import time
-from line_profiler import profile
 
 
 class AligatorMPC(Node):
@@ -35,7 +34,7 @@ class AligatorMPC(Node):
         self.mpc_parameters = Config.from_yaml(Path(config_path))
 
         # Waypoints ================================================================
-        patternGen = PatternGenerator([0.24,0.3,0], (0.6, -0.16,0.1)) # testing
+        patternGen = PatternGenerator([0.26,0.4,0], (0.48, 0.0,0.05)) # testing
         # patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.3)) # real box
 
         mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.035)
@@ -54,7 +53,7 @@ class AligatorMPC(Node):
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
-        self.feedback_gain_scaling = 3e-2
+        self.feedback_gain_scaling = 0.0
         self.x_desired = [
          -4.4941237144485114e-07
         ,-0.7808052627058467

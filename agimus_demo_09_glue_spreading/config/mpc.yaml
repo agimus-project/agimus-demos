@@ -4,7 +4,7 @@ robot:
   tool_frame_name : "fr3_hand_tcp"
 mpc:
   dt :  0.02 # time is in seconds
-  total_time : 200
+  total_time : 500
   nb_steps_horizon : 100
   solver:
     presolve:
@@ -13,7 +13,7 @@ mpc:
       tolerance: 1e-4
     running:
       mu_init: 1e-4
-      max_iters : 2
+      max_iters : 3
       tolerance: 1e-8
     rollout_type : aligator.ROLLOUT_LINEAR
     sa_strategy : aligator.SA_LINESEARCH_NONMONOTONE
@@ -30,15 +30,15 @@ mpc:
       waypoints:
         pose :
           translation: 100.
-          orientation : 20.
+          orientation : 100.
         vel :
           translation: -0.02
           orientation : -0.002
     terminal:
       regulation:
-        joint : 0.001 #1e-4
-        vel : 0.1 # 1e-2
-        command : -1e-3 # 1e-2
+        joint : 1e-4
+        vel : 1e-2
+        command : -1.
 
     collision : 0.1 # very sensitive, max around ~ 0.1
 
