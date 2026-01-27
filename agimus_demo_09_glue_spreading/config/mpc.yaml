@@ -43,7 +43,7 @@ mpc:
     collision : 0.1 # very sensitive, max around ~ 0.1
 
 trajectory:
-  vel : 0.075
+  vel : 0.1
 
 
 
