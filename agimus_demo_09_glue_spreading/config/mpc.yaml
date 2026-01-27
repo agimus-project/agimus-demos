@@ -18,7 +18,7 @@ mpc:
     rollout_type : aligator.ROLLOUT_LINEAR
     sa_strategy : aligator.SA_LINESEARCH_NONMONOTONE
     linear_solver_choice : aligator.LQ_SOLVER_PARALLEL
-    verbose : aligator.VERBOSE
+    verbose : aligator.QUIET
     num_threads : 10
 
   weights:
@@ -29,8 +29,8 @@ mpc:
         command : 1e-4 # 1e-2
       waypoints:
         pose :
-          translation: 100.
-          orientation : 100.
+          translation: 400.
+          orientation : 300.
         vel :
           translation: -0.02
           orientation : -0.002
@@ -43,7 +43,7 @@ mpc:
     collision : 0.1 # very sensitive, max around ~ 0.1
 
 trajectory:
-  vel : 0.05
+  vel : 0.025
 
 
 

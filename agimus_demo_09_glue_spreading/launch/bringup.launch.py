@@ -1,5 +1,5 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
+from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction, DeclareLaunchArgument
 from launch.event_handlers import OnProcessExit, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
@@ -32,7 +32,7 @@ def launch_setup(
 
     franka_robot_launch = generate_include_launch(
         "franka_common_lfc.launch.py",
-        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str,"use_camera":"false"},
+        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str,"use_camera":"false", "initial_joint_position":"'-0.013754730661780176 0.08055123973596531 -0.0073070470163592634 -2.1355798783235875 -0.00918790986315326 2.2759845504437037 -2.3657036209762725 0. '"},
     )
 
     wait_for_non_zero_joints_node = Node(

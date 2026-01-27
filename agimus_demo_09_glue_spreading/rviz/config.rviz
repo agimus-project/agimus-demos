@@ -319,7 +319,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: world
+    Fixed Frame: base
     Frame Rate: 30
   Name: root
   Tools:
@@ -362,25 +362,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.9842201471328735
+      Distance: 1.5732616186141968
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.8577451109886169
-        Y: -0.1805294156074524
-        Z: 0.3847411274909973
+        X: 0.4725067913532257
+        Y: -0.00938178040087223
+        Z: 0.10328540205955505
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7147969007492065
+      Pitch: 0.7197967767715454
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.393608570098877
+      Yaw: 4.498611927032471
     Saved: ~
 Window Geometry:
   Displays:
