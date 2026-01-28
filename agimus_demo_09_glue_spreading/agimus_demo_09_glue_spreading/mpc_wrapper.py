@@ -6,17 +6,13 @@ from std_srvs.srv import Trigger
 from linear_feedback_controller_msgs.msg import Control, Sensor
 from sensor_msgs.msg import JointState
 from std_msgs.msg import MultiArrayDimension, ColorRGBA, Float32
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from rclpy.qos import ReliabilityPolicy, DurabilityPolicy, HistoryPolicy, QoSProfile
 from rclpy.duration import Duration
-import pinocchio as pin
 from pathlib import Path
 import numpy as np
-import sys
-import aligator
-
-# !! ===debug===
+from copy import deepcopy
 import time
 
 
@@ -47,25 +43,17 @@ class AligatorMPC(Node):
         # startsin = [0.3, -0., 0.2]
         # mpc_waypoints = test_trajs.sine(start_point=startsin,length=0.3,period=0.03,amplitude=0.15, dist_between_points=0.01, sine_axis="Y", ampl_axis="X")
 
-        self.waypoints_marker_msg = Marker() #self.waypoints_to_marker(mpc_waypoints)
+        self.waypoints_marker_msg = Marker()
         
         # Solver setup ============================================================
         self.robot_state = None
         self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
         self.first_mpc_iteration = True
         self.feedback_gain_scaling = 1.0
-        self.x_desired = [
-         -4.4941237144485114e-07
-        ,-0.7808052627058467
-        , 2.48589228672936e-15
-        ,-2.4126768818223634
-        ,-3.1345563144870245e-14
-        ,1.5703322669120232
-        ,0.7799999999999953
-        ,0, 0, 0, 0, 0, 0, 0] 
 
         # ROS2 publishers & subscribers ============================================
         self.control_publisher = self.create_publisher(Control, "control", 10)
+        self.base_control_msg = self.build_base_control_msg()
         self.mpc_pred_publisher = self.create_publisher(Marker, "mpc_prediction_endeffector",10)
         self.mpc_waypoints_publisher = self.create_publisher(Marker, "mpc_waypoints", 10)
         self.mpc_time_publisher = self.create_publisher(Float32, "mpc_time",10)
@@ -89,7 +77,6 @@ class AligatorMPC(Node):
 
         self.get_logger().info('End of Setup')
 
-    # @profile
     def publish_control_callback(self):
             start = time.time()
             if self.mpc_started:
@@ -98,44 +85,16 @@ class AligatorMPC(Node):
                 # self.get_logger().info(f'mpc time: {(time_mpc)}')
 
                 feedback_gains = - self.feedback_gain_scaling * self.mpc.results.controlFeedbacks()[0]
-                # feedback_gains[:, 7:14] = np.zeros((7,7))
-              
-                # self.get_logger().info(f'feddb gains: {(feedback_gains)}')
 
-                #! ================== debug  predicted ee traj ==============
+                # show end effector position during predicted horizon
                 if True:
                     xs_array = self.mpc.results.xs.tolist()
                     marker_array_msg = self.xs_to_marker(xs_array)
                     self.mpc_pred_publisher.publish(marker_array_msg)
 
-                control_msg = Control()
-                dim_rows_ffw = MultiArrayDimension()
-                dim_rows_ffw.label = "rows"
-                dim_rows_ffw.size = 7
-                dim_rows_ffw.stride = 7
-                control_msg.feedforward.layout.dim.append(dim_rows_ffw)
-                dim_cols_ffw = MultiArrayDimension()
-                dim_cols_ffw.label = "cols"
-                dim_cols_ffw.size = 1
-                dim_cols_ffw.stride = 1
-                control_msg.feedforward.layout.dim.append(dim_cols_ffw)
-
-                #### MON CONTROL EST ICI
-                control_msg.feedforward.data = self.mpc.results.us[0].tolist()
-
-                dim_rows_fb = MultiArrayDimension()
-                dim_rows_fb.label = "rows"
-                dim_rows_fb.size = 7
-                dim_rows_fb.stride = 98
-                control_msg.feedback_gain.layout.dim.append(dim_rows_fb)
-                dim_cols_fb = MultiArrayDimension()
-                dim_cols_fb.label = "cols"
-                dim_cols_fb.size = 14
-                dim_cols_fb.stride = 14
-                control_msg.feedback_gain.layout.dim.append(dim_cols_fb)
-
-                #!!================================= 
-
+                # fill the non static values 
+                control_msg = deepcopy(self.base_control_msg)
+                control_msg.feedforward.data = self.mpc.results.us[0].tolist() 
                 control_msg.feedback_gain.data =  feedback_gains.flatten().tolist()
 
                 sensor_msg = Sensor()
@@ -146,18 +105,7 @@ class AligatorMPC(Node):
                 joint_state_msg.velocity = x_desired[self.mpc.n_q:].copy()
                 sensor_msg.joint_state = joint_state_msg
                 
-
-                control_msg.initial_state =  sensor_msg # self.last_sensor_msg #
-
-                sensor_x1_msg = Sensor()
-                self.x_desired = [float(val) for val in self.mpc.results.xs[1]]
-                joint_state_x1_msg = JointState()
-                joint_state_x1_msg.name = self.last_sensor_msg.joint_state.name
-                joint_state_x1_msg.position = self.x_desired[:self.mpc.n_q].copy()
-                joint_state_x1_msg.velocity = self.x_desired[self.mpc.n_q:].copy()
-                sensor_x1_msg.joint_state = joint_state_x1_msg
-
-                control_msg.initial_state_x1 = sensor_x1_msg # sensor_msg #
+                control_msg.initial_state = self.last_sensor_msg #sensor_msg #
 
                 self.control_publisher.publish(control_msg)
                 stop = time.time()
@@ -182,31 +130,55 @@ class AligatorMPC(Node):
         velocity = list(msg.joint_state.velocity)
         velocity = np.array(velocity)
 
-        # PErfect feedback
-        # position = np.array(self.x_desired[:7])
-        # velocity = np.array(self.x_desired[self.mpc.n_q:])
-
         self.robot_state = np.concatenate((position, velocity))
-        self.mpc.setStartPose(position) # update pinocchio model
+        self.mpc.setStartPose(position) # update pinocchio model in the MPC
+
         if self.first_mpc_iteration:
             self.first_mpc_iteration = False
 
             self.mpc.initStages() # once the start pose is set the stages must be computed before the first solver iteration
             mpc_traj = self.mpc.stage_factory.getFullTrajectory_pt_by_pt()
-            # self.get_logger().info(f' mpc traj : {mpc_traj}')
             self.waypoints_marker_msg = self.waypoints_to_marker(mpc_traj)
-                    
-
-        # TODO check joints limits
-
         
     def launch_mpc_callback(self, request, response):
         self.mpc_started = True
-        response.success = True # TODO : add checks to see if ready to launch
+        response.success = True 
         response.message = "MPC launched"
         self.get_logger().info('Aligator MPC launched')
 
         return response
+    
+    # Utils functions
+    def build_base_control_msg(self):
+        """Builts a control message prefilled with static values
+
+        Returns:
+            linear_feedback_controller_msgs.msg.Control: deepcopy of the prefilled control message
+        """
+        base_control_msg = Control()
+        dim_rows_ffw = MultiArrayDimension()
+        dim_rows_ffw.label = "rows"
+        dim_rows_ffw.size = 7
+        dim_rows_ffw.stride = 7
+        base_control_msg.feedforward.layout.dim.append(dim_rows_ffw)
+        dim_cols_ffw = MultiArrayDimension()
+        dim_cols_ffw.label = "cols"
+        dim_cols_ffw.size = 1
+        dim_cols_ffw.stride = 1
+        base_control_msg.feedforward.layout.dim.append(dim_cols_ffw)
+        dim_rows_fb = MultiArrayDimension()
+        dim_rows_fb.label = "rows"
+        dim_rows_fb.size = 7
+        dim_rows_fb.stride = 98
+        base_control_msg.feedback_gain.layout.dim.append(dim_rows_fb)
+        dim_cols_fb = MultiArrayDimension()
+        dim_cols_fb.label = "cols"
+        dim_cols_fb.size = 14
+        dim_cols_fb.stride = 14
+        base_control_msg.feedback_gain.layout.dim.append(dim_cols_fb)
+
+        return base_control_msg
+
 
     def xs_to_marker(self, xs_table):
         """Converts a list of xs values to a line marker following the end effector of the robot
