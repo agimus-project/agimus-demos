@@ -115,6 +115,12 @@ def launch_setup(
         frame_id=arm_id_str+"_link0",
         child_frame_id="robot_attachment_link",
     )
+
+    # link simulation and real base links
+    tf_world_base = static_transform_publisher_node(
+        frame_id="world",
+        child_frame_id="base",
+    )
     # tf_node_plate = static_transform_publisher_node(
     #     frame_id="plate_base_link_happypose",
     #     child_frame_id="pannel_base_link",
@@ -151,6 +157,7 @@ def launch_setup(
         plate_publisher_node,
         tf_node,
         tf_node_plate_mpc,
+        tf_world_base
         # mpc_node,
 
         # wait_for_non_zero_joints_node,
