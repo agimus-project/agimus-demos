@@ -79,7 +79,8 @@ class AligatorMPC(Node):
     def publish_control_callback(self):
         """Iterates the MPC
         \n Publishes the feedforward and feedback gains on topic `/Control`
-        \n Publishes the end effector predicted pose on topic `/`
+        \n Publishes the end effector predicted pose on topic `/aligator_mpc/ee_prediction_on_horizon`
+        \n Publishes the time it took to iterate and publish on topic `aligator_mpc/pub_control_duration`
         """
 
         start = time.time()
