@@ -18,7 +18,7 @@ from line_profiler import profile
 
 
 class AligatorMPC(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('aligator_mpc')
         
 
@@ -105,8 +105,7 @@ class AligatorMPC(Node):
 
         self.get_logger().info('End of Setup')
 
-    # @profile
-    def publish_control_callback(self):
+    def publish_control_callback(self) -> None:
         """Iterates the MPC
         \n Publishes the feedforward and feedback gains on topic `/Control`
         \n Publishes the end effector predicted pose on topic `/aligator_mpc/ee_prediction_on_horizon`
@@ -135,8 +134,8 @@ class AligatorMPC(Node):
             x_desired = [float(val) for val in self.mpc.results.xs[0]]
             joint_state_msg = JointState()
             joint_state_msg.name = self.last_sensor_msg.joint_state.name
-            joint_state_msg.position = x_desired[:self.mpc.n_q].copy()
-            joint_state_msg.velocity = x_desired[self.mpc.n_q:].copy()
+            joint_state_msg.position = x_desired[:self.mpc.nq].copy()
+            joint_state_msg.velocity = x_desired[self.mpc.nq:].copy()
             sensor_msg.joint_state = joint_state_msg
             
             control_msg.initial_state = self.last_sensor_msg #sensor_msg #
@@ -149,15 +148,19 @@ class AligatorMPC(Node):
                 self.get_logger().warning(f"MPC OVERRUN ({stop-start})")
             self.mpc_time_publisher.publish(delta_t)
 
-
-    def publish_waypoints_callback(self):
+    def publish_waypoints_callback(self) -> None:
         self.mpc_imput_waypoints_publisher.publish(self.waypoints_marker_msg)
 
-    def sensor_callback(self, msg):
+    def sensor_callback(self, msg:Sensor) -> None:
+        """Callback when a message is published on `/Sensor` topic. Updates the `self.robot_state` with the message data.
+        \nIf the MPC is launched it will also call `mpc.initStages` and updates the `self.waypoints_marker_msg`
+
+        Args:
+            msg (Sensor)
+        """
         self.last_sensor_msg = msg
 
-        # Get robot state =========================================================
-        # Joint feedback
+        # Get robot state
         position = list(msg.joint_state.position)
         position = np.array(position)
 
@@ -175,6 +178,15 @@ class AligatorMPC(Node):
             self.waypoints_marker_msg = self.waypoints_to_marker(mpc_traj)
         
     def launch_mpc_callback(self, request, response):
+        """Callback triggered with service /mpc_launch is called
+
+        Args:
+            request : service request
+            response : service response
+
+        Returns:
+            response: service response
+        """
         self.mpc_started = True
         response.success = True 
         response.message = "MPC launched"
@@ -182,8 +194,8 @@ class AligatorMPC(Node):
 
         return response
     
-    # Utils functions
-    def build_base_control_msg(self):
+# Utils functions
+    def build_base_control_msg(self) -> Control:
         """Builts a control message prefilled with static values
 
         Returns:
@@ -213,8 +225,7 @@ class AligatorMPC(Node):
 
         return base_control_msg
 
-
-    def xs_to_marker(self, xs_table):
+    def xs_to_marker(self, xs_table) -> Marker:
         """Converts a list of xs values to a line marker following the end effector of the robot
 
         Args:
@@ -228,7 +239,7 @@ class AligatorMPC(Node):
         color_list = []
 
         marker = Marker()
-        marker.header.frame_id = "fr3_link0";
+        marker.header.frame_id = self.mpc_parameters.robot.name+"_link0";
         marker.type = Marker.LINE_STRIP;
         marker.scale.x = 0.005;
         nb_points = len(xs_table)
@@ -236,7 +247,7 @@ class AligatorMPC(Node):
 
         id = 0
         for xs in xs_table:
-            qs = xs[:self.mpc.n_q]
+            qs = xs[:self.mpc.nq]
             endeffector_pose = self.mpc.get_endpoint(qs)
 
             point = Point()
@@ -257,11 +268,19 @@ class AligatorMPC(Node):
         marker.colors = color_list
         return marker
 
-    def waypoints_to_marker(self, waypoints):
+    def waypoints_to_marker(self, waypoints:list) -> Marker:
+        """Convert waypoint list to marker message
+
+        Args:
+            waypoints (list): waypoints list
+
+        Returns:
+            Marker: marker message
+        """
 
         points_list = []
         marker = Marker()
-        marker.header.frame_id = "fr3_link0";
+        marker.header.frame_id = self.mpc_parameters.robot.name+"_link0";
         marker.type = Marker.LINE_STRIP;
         marker.scale.x = 0.01;
         marker.lifetime = Duration().to_msg()

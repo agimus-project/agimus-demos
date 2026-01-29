@@ -1,11 +1,20 @@
 robot:
-  name :  "panda"
+  name :  "fr3"
   world_frame_name : "universe"
   tool_frame_name : "fr3_hand_tcp"
 mpc:
   dt :  0.02 # time is in seconds
   total_time : 500
   nb_steps_horizon : 100
+  regularisation_ref:
+    joint_pos: [-8.97653063991213e-07
+                ,-0.7808463663675579
+                ,2.2971344285441086e-15
+                ,-2.366688685342141
+                ,-9.726534605596857e-06
+                ,1.5702636943341912
+                ,-0.6913420805230404]
+    joint_vel: [0., 0. ,0. ,0. ,0. , 0., 0.]
   solver:
     presolve:
       mu_init: 1e-1 # penalite sur les contraintes
@@ -20,7 +29,6 @@ mpc:
     linear_solver_choice : aligator.LQ_SOLVER_PARALLEL
     verbose : aligator.QUIET
     num_threads : 10
-
   weights:
     running:
       regularisation:
