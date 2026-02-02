@@ -49,8 +49,9 @@ ft_calibration_filter:
         xyz: [0.0, 0.0, 0.0]
         rpy: [-0.01298525, -0.01698205, 0.08738864]
       com:
-        xyz: [0.0, 0.001, -0.025]
+        xyz: [0.0, 0.001, -0.12]
         mass: 0.14862544526369056
+    # 2nd order Butterwoth filter params. Fc = 18 Hz, Sampling 1 kHz
     ati_mini45/force.x:
       a: [-1.8403591709709755, 0.8521922521270615]
       b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
@@ -72,7 +73,7 @@ ft_calibration_filter:
 agimus_pytroller:
   ros__parameters:
     type: agimus_pytroller/AgimusPytroller
-    python_module: agimus_demo_07_deburring.controller.deburring_controller
+    python_module: agimus_demo_07_deburring.controller.metal_deburring_controller_wrapper
     python_downsample_factor: 2
     error_on_no_data: true
     interpolate_trajectory: true
@@ -123,11 +124,15 @@ agimus_pytroller:
       topic_name: /environment_description_with_collision
       topic_type: std_msgs/msg/String
       transient_local: true
-    subscribed_topics: [mpc_input]
+    subscribed_topics: [mpc_input, tf]
     mpc_input:
       topic_name: ~/mpc_input
       topic_type: agimus_msgs/msg/MpcInputArray
       python_function_name: mpc_input_cb
+    tf:
+      topic_name: /tf
+      topic_type: tf2_msgs/msg/TFMessage
+      python_function_name: tf_cb
     published_topics: [get_buffer_size]
     mpc_debug_data:
       topic_name: ~/mpc_debug
@@ -138,11 +143,14 @@ agimus_pytroller:
       topic_type: std_msgs/msg/Int64
       python_msg_getter_name: get_buffer_size
     pytroller_python_params:
-      p_gains: [50.0, 50.0, 50.0, 50.0, 1.0, 1.0, 1.0]
-      d_gains: [20.0, 20.0, 20.0, 20.0, 0.1, 0.1, 0.1]
+      p_gains: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      d_gains: [3.0, 3.0, 3.0, 3.0, 0.1, 0.1, 0.1]
       cost_plotter:
         use_cost_plotter: false
         cost_plotter_url: 127.0.0.1:2137
+      meshcat:
+        use_meshcat: true
+        meshcat_zmq_url: tcp://127.0.0.1:6000
       robot_model_params:
         moving_joint_names:
         - fer_joint1
@@ -156,7 +164,7 @@ agimus_pytroller:
         collision_as_capsule: true
         self_collision: false
         armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-      ocp_definition_file: package://agimus_demo_07_deburring/config/ocp_definition_file.yaml
+      ocp_definition_file: package://agimus_demo_07_deburring/config/metal/ocp_definition_file.yaml
       dt_factor_n_seq:
         factors: [1]
         n_steps: [10]
@@ -168,3 +176,8 @@ agimus_pytroller:
         qp_iters: 100
         use_debug_data: false
         n_threads: 8
+      pylone_placement:
+        parent_frame_id: fer_link0
+        child_frame_id: pylone_link
+        parent_visual_frame_id: pylone_link
+        parent_collision_frame_id: pylone_sc_link

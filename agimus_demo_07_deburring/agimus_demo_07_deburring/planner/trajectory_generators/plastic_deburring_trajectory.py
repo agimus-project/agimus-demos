@@ -8,7 +8,7 @@ from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator
 )
 
 
-class DeburringPathGenerator(GenericTrajectoryGenerator):
+class PlasticDeburringPathGenerator(GenericTrajectoryGenerator):
     def __init__(
         self,
         robot_model: pin.Model,

@@ -42,13 +42,13 @@
   <link name="base_box_link">
     <visual>
       <geometry>
-        <box size="0.55 0.52 0.435"/>
+        <box size="0.45 0.6 0.435"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.55 0.52 0.435"/>
+        <box size="0.45 0.6 0.435"/>
       </geometry>
     </collision>
     <inertial>
@@ -62,7 +62,7 @@
   <joint name="pylone_to_box_joint" type="fixed">
     <parent link="pylone_link"/>
     <child link="base_box_link"/>
-    <origin xyz="0 0.015 -0.50" rpy="0 0 -0.02"/>
+    <origin xyz="0.01 0.015 -0.50" rpy="0 0 -0.02"/>
   </joint>
 
   <!-- Joint connecting table to fer robot base (on top of table) -->

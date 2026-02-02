@@ -53,6 +53,7 @@ def launch_setup(
                 "franka_controllers_params"
             ),
             "initial_joint_position": LaunchConfiguration("initial_joint_position"),
+            "robot_safety_distance": LaunchConfiguration("robot_safety_distance"),
             "use_gazebo": LaunchConfiguration("use_gazebo"),
             "use_rviz": LaunchConfiguration("use_rviz"),
             "rviz_config_path": LaunchConfiguration("rviz_config_path"),
@@ -98,6 +99,11 @@ def generate_launch_description():
             "initial_joint_position",
             default_value="'0.0 -0.78 0.0 -2.35 0.0 1.57 0.78 0.0'",
             description="Initial configuration of the robot used in Gazebo",
+        ),
+        DeclareLaunchArgument(
+            "robot_safety_distance",
+            default_value="0.03",
+            description="Safety distance for capsules used by the robot.",
         ),
         DeclareLaunchArgument(
             "gz_world_path",

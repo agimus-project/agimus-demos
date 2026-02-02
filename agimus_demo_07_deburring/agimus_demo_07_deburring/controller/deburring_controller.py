@@ -25,13 +25,15 @@ from agimus_controller.warm_start_reference import WarmStartReference
 from agimus_controller_ros.ros_utils import (
     mpc_debug_data_to_msg,
     mpc_msg_to_weighted_traj_point,
+    transform_msg_to_se3,
 )
 from agimus_msgs.msg import MpcDebug, MpcInputArray
 from agimus_pytroller_py.agimus_pytroller_base import ControllerImplBase
-from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import Int64, String
+from tf2_msgs.msg import TFMessage
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
+
 
 try:
     import crocoddyl_plotter
@@ -40,17 +42,19 @@ try:
 except ImportError:
     with_cost_plotter = False
 
+from pinocchio.visualize import MeshcatVisualizer
+
 
 class ControllerImpl(ControllerImplBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def setup(self, robot_description: String, environment_description: String):
-        self._topic_map = {}
-        package_share_directory = Path(
-            get_package_share_directory("agimus_demo_07_deburring")
-        )
-        config_file = package_share_directory / "config" / "pytroller_params.yaml"
+    def setup(
+        self,
+        robot_description: String,
+        environment_description: String,
+        config_file: Path,
+    ):
         cfg = yaml.safe_load(config_file.read_text())["agimus_pytroller"][
             "ros__parameters"
         ]["pytroller_python_params"]
@@ -123,6 +127,51 @@ class ControllerImpl(ControllerImplBase):
                 plotter_cfg["cost_plotter_url"]
             )
 
+        self._viz = None
+        meshcat_cfg = cfg["meshcat"]
+        self._use_meshcat = meshcat_cfg["use_meshcat"]
+        if self._use_meshcat:
+            try:
+                self._viz = MeshcatVisualizer(
+                    self._robot_models.robot_model,
+                    self._robot_models.collision_model,
+                    self._robot_models.visual_model,
+                )
+                self._viz.initViewer(zmq_url=meshcat_cfg["meshcat_zmq_url"])
+                self._viz.loadViewerModel()
+                self._viz.displayCollisions(True)
+            except ImportError:
+                print("Meshcat is not installed, skipping initialization!", flush=True)
+                self._use_meshcat = False
+
+        pylone_cfg = cfg["pylone_placement"]
+        self._pylone_parent_frame_id = pylone_cfg["parent_frame_id"]
+        self._pylone_child_frame_id = pylone_cfg["child_frame_id"]
+
+        # This code assumes all self collision geometries in pylone that are
+        # meant to move are attached to one origin (in this case pylone_sc_link)
+        # This is a string assumption and can be easily broken in case of changes
+        # in the environment URDF. Beware to keep this in mind!
+        frame_name = pylone_cfg["parent_visual_frame_id"]
+        frame_id = self._robot_models.robot_model.getFrameId(frame_name)
+        self._geometries = [
+            (geom.name, geom.placement.copy(), pin.GeometryType.VISUAL)
+            for geom in self._robot_models.visual_model.geometryObjects
+            if geom.parentFrame == frame_id
+        ]
+
+        frame_name = pylone_cfg["parent_collision_frame_id"]
+        frame_id = self._robot_models.robot_model.getFrameId(frame_name)
+        self._geometries.extend(
+            [
+                (geom.name, geom.placement.copy(), pin.GeometryType.COLLISION)
+                for geom in self._robot_models.collision_model.geometryObjects
+                if geom.parentFrame == frame_id
+            ]
+        )
+
+        self._pylone_pose_updated = False
+
     def mpc_input_cb(self, msg: MpcInputArray):
         for mpc_input in msg.inputs:
             self.mpc.append_trajectory_point(
@@ -138,6 +187,22 @@ class ControllerImpl(ControllerImplBase):
     def get_buffer_size(self) -> Int64:
         return Int64(data=len(self.mpc._buffer))
 
+    def tf_cb(self, msg: TFMessage) -> None:
+        for t in msg.transforms:
+            if (
+                t.header.frame_id == self._pylone_parent_frame_id
+                and t.child_frame_id == self._pylone_child_frame_id
+            ):
+                measured = transform_msg_to_se3(t.transform)
+                for name, placement, type in self._geometries:
+                    self.mpc._ocp.update_geometry_placement(
+                        name,
+                        measured * placement,
+                        type,
+                    )
+                self._pylone_pose_updated = True
+                break
+
     def on_update(self, state: npt.ArrayLike) -> npt.ArrayLike:
         # return self._u_zeros
         now = time.time()
@@ -146,7 +211,7 @@ class ControllerImpl(ControllerImplBase):
 
         assert state.size == nq + nv + 6 + 1
         # Extract state values
-        q = state[:nq]
+        self._last_q = state[:nq]
         dq = state[nq : nq + nv]
         force = state[-7:-1]
         # Currently unused, kept for compatibility
@@ -154,12 +219,12 @@ class ControllerImpl(ControllerImplBase):
 
         # Compute gravity torque
         rmodel = self._robot_models.robot_model
-        pin.framesForwardKinematics(rmodel, self._robot_data, q)
+        pin.framesForwardKinematics(rmodel, self._robot_data, self._last_q)
 
         # On first call, initialize warmstart and return zero control
         if self._first_call:
-            self._q_init = q.copy()
-            pin.computeJointJacobians(rmodel, self._robot_data, q)
+            self._q_init = self._last_q.copy()
+            pin.computeJointJacobians(rmodel, self._robot_data, self._last_q)
             frame_of_interest_id = rmodel.getFrameId(self.mpc._ocp.frame_id)
             oMc = self._robot_data.oMf[frame_of_interest_id]
             oMc.translation += self.mpc._ocp.oPc
@@ -171,7 +236,7 @@ class ControllerImpl(ControllerImplBase):
             tau_g = pin.rnea(
                 rmodel,
                 self._robot_data,
-                q,
+                self._last_q,
                 dq,
                 self._nv_zeros,
                 self._external_forces,
@@ -182,7 +247,7 @@ class ControllerImpl(ControllerImplBase):
             if sum(directions) == 3:
                 states = state[:-4]
             else:
-                states = np.concatenate((q, dq, force[:3][directions]))
+                states = np.concatenate((self._last_q, dq, force[:3][directions]))
             dummy_warmstart = OCPResults(
                 states=[states] * (T + 1), feed_forward_terms=[tau_g] * T
             )
@@ -193,7 +258,7 @@ class ControllerImpl(ControllerImplBase):
 
         x0_traj_point = TrajectoryPoint(
             time_ns=now,
-            robot_configuration=q,
+            robot_configuration=self._last_q,
             robot_velocity=dq,
             robot_acceleration=self._nv_zeros,
             forces=pin.Force(force),
@@ -201,11 +266,13 @@ class ControllerImpl(ControllerImplBase):
 
         ocp_res = self.mpc.run(x0_traj_point, now)
 
-        if ocp_res is None:
+        if not self._pylone_pose_updated or ocp_res is None:
             self._ocp_res_is_none = True
             if self._in_pd_mode:
                 # Compute safety PD control
-                return (self._q_init - q) * self._p_gains - dq * self._d_gains
+                return (
+                    self._q_init - self._last_q
+                ) * self._p_gains - dq * self._d_gains
             return self._u_zeros
         self._ocp_res_is_none = False
         self._in_pd_mode = False
@@ -213,7 +280,7 @@ class ControllerImpl(ControllerImplBase):
         tau_g = pin.rnea(
             rmodel,
             self._robot_data,
-            q,
+            self._last_q,
             self._nv_zeros,
             self._nv_zeros,
         )
@@ -225,6 +292,9 @@ class ControllerImpl(ControllerImplBase):
             self._cost_plotter_server.send(
                 self.mpc._ocp._solver.problem, self._iteration_counter
             )
+        if self._use_meshcat:
+            self._viz.display(self._last_q)
+
         self._iteration_counter += 1
 
         self.mpc.update_references()

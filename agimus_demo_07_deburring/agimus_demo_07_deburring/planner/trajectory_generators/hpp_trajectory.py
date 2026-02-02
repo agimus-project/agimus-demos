@@ -72,7 +72,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._deburred_object_name = deburred_object_name
 
         # Load the robot
-        Robot.urdfString = robot_description
+        Robot.urdfString = robot_description.replace("file://", "")
         Robot.srdfString = robot_self_collision_config.read_text()
 
         with open(handles_configurations_path, "r") as stream:
@@ -192,7 +192,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
 
     def get_path(
         self,
-        q0,
+        q0: npt.ArrayLike,
         T_final: pin.SE3,
         handle_name: str,
         T_init: pin.SE3 | None = None,
@@ -216,9 +216,13 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._ps.client.basic.problem.addPath(p)
 
         length = p.length()
-        n_traj_points = int(np.ceil(length / self._ocp_dt)) * 4
+        slowdown = 4
+        n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
         trajectory = np.array(
-            [p.call(i * self._ocp_dt / 4)[0][: self._nq] for i in range(n_traj_points)]
+            [
+                p.call(i * self._ocp_dt / slowdown)[0][: self._nq]
+                for i in range(n_traj_points)
+            ]
         )
         p.deleteThis()
 

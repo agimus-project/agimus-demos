@@ -1,0 +1,183 @@
+---
+ft_calibration_filter:
+  ros__parameters:
+    update_rate: 1000 # has to be repeated here as in ROS 2 Humble value form the controller manager is not propagated to the controllers...
+    type: agimus_demos_controllers/FTCalibrationFilter
+    state_force_interfaces_names:
+    - ati_mini45/force.x
+    - ati_mini45/force.y
+    - ati_mini45/force.z
+    - ati_mini45/torque.x
+    - ati_mini45/torque.y
+    - ati_mini45/torque.z
+    state_robot_position_interfaces_names:
+    - fer_joint1/position
+    - fer_joint2/position
+    - fer_joint3/position
+    - fer_joint4/position
+    - fer_joint5/position
+    - fer_joint6/position
+    - fer_joint7/position
+    moving_joint_names:
+    - fer_joint1
+    - fer_joint2
+    - fer_joint3
+    - fer_joint4
+    - fer_joint5
+    - fer_joint6
+    - fer_joint7
+    filtered_forces_interfaces_names:
+    - agimus_pytroller/ati_mini45/force.x
+    - agimus_pytroller/ati_mini45/force.y
+    - agimus_pytroller/ati_mini45/force.z
+    - agimus_pytroller/ati_mini45/torque.x
+    - agimus_pytroller/ati_mini45/torque.y
+    - agimus_pytroller/ati_mini45/torque.z
+    measurement_frame_id: ati_mini45_measurement_reference
+    bias_measurement_samples: 50
+    gravity_vector: [0.0, 0.0, -9.81]
+    invert_forces: true
+    contact_detection:
+      hysteresis_samples: 5
+      augment_state: true
+      command_interface_name: agimus_pytroller/in_contact
+      lower_threshold: 0.2
+      upper_threshold: 1.0
+      axis_mask: z
+    calibration:
+      measurement_frame:
+        xyz: [0.0, 0.0, 0.0]
+        rpy: [-0.01298525, -0.01698205, 0.08738864]
+      com:
+        xyz: [0.0, 0.001, -0.025]
+        mass: 0.14862544526369056
+    # 2nd order Butterwoth filter params. Fc = 18 Hz, Sampling 1 kHz
+    ati_mini45/force.x:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+    ati_mini45/force.y:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+    ati_mini45/force.z:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+    ati_mini45/torque.x:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+    ati_mini45/torque.y:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+    ati_mini45/torque.z:
+      a: [-1.8403591709709755, 0.8521922521270615]
+      b: [0.002958270289021522, 0.005916540578043044, 0.002958270289021522]
+agimus_pytroller:
+  ros__parameters:
+    type: agimus_pytroller/AgimusPytroller
+    python_module: agimus_demo_07_deburring.controller.plastic_deburring_controller_wrapper
+    python_downsample_factor: 2
+    error_on_no_data: true
+    interpolate_trajectory: true
+    input_interfaces:
+    - fer_joint1/position
+    - fer_joint2/position
+    - fer_joint3/position
+    - fer_joint4/position
+    - fer_joint5/position
+    - fer_joint6/position
+    - fer_joint7/position
+    - fer_joint1/velocity
+    - fer_joint2/velocity
+    - fer_joint3/velocity
+    - fer_joint4/velocity
+    - fer_joint5/velocity
+    - fer_joint6/velocity
+    - fer_joint7/velocity
+    - agimus_pytroller/ati_mini45/force.x
+    - agimus_pytroller/ati_mini45/force.y
+    - agimus_pytroller/ati_mini45/force.z
+    - agimus_pytroller/ati_mini45/torque.x
+    - agimus_pytroller/ati_mini45/torque.y
+    - agimus_pytroller/ati_mini45/torque.z
+    - agimus_pytroller/in_contact
+    command_interfaces:
+    - fer_joint1/effort
+    - fer_joint2/effort
+    - fer_joint3/effort
+    - fer_joint4/effort
+    - fer_joint5/effort
+    - fer_joint6/effort
+    - fer_joint7/effort
+    reference_interfaces:
+    - ati_mini45/force.x
+    - ati_mini45/force.y
+    - ati_mini45/force.z
+    - ati_mini45/torque.x
+    - ati_mini45/torque.y
+    - ati_mini45/torque.z
+    - in_contact
+    initialization_data_topics: [robot_description, environment_description]
+    robot_description:
+      topic_name: /robot_description_with_collision
+      topic_type: std_msgs/msg/String
+      transient_local: true
+    environment_description:
+      topic_name: /environment_description_with_collision
+      topic_type: std_msgs/msg/String
+      transient_local: true
+    subscribed_topics: [mpc_input, tf]
+    mpc_input:
+      topic_name: ~/mpc_input
+      topic_type: agimus_msgs/msg/MpcInputArray
+      python_function_name: mpc_input_cb
+    tf:
+      topic_name: /tf
+      topic_type: tf2_msgs/msg/TFMessage
+      python_function_name: tf_cb
+    published_topics: [get_buffer_size]
+    mpc_debug_data:
+      topic_name: ~/mpc_debug
+      topic_type: agimus_msgs/msg/MpcDebug
+      python_msg_getter_name: get_ocp_results
+    get_buffer_size:
+      topic_name: ~/buffer_size
+      topic_type: std_msgs/msg/Int64
+      python_msg_getter_name: get_buffer_size
+    pytroller_python_params:
+      p_gains: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      d_gains: [3.0, 3.0, 3.0, 3.0, 0.1, 0.1, 0.1]
+      cost_plotter:
+        use_cost_plotter: false
+        cost_plotter_url: 127.0.0.1:2137
+      meshcat:
+        use_meshcat: true
+        meshcat_zmq_url: tcp://127.0.0.1:6000
+      robot_model_params:
+        moving_joint_names:
+        - fer_joint1
+        - fer_joint2
+        - fer_joint3
+        - fer_joint4
+        - fer_joint5
+        - fer_joint6
+        - fer_joint7
+        free_flyer: false
+        collision_as_capsule: true
+        self_collision: false
+        armature: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+      ocp_definition_file: package://agimus_demo_07_deburring/config/plastic/ocp_definition_file.yaml
+      dt_factor_n_seq:
+        factors: [1]
+        n_steps: [10]
+      ocp_params:
+        dt: 0.002
+        horizon_size: 10
+        solver_iters: 5
+        callbacks: false
+        qp_iters: 100
+        use_debug_data: false
+        n_threads: 8
+      pylone_placement:
+        parent_frame_id: fer_link0
+        child_frame_id: pylone_link
+        parent_visual_frame_id: pylone_link
+        parent_collision_frame_id: pylone_sc_link

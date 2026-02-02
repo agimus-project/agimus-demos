@@ -1,0 +1,101 @@
+---
+deburring_path_planner_node:
+  ros__parameters:
+    handles_srdf_path: $(find-pkg-share agimus_demo_07_deburring)/environment/pylone.srdf
+    device: cpu
+    rate: 2.0
+    tool_frame_id: fer_ati_mini45_with_compact_camera_tool
+    measurement_frame_id: ati_mini45_measurement_reference
+    world_frame_id: fer_link0
+    deburred_object_frame_id: pylone_link
+    hpp_handle_to_ee_rot: [0.0, 1.570796327, 0.0]
+    tool_offset_correction: [0.0, 0.0, 0.0]
+    visualization:
+      publish_path: true
+      marker_size: 0.01
+      marker_color: [1.0, 0.0, 0.0, 0.5]
+    # Velocities based on the datasheet. Values are eight of the maximum velocity
+    max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    ocp_dt: 0.002
+    ocp_buffer_size: 100
+    moving_joints:
+    - fer_joint1
+    - fer_joint2
+    - fer_joint3
+    - fer_joint4
+    - fer_joint5
+    - fer_joint6
+    - fer_joint7
+    generators_params:
+      main_generator_type: hpp
+      deburring_generator_type: metal
+      use_precomputed_trajectories: $(var use_precomputed_trajectories)
+      precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/metal
+      # TODO implement when diffusion is finalized
+      diffusion_generator:
+        weights_path: ''
+        sequence_length: 49
+      hpp_generator:
+        handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
+        robot_self_collision_config: $(find-pkg-share agimus_demo_07_deburring)/environment/panda.srdf
+        demo_config: $(find-pkg-share agimus_demo_07_deburring)/environment/demo.srdf
+        robot_name: panda
+        gripper_name: panda_gripper
+        deburred_object_name: pylone
+        joints_to_shrink:
+        - fer_joint1
+        - fer_joint2
+        - fer_joint3
+        - fer_joint4
+        - fer_joint5
+        - fer_joint6
+        - fer_joint7
+        joint_shrink_range: 0.95
+      grasp_generator:
+        linear_vel: 0.1
+        linear_acc: 0.07
+        linear_jerk: 1.0
+        tool_angular_vel: 2.6
+        tool_angular_acc: 10.0
+        tool_angular_jerk: 5000.0
+        insert_joint_angle: -2.8
+        retract_joint_angle: 0.0
+      metal_deburring_generator:
+        tool_angular_vel: 2.2
+        tool_angular_acc: 10.0
+        tool_angular_jerk: 5000.0
+        tool_joint_start_angle: -2.6
+        tool_joint_end_angle: 2.6
+        positioning_time: 2.0
+        positioning_force: 20.0
+        deburring_force: 40.0
+        force_rate_up: 80.0
+        force_rate_down: 100.0
+        n_repeat: 1
+    weights:
+      schedule:
+        interpolation_time: 1.0
+      follow_joint_trajectory:
+        w_robot_configuration: [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003, 0.0003]
+        w_frame_rotation: [0.6, 0.6, 0.6]
+        w_frame_translation: [2.5, 2.5, 2.5]
+        w_desired_force: [0.0, 0.0, 0.0]
+        w_collision_avoidance: 0.008
+      insert_retract_tool:
+        w_robot_configuration: [0.005, 0.005, 0.0, 0.0, 0.0, 0.0, 0.1]
+        w_robot_velocity: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.05]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0003, 0.03, 0.06, 0.03]
+        w_frame_rotation: [50.0, 50.0, 0.0]
+        w_frame_translation: [150.0, 150.0, 150.0]
+        w_desired_force: [0.0, 0.0, 0.0]
+        w_collision_avoidance: 0.0
+      deburring_motion:
+        w_robot_configuration: [0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.5]
+        w_robot_velocity: [0.1, 0.01, 0.001, 0.001, 0.001, 0.001, 0.5]
+        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0005, 0.1, 0.2, 0.05]
+        w_frame_rotation: [2.0, 2.0, 0.0]
+        w_frame_translation: [0.0, 0.0, 0.0]
+        w_desired_force: [0.000015, 0.000015, 0.000015]
+        w_collision_avoidance: 0.0
