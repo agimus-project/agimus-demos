@@ -1,11 +1,10 @@
 from aligator_mpc import MPC, Config, PatternGenerator, TestTrajs
 import rclpy
 from rclpy.node import Node
-from rclpy.time import Time
 from std_srvs.srv import Trigger
 from linear_feedback_controller_msgs.msg import Control, Sensor
 from sensor_msgs.msg import JointState
-from std_msgs.msg import MultiArrayDimension, ColorRGBA, Float32
+from std_msgs.msg import MultiArrayDimension, ColorRGBA, Float32, String
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from rclpy.qos import ReliabilityPolicy, DurabilityPolicy, HistoryPolicy, QoSProfile
@@ -34,7 +33,7 @@ class AligatorMPC(Node):
         patternGen = PatternGenerator([0.36,0.5,0], (0.52, 0.0,0.087)) # testing
         # patternGen = PatternGenerator([0.24,0.3,0], (0.5, 0,0.3)) # real box
 
-        mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
+        self.mpc_waypoints = patternGen.generate_pattern('zigzag_curve',stride=0.05)
         
         # test_trajs = TestTrajs()
         # start = pin.SE3(pin.rpy.rpyToMatrix(np.pi,0,0), np.array([0.5, -0.2, 0.2]))
@@ -48,7 +47,8 @@ class AligatorMPC(Node):
         
         # Solver setup ============================================================
         self.robot_state = None
-        self.mpc = MPC(mpc_waypoints, self.mpc_parameters)
+        self.mpc = None
+        self.mpc_ready = False
         self.first_mpc_iteration = True
         self.feedback_gain_scaling = 1.0
 
@@ -93,7 +93,13 @@ class AligatorMPC(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=1
         )
-        self.subscription = self.create_subscription(Sensor, 'sensor', self.sensor_callback, qos)
+        qos_r_desc = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            depth=1
+        )
+        self.subscription_sensor = self.create_subscription(Sensor, 'sensor', self.sensor_callback, qos)
+        self.subscription_robot_descr = self.create_subscription(String, 'robot_description', self.robot_descr_callback, qos_r_desc)
         self.launch_srv = self.create_service(Trigger, 'aligator_mpc/launch_mpc', self.launch_mpc_callback)
         self.mpc_started = False
 
@@ -158,6 +164,7 @@ class AligatorMPC(Node):
         Args:
             msg (Sensor)
         """
+        
         self.last_sensor_msg = msg
 
         # Get robot state
@@ -170,13 +177,25 @@ class AligatorMPC(Node):
         self.robot_state = np.concatenate((position, velocity))
         self.mpc.setStartPose(position) # update pinocchio model in the MPC
 
-        if self.first_mpc_iteration:
+        if self.first_mpc_iteration and self.mpc_ready:
+            self.get_logger().info("MPC launched")
             self.first_mpc_iteration = False
 
             self.mpc.initStages() # once the start pose is set the stages must be computed before the first solver iteration
             mpc_traj = self.mpc.stage_factory.getFullTrajectory_pt_by_pt()
             self.waypoints_marker_msg = self.waypoints_to_marker(mpc_traj)
         
+    def robot_descr_callback(self, msg: String) -> None :
+        """Gets the robot description from the /robot_description topic and starts the MPC
+
+        Args:
+            msg (String): topic message
+        """
+
+        robot_urdf = msg.data
+        self.mpc = MPC(self.mpc_waypoints, self.mpc_parameters, robot_urdf)
+        self.mpc_ready = True        
+
     def launch_mpc_callback(self, request, response):
         """Callback triggered with service /mpc_launch is called
 
