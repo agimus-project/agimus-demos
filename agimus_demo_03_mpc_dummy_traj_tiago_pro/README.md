@@ -143,7 +143,7 @@ Start the demo (with `ssh -X` in remote because terminal window will appear to s
 ```bash
 hppcorbaserver
 ```
-- Terminal2
+- Terminal 2
 ```bash
 gepetto-gui
 ```
