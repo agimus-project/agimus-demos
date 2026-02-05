@@ -147,7 +147,7 @@ hppcorbaserver
 ```bash
 gepetto-gui
 ```
-- Terminal3
+- Terminal 3
 ```bash
 ros2 launch agimus_demo_03_mpc_dummy_traj_tiago_pro bringup.launch.py use_gazebo:=false use_rviz:=true
 ```
