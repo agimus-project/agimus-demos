@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>A package to aggregate all packages in agimus_demos.</description>
   <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
-  <license>BSD</license>
+  <license>BSD-2-Clause</license>
 
   <!-- Common -->
   <exec_depend>agimus_demos_common</exec_depend>

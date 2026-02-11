@@ -9,7 +9,7 @@
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
   <author email="krzysztof.wojciechowski@laas.fr">Krzysztof Wojciechowski</author>
 
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
   <url type="website">https://www.agimus-project.eu/</url>
   <url type="repository">https://github.com/agimus-project/agimus-demos</url>
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>

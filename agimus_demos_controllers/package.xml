@@ -4,7 +4,7 @@
   <version>0.0.1</version>
   <description>Implementations of ros2_control controllers used in Agimus demos.</description>
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
 
   <author email="krzysztof.wojciechowski@laas.fr">Krzysztof Wojciechowski</author>
 

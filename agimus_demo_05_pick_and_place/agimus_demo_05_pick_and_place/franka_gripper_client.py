@@ -2,7 +2,7 @@ import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from control_msgs.action import GripperCommand
-from franka_msgs.action import Grasp
+from agimus_franka_msgs.action import Grasp
 
 
 class FrankaGripperClient(object):

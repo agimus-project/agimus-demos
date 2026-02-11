@@ -7,7 +7,7 @@
     with TIAGo-Pro pal-robotics.
   </description>
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
   <author email="florent.lamiraux@laas.fr">Florent Lamiraux</author>
 
   <url type="website">https://www.agimus-project.eu/</url>

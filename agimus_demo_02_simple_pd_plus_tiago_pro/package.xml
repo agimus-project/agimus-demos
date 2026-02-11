@@ -7,7 +7,7 @@
     demo with the LFC and a LFC client that implements a PD+ with Ricatti gains.
   </description>
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
   <author email="maximilien.naveau@gmail.com">Maximilien Naveau</author>
 
   <url type="website">https://www.agimus-project.eu/</url>

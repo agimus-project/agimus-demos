@@ -2,7 +2,7 @@ import sys
 
 import rclpy
 
-from franka_msgs.srv import SetFullCollisionBehavior  # noqa: I001
+from agimus_franka_msgs.srv import SetFullCollisionBehavior  # noqa: I001
 
 # Automatically generated file
 from agimus_demos_common.disable_franka_collisions_parameters import (
