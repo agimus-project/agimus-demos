@@ -8,7 +8,7 @@
   <maintainer email="maximilien.naveau@gmail.com">Maximilien Naveau</maintainer>
   <author>Maximilien Naveau</author>
 
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
   <url type="website">https://www.agimus-project.eu/</url>
   <url type="repository">https://github.com/agimus-project/agimus-demos</url>
   <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
@@ -16,7 +16,7 @@
 
   <exec_depend>agimus_demos_common</exec_depend>
   <exec_depend>controller_manager</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">franka_example_controllers</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_example_controllers</exec_depend>
   <exec_depend>ros2launch</exec_depend>
 
   <export>

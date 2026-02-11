@@ -7,7 +7,7 @@
     Common launch and config files used across all demos created for Agimus Project.
   </description>
   <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
-  <license>BSD-2</license>
+  <license>BSD-2-Clause</license>
   <author email="mederic.fourmy@cvut.cz">Mederic Fourmy</author>
   <author email="krzysztof.wojciechowski@laas.fr">Krzysztof Wojciechowski</author>
   <author email="thomas.peyrucain@pal-robotics.com">Thomas Peyrucain</author>
@@ -26,11 +26,11 @@
   <exec_depend>python3-jinja2</exec_depend>
 
   <!-- Franka dependencies. -->
-  <exec_depend condition="$PAL_DISTRO != alum">franka_description</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">franka_gripper</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">franka_hardware</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">franka_ign_ros2_control</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">franka_robot_state_broadcaster</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_description</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_gripper</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_hardware</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_ign_ros2_control</exec_depend>
+  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_robot_state_broadcaster</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">gripper_controllers</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">net_ft_description</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">net_ft_diagnostic_broadcaster</exec_depend>
