@@ -22,8 +22,16 @@
   <depend>pinocchio</depend>
   <depend>linear_feedback_controller</depend>
   <depend>linear_feedback_controller_msgs</depend>
+  <depend>control_toolbox</depend>
+  <depend>message_filters</depend>
+  <depend>nav_msgs</depend>
+  <depend>eigen3_cmake_module</depend>
+  <depend>tf2_eigen</depend>
+  <depend>pal_statistics</depend>
 
   <exec_depend>ros2launch</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
