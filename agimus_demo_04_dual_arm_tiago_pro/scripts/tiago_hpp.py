@@ -176,10 +176,12 @@ for j, v in lockedHead.items():
 
 locked_arms_and_torso = list()
 for j in filter(
-    lambda s: s.startswith("tiago_pro/")
-    and not s.startswith("tiago_pro/head")
-    and not s.startswith("tiago_pro/wheel")
-    and s != "tiago_pro/root_joint",
+    lambda s: (
+        s.startswith("tiago_pro/")
+        and not s.startswith("tiago_pro/head")
+        and not s.startswith("tiago_pro/wheel")
+        and s != "tiago_pro/root_joint"
+    ),
     robot.jointNames,
 ):
     constraint = f"locked_{j}"
