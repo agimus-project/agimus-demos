@@ -12,6 +12,16 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 #
+# Download weights of diffusion model
+#
+# TODO change URL to a more permanent one and not @Kotochleb personal partage
+file(
+  DOWNLOAD
+  "https://partage.laas.fr/public.php/dav/files/N632KTiLi6gyaDc/?accept=zip"
+  "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/weights/weights.ckpt"
+  SHOW_PROGRESS)
+
+#
 # Build Python package.
 #
 
@@ -40,7 +50,7 @@ ament_auto_package(
   INSTALL_TO_SHARE
   config
   launch
-  rviz
+  # TODO add configs from Kurai rviz
   plotjuggler
   precomputed_trajectories
   urdf

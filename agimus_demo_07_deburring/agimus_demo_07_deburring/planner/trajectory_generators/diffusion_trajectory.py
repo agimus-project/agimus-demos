@@ -7,12 +7,11 @@ import pinocchio as pin
 import torch
 from agimus_controller.trajectory import TrajectoryPoint
 
-from agimus_demo_07_deburring.planner.diffusion.diffusion_model import (
-    DiffusionModel,
-)
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     JointSpaceMotionGenerator,
 )
+
+from agimus_demo_07_deburring.planner.diffusion.model import Model
 
 
 class DiffusionPathGenerator(JointSpaceMotionGenerator):
@@ -23,20 +22,24 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         ocp_dt: float,
         max_joint_velocity: npt.ArrayLike,
         sequence_length: int,
+        n_samples: int,
         tool_frame_id: str,
+        hpp_handle_correction: pin.SE3,
     ) -> None:
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
+        self._hpp_handle_correction = hpp_handle_correction
 
-        self._model = DiffusionModel.load_from_checkpoint(wights_path)
+        self._model = Model.load_from_checkpoint(wights_path)
         self._model.eval()
-        self._model.freeze()
+        self._model.cuda()
 
         self._nq = robot_model.nq
         self._nv = robot_model.nv
         self._ocp_dt = ocp_dt
         self._max_joint_velocity = max_joint_velocity
         self._sequence_length = sequence_length
+        self._n_samples = n_samples
 
         self._tool_frame_id_name = tool_frame_id
         self._tool_frame_id_pin_frame = self._robot_model.getFrameId(
@@ -53,23 +56,22 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         handle_name: str | None = None,
         T_init: pin.SE3 | None = None,
     ) -> list[npt.ArrayLike]:
-        with torch.no_grad():
-            cond = {
-                "q0": torch.from_numpy(q0).unsqueeze(0).to(torch.float),
-                "goal": torch.from_numpy(pin.SE3ToXYZQUAT(T_final))
-                .unsqueeze(0)
-                .to(torch.float),
-            }
-            trajectory = self._model.sample(
-                cond=cond, seq_length=self._sequence_length, configuration_size=self._nq
-            )
-            trajectory = trajectory.squeeze(0).cpu().numpy()
+        target_xyzquat = pin.SE3ToXYZQUAT(T_final * self._hpp_handle_correction)
+        cond_dict = {
+            "q0": torch.from_numpy(q0).float().unsqueeze(0).cuda(),
+            "goal": torch.from_numpy(target_xyzquat).float().unsqueeze(0).cuda(),
+        }
 
-        if trajectory.ndim != 2 and trajectory.shape[1] != self._nq:
-            raise ValueError(
-                "Inference results do not match number of moving joints! "
-                + f"Expected shape (_, {self._nq}), got {trajectory.shape}"
+        with torch.no_grad():
+            sampled_trajs = self._model.sample(
+                cond=cond_dict,
+                bs=self._n_samples,
+                seq_length=self._sequence_length,
+                configuration_size=self._nq,
             )
+
+        # TODO implement some metric to choose best trajectory
+        trajectory = sampled_trajs[0].cpu().numpy()
 
         # Compute highest joint velocities between trajectory points
         trajectory_vel = np.gradient(trajectory, axis=0)

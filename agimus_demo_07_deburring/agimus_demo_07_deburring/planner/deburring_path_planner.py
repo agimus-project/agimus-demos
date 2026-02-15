@@ -388,12 +388,14 @@ class DeburringPathPlanner(Node):
                         DiffusionPathGenerator(
                             wights_path=gen_params.weights_path,
                             sequence_length=gen_params.sequence_length,
+                            n_samples=gen_params.n_samples,
                             robot_model=self._robot_model,
                             ocp_dt=self._params.ocp_dt,
                             max_joint_velocity=np.array(
                                 self._params.max_joint_velocity
                             ),
                             tool_frame_id=self._tool_frame_id_name,
+                            hpp_handle_correction=self._R_insert,
                         )
                     )
                 else:

@@ -176,6 +176,12 @@ def generate_launch_description():
             "or to mock it.",
             choices=["true", "false"],
         ),
+        DeclareLaunchArgument(
+            "motion_generator",
+            default_value="hpp",
+            description="Motion generator type to use for free movement.",
+            choices=["hpp", "diffusion"],
+        ),
     ]
 
     return LaunchDescription(

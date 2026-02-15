@@ -1,13 +1,6 @@
-# BSD 3-Clause License
-#
-# Copyright (C) 2025, Arthur Haffemayer.
-# Copyright note valid unless otherwise stated in individual files.
-# All rights reserved.
-
-
-import numpy as np
 import torch
-from torch import Tensor, nn
+from torch import nn, Tensor
+import numpy as np
 
 
 class PositionalEncoding(nn.Module):

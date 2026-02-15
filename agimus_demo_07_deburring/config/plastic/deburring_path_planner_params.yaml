@@ -27,14 +27,14 @@ deburring_path_planner_node:
     - fer_joint6
     - fer_joint7
     generators_params:
-      main_generator_type: hpp
+      main_generator_type: $(var motion_generator)
       deburring_generator_type: plastic
       use_precomputed_trajectories: $(var use_precomputed_trajectories)
       precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/plastic
-      # TODO implement when diffusion is finalized
       diffusion_generator:
-        weights_path: ''
-        sequence_length: 49
+        weights_path: $(find-pkg-share agimus_demo_07_deburring)/weights/weights.ckpt
+        sequence_length: 50
+        n_samples: 1
       hpp_generator:
         handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
         robot_self_collision_config: $(find-pkg-share agimus_demo_07_deburring)/environment/panda.srdf

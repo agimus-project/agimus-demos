@@ -123,7 +123,12 @@ deburring_path_planner:
       sequence_length:
         type: int
         description: Output path length for diffusion model.
-        default_value: 49
+        default_value: 50
+        read_only: true
+      n_samples:
+        type: int
+        description: Number of trajectories to sample with diffusion model.
+        default_value: 1
         read_only: true
     hpp_generator:
       handle_configs_path:
