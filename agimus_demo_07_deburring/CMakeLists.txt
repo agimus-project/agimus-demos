@@ -50,7 +50,7 @@ ament_auto_package(
   INSTALL_TO_SHARE
   config
   launch
-  # TODO add configs from Kurai rviz
+  rviz
   plotjuggler
   precomputed_trajectories
   urdf

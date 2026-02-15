@@ -121,7 +121,10 @@ class DeburringPathPlanner(Node):
         self._handles = {}
         for handle in root.findall("handle"):
             pos = handle.find("position")
-            self._handles[handle.get("name")] = pin.XYZQUATToSE3(
+            clearance = float(handle.get("clearance"))
+            T_pregrasp = pin.SE3(np.eye(3), np.array([-clearance, 0.0, 0.0]))
+
+            pose = pin.XYZQUATToSE3(
                 np.concatenate(
                     (
                         np.fromstring(pos.get("xyz"), count=3, sep=" "),
@@ -129,6 +132,9 @@ class DeburringPathPlanner(Node):
                     ),
                 )
             )
+            self._handles[handle.get("name")] = {}
+            self._handles[handle.get("name")]["pose"] = pose
+            self._handles[handle.get("name")]["pregrasp"] = pose * T_pregrasp
 
         self._node_initialized = False
         self._waiting_for_planner = False
@@ -580,7 +586,8 @@ class DeburringPathPlanner(Node):
                 else:
                     self._trajectory_buffer.clear()
 
-            target_handle = self._T_pylone * self._handles[handle_name]
+            T_handle = self._T_pylone * self._handles[handle_name]["pose"]
+            T_pregrasp = self._T_pylone * self._handles[handle_name]["pregrasp"]
             initial_trajectory_len = 0
 
             if goal_handle.request.do_plan:
@@ -600,7 +607,7 @@ class DeburringPathPlanner(Node):
                 if compute_new_trajectory:
                     trajectory = self._path_generators["follow_joint_trajectory"][
                         "generator"
-                    ].get_path(robot_configuration, target_handle, handle_name)
+                    ].get_path(robot_configuration, T_pregrasp, handle_name)
                     if (
                         self._use_precomputed_trajectories
                         and self._last_handle != "none"
@@ -668,23 +675,22 @@ class DeburringPathPlanner(Node):
                         q = self._trajectory_buffer[-1].point.robot_configuration
                 else:
                     q = self._get_remapped_joints()
-                T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
-                    self._tool_frame_id_name
-                ]
+                T_pregrasp_rot = T_pregrasp * self._R_insert
+                T_handle_rot = T_handle * self._R_insert
 
                 # Insert into the hole
                 self._path_generators["insert_retract_tool"][
                     "generator"
                 ].set_insert_mode()
                 segment_len = self._insert_sequence_to_buffer(
-                    "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
+                    "insert_retract_tool", q, T_handle_rot, T_pregrasp_rot
                 )
                 initial_trajectory_len += segment_len
                 # Perform deburring
                 with self._trajectory_buffer_lock:
                     q = self._trajectory_buffer[-1].point.robot_configuration
                 segment_len = self._insert_sequence_to_buffer(
-                    "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
+                    "deburring_motion", q, T_handle_rot, T_pregrasp_rot
                 )
                 initial_trajectory_len += segment_len
                 # Retract from the hole
@@ -694,7 +700,7 @@ class DeburringPathPlanner(Node):
                 with self._trajectory_buffer_lock:
                     q = self._trajectory_buffer[-1].point.robot_configuration
                 segment_len = self._insert_sequence_to_buffer(
-                    "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
+                    "insert_retract_tool", q, T_pregrasp_rot, T_handle_rot
                 )
                 initial_trajectory_len += segment_len
 
