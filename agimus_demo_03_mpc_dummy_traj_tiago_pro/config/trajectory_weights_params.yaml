@@ -2,42 +2,10 @@
 simple_trajectory_publisher:
   ros__parameters:
     ee_frame_name: arm_right_7_joint
-
-    # trajectory_name: sine_wave_cartesian_space
-    # w_q: [0.1]
-    # w_qdot: [0.01]
-    # w_qddot: [0.000001]
-    # w_robot_effort: [0.0008]
-    # w_pose: [50.0]
-    # mask: [true, true, true, false, false, false]
-    # sine_wave:
-    #   period: [4.0, 4.0, 4.0]
-    #   scale_duration: [2.0, 2.0, 2.0]
-    #   amplitude: [0.1, 0.1, 0.04]
-
-    trajectory_name: sine_wave_cartesian_space_weight_increasing
-    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 0.01, 0.01]
-    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.001, 0.001]
+    trajectory_name: generic_trajectory
+    w_q: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    w_qdot: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     w_qddot: [0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001, 0.000001]
-    w_robot_effort: [0.0008, 0.0008, 0.0008, 0.0008, 0.0008, 0.0008, 0.0008]
-    w_pose: [30.0]
-    w_increasing:
-      max_weight: 150.0
-      percent: 0.9
-      time_reach_percent: 4.0
-    mask: [true, true, true, false, false, false]
-    sine_wave:
-      period: [4.0, 4.0, 4.0]
-      scale_duration: [2.0, 2.0, 2.0]
-      amplitude: [0.1, 0.0, 0.0]
-
-    # trajectory_name: sine_wave_configuration_space
-    # w_q: [12.0]
-    # w_qdot: [0.48]
-    # w_qddot: [0.000001]
-    # w_robot_effort: [0.0008]
-    # w_pose: [0.5]
-    # sine_wave:
-    #   period: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
-    #   scale_duration: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    #   amplitude: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    w_robot_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    w_pose: [60.0, 60.0, 60.0, 10.0, 10.0, 10.0]
+    mask: [true, true, true, true, true, true]

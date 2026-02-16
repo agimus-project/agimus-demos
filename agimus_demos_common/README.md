@@ -211,8 +211,39 @@ Utility ROS node, mean to delay launch of other nodes until Gazebo simulation st
 
 ## Tips and tricks.
 
+### The simulation is not running due to controller already existing.
+
+Kill ALL !!!!!!
+
 In order to kill all simulation ghost processes:
 ```bash
-alias kr2='pkill -9 -f '\''.*(gzclient|gzserver).*'\'''
+alias kr2='pkill -9 -f '\''.*(gzclient|gzserver).*'\'' ; ros2 daemon stop'
 kr2
+```
+
+### Start the AGIMUS-TIAGo simulation by bash
+
+```bash
+ros2 launch tiago_pro_gazebo tiago_pro_gazebo.launch.py \
+  world_name:=empty \
+  base_type:=omni_base \
+  arm_type_right:=tiago-pro \
+  arm_type_left:=tiago-pro \
+  end_effector_right:=no-end-effector \
+  end_effector_left:=no-end-effector \
+  ft_sensor_right:=no-ft-sensor \
+  ft_sensor_left:=no-ft-sensor \
+  tool_changer_right:=True \
+  tool_changer_left:=True \
+  wrist_model_right:=spherical-wrist \
+  wrist_model_left:=spherical-wrist \
+  camera_model:=realsense-d435 \
+  laser_model:=no-laser \
+  navigation:=False \
+  advanced_navigation:=False \
+  slam:=False \
+  docking:=False \
+  moveit:=True \
+  tuck_arm:=True \
+  is_public_sim:=False
 ```

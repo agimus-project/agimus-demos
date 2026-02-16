@@ -26,12 +26,11 @@ class SplineBezier:
         Robot.srdfString = """<robot name="box">
                </robot>
             """
-        problemSolver.client.basic._tools.createContext("SplineBezier")
         self.client = Client(context="SplineBezier")
         self.client.problem.selectProblem("SplineBezier")
         self.robot = Robot("SplineBezier-robot", "freeflyer", client=self.client)
         self.ps = ProblemSolver(self.robot)
-        self.steeringMethod = "SplineBezier5"
+        self.steeringMethod = "SplineBezier3"
 
         # Retrieve the current problem from problem solver
         self.currentProblem = self.wd(self.ps.hppcorba.problem.getProblem())
@@ -45,31 +44,6 @@ class SplineBezier:
         )
         Robot.urdfString = "package://example-robot-data/robots/tiago_pro_description/robots/tiago_pro.urdf"
         Robot.srdfString = ""
-
-    def createSplinePath(
-        self, wayPoint1, wayPoint2, length, order1, derivative1, order2, derivative2
-    ):
-        """!"""
-
-        # Create spline path for end-effector
-        return self.splineSteeringMethod.steer(
-            wayPoint1, order1, derivative1, wayPoint2, order2, derivative2, length
-        )
-
-
-class SplineBezierRobot:
-    def __init__(self, problemSolver):
-        self.ps = problemSolver
-        self.steeringMethod = "SplineBezier5"
-        self.ps.client.basic.problem.selectProblem("default")
-        # Retrieve the current problem from problem solver
-        self.currentProblem = self.ps.hppcorba.problem.getProblem()
-        # Create a new robot from the current problem
-        self.crobot = self.currentProblem.robot()
-        # Create the steering method
-        self.splineSteeringMethod = self.ps.client.basic.problem.createSteeringMethod(
-            self.steeringMethod, self.currentProblem
-        )
 
     def createSplinePath(
         self, wayPoint1, wayPoint2, length, order1, derivative1, order2, derivative2

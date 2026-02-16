@@ -12,12 +12,16 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 #
+# Build Python package.
+#
+ament_python_install_package(${PROJECT_NAME})
+
+#
 # Installation
 #
-# Install the tuck_arm.py script as a ROS node
-install(PROGRAMS scripts/tuck_arm.py DESTINATION lib/${PROJECT_NAME})
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY urdf DESTINATION share/${PROJECT_NAME})
 
-ament_auto_package()
+# Install ROS2 nodes.
+install(PROGRAMS scripts/tuck_arm.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/orchestrator_node.py DESTINATION lib/${PROJECT_NAME})
+# Install ament and share folders.
+ament_auto_package(INSTALL_TO_SHARE config launch urdf)
