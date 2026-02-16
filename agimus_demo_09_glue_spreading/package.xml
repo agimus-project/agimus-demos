@@ -7,8 +7,6 @@
     agimus_demo_09_glue_spreading contains the entry points for a demo showcasing Panda performing simple task while performing dynamic collision avoidance.
   </description>
   <maintainer email="timothee.carecchio@inria.fr">Timothée Carecchio</maintainer>
-  <author>Timothée Carecchio</author>
-  <author email="louise.manson@inria.fr">Louise Manson</maintainer>
 
   <license>BSD-2</license>
   <url type="website">https://www.agimus-project.eu/</url>
