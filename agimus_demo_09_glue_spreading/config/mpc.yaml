@@ -1,57 +1,50 @@
+---
 robot:
-  name :  "fr3"
-  world_frame_name : "universe"
-  tool_frame_name : "fr3_hand_tcp"
+  name: fr3
+  world_frame_name: universe
+  tool_frame_name: fr3_hand_tcp
 mpc:
-  dt :  0.02 # time is in seconds
-  total_time : 500
-  nb_steps_horizon : 100
+  dt: 0.02   # time is in seconds
+  total_time: 500
+  nb_steps_horizon: 100
   regularisation_ref:
-    joint_pos: [-8.97653063991213e-07
-                ,-0.7808463663675579
-                ,2.2971344285441086e-15
-                ,-2.366688685342141
-                ,-9.726534605596857e-06
-                ,1.5702636943341912
-                ,-0.6913420805230404]
-    joint_vel: [0., 0. ,0. ,0. ,0. , 0., 0.]
+    joint_pos: [-8.97653063991212e-07, -0.7808463663675579, 2.2971344285441085e-15, -2.366688685342141,
+      -9.726534605596856e-06, 1.5702636943341912, -0.6913420805230404]
+    joint_vel: [0., 0., 0., 0., 0., 0., 0.]
   solver:
     presolve:
       mu_init: 1e-1 # penalite sur les contraintes
-      max_iters : 1000
+      max_iters: 1000
       tolerance: 1e-4
     running:
       mu_init: 1e-4
-      max_iters : 3
+      max_iters: 3
       tolerance: 1e-8
-    rollout_type : aligator.ROLLOUT_LINEAR
-    sa_strategy : aligator.SA_LINESEARCH_NONMONOTONE
-    linear_solver_choice : aligator.LQ_SOLVER_PARALLEL
-    verbose : aligator.QUIET
-    num_threads : 10
+    rollout_type: aligator.ROLLOUT_LINEAR
+    sa_strategy: aligator.SA_LINESEARCH_NONMONOTONE
+    linear_solver_choice: aligator.LQ_SOLVER_PARALLEL
+    verbose: aligator.QUIET
+    num_threads: 10
   weights:
     running:
       regularisation:
-        joint : 1e-3 #1e-4
-        vel : 1e-1 # 1e-2
-        command : 1e-4 # 1e-2
+        joint: 1e-3  #1e-4
+        vel: 1e-1  # 1e-2
+        command: 1e-4  # 1e-2
       waypoints:
-        pose :
+        pose:
           translation: 400.
-          orientation : 300.
-        vel :
+          orientation: 300.
+        vel:
           translation: -0.02
-          orientation : -0.002
+          orientation: -0.002
     terminal:
       regularisation:
-        joint : 1e-4
-        vel : 1e-2
-        command : -1.
+        joint: 1e-4
+        vel: 1e-2
+        command: -1.
 
-    collision : 0.1 # very sensitive, max around ~ 0.1
+    collision: 0.1  # very sensitive, max around ~ 0.1
 
 trajectory:
-  vel : 0.05
-
-
-
+  vel: 0.05

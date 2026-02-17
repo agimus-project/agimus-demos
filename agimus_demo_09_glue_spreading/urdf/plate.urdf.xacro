@@ -5,7 +5,7 @@
   <!--             PROPRIÉTÉS GLOBALES                       -->
   <!-- ===================================================== -->
   <xacro:property name="setup_file" value="${xacro.load_yaml('$(find agimus_demo_09_glue_spreading)/config/plate.yaml')}"/>
-  
+
   <xacro:property name="plate_length" value="${setup_file['plate']['length']}" /> <!-- Dimension sur l'axe X -->
   <xacro:property name="plate_width"  value="${setup_file['plate']['width']}"  /> <!-- Dimension sur l'axe Y -->
   <xacro:property name="plate_height" value="${setup_file['plate']['height']}" /> <!-- Épaisseur de la plaque -->
@@ -26,7 +26,7 @@
       name: Nom unique pour le maillon et le joint
       parent_link: Le maillon auquel attacher cette bordure
       size_x, size_y, size_z: Dimensions de la boîte de la bordure
-      *origin: Bloc <origin> pour la position relative au parent
+      *origin: Block <origin> pour la position relative au parent
   -->
   <xacro:macro name="single_border" params="name parent_link size_x size_y size_z *origin">
     <link name="${name}">
@@ -51,7 +51,7 @@
   <!--
     Cette macro génère une plaque et appelle 4 fois la macro single_border.
     Params:
-      name: Préfixe pour tous les liens et joints
+      name: Préfixe pour tous les lines et joints
       *origin: Position de la plaque par rapport au parent
   -->
   <xacro:macro name="bordered_plate" params="name *origin">
@@ -67,8 +67,8 @@
       </collision>
     </link>
 
-    <!-- Instanciation des 4 bordures en appelant la macro single_border -->
-    
+    <!-- Instantiation des 4 bordures en appelant la macro single_border -->
+
     <!-- Bordure Avant (+X) -->
     <xacro:single_border name="${name}_border_front" parent_link="${name}_base_link"
                          size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
@@ -95,8 +95,8 @@
 
   </xacro:macro>
 
-  
-  <xacro:bordered_plate name="pannel">
+
+  <xacro:bordered_plate name="panel">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:bordered_plate>
 

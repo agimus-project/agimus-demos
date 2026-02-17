@@ -1,11 +1,10 @@
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, TimerAction
-from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 
 from agimus_demos_common.launch_utils import (
@@ -32,15 +31,20 @@ def launch_setup(
 
     franka_robot_launch = generate_include_launch(
         "franka_common_lfc.launch.py",
-        extra_launch_arguments={"rviz_config_path": rviz_config_path,"arm_id": arm_id_str,"use_camera":"false", "initial_joint_position":"'-0.013754730661780176 0.08055123973596531 -0.0073070470163592634 -2.1355798783235875 -0.00918790986315326 2.2759845504437037 -2.3657036209762725 0. '"},
+        extra_launch_arguments={
+            "rviz_config_path": rviz_config_path,
+            "arm_id": arm_id_str,
+            "use_camera": "false",
+            "initial_joint_position": "'-0.013754730661780176 0.08055123973596531 -0.0073070470163592634 -2.1355798783235875 -0.00918790986315326 2.2759845504437037 -2.3657036209762725 0. '",
+        },
     )
 
-    wait_for_non_zero_joints_node = Node(
-        package="agimus_demos_common",
-        executable="wait_for_non_zero_joints_node",
-        parameters=[get_use_sim_time()],
-        output="screen",
-    )
+    # wait_for_non_zero_joints_node = Node(
+    #     package="agimus_demos_common",
+    #     executable="wait_for_non_zero_joints_node",
+    #     parameters=[get_use_sim_time()],
+    #     output="screen",
+    # )
 
     # agimus_controller_params = PathJoinSubstitution(
     #     [
@@ -112,7 +116,7 @@ def launch_setup(
     )
 
     tf_node = static_transform_publisher_node(
-        frame_id=arm_id_str+"_link0",
+        frame_id=arm_id_str + "_link0",
         child_frame_id="robot_attachment_link",
     )
 
@@ -129,10 +133,10 @@ def launch_setup(
     # )
 
     tf_node_plate_mpc = static_transform_publisher_node(
-    frame_id=arm_id_str+"_link0",
-    child_frame_id="pannel_base_link",
-    xyz=["0.6", "0", "0.0"],
-    rot_xyzw= ["0", "0", "0", "1"],
+        frame_id=arm_id_str + "_link0",
+        child_frame_id="pannel_base_link",
+        xyz=["0.6", "0", "0.0"],
+        rot_xyzw=["0", "0", "0", "1"],
     )
 
     mpc_params = PathJoinSubstitution(
@@ -144,12 +148,11 @@ def launch_setup(
     )
 
     mpc_node = Node(
-        package = "agimus_demo_09_glue_spreading",
-        executable = "aligator_MPC",
-        name = "aligator_mpc",
-        parameters = [{'config':mpc_params.perform(context)}]
+        package="agimus_demo_09_glue_spreading",
+        executable="aligator_MPC",
+        name="aligator_mpc",
+        parameters=[{"config": mpc_params.perform(context)}],
     )
-
 
     return [
         franka_robot_launch,
@@ -159,7 +162,6 @@ def launch_setup(
         tf_node_plate_mpc,
         tf_world_base,
         mpc_node,
-
         # wait_for_non_zero_joints_node,
         # RegisterEventHandler(
         #     event_handler=OnProcessExit(
