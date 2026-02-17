@@ -1,3 +1,5 @@
+"""HPP plan used on AGIMUS-TIAGo. Plan square motion of the end-effector."""
+
 from agimus_controller.trajectory import TrajectoryPoint
 import example_robot_data
 from hpp.corbaserver import loadServerPlugin, wrap_delete as wd

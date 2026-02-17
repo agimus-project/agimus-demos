@@ -1,3 +1,5 @@
+"""Prototype for testing HPP on AGIMUS-TIAGo"""
+
 from hpp.corbaserver import loadServerPlugin, wrap_delete as wd
 from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
 from hpp.gepetto.manipulation import ViewerFactory
@@ -9,6 +11,7 @@ import time
 from spline import SplineBezier, SplineBezierRobot
 
 # Enable interactive mode at the beginning
+
 plt.ion()
 
 
@@ -340,8 +343,6 @@ for t in np.arange(0, duration, dt):
     v(d.q)
     time.sleep(dt)
 
-# use matplotlib to plot data
-import matplotlib.pyplot as plt
 
 fig, axs = plt.subplots(4, 1, figsize=(10, 15))
 # Joint positions: plot each joint with a consistent color
