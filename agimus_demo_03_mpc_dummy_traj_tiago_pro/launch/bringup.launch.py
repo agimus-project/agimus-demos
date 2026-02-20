@@ -85,26 +85,6 @@ def launch_setup(
         output="screen",
     )
 
-    #
-    # Environment
-    #
-    # environment_description = ParameterValue(
-    #     Command(
-    #         [
-    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
-    #             " ",
-    #             PathJoinSubstitution(
-    #                 [
-    #                     FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-    #                     "urdf",
-    #                     "empty.urdf",
-    #                 ]
-    #             ),
-    #             # Convert dict to list of parameters
-    #         ]
-    #     ),
-    #     value_type=str,
-    # )
     # No collision avoidance case
     environment_publisher_node = Node(
         package="agimus_demos_common",

@@ -24,6 +24,7 @@ from agimus_demos_common.launch_utils import (
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    # TODO make the demos launch more fluid by using this parameter.
     # robot_ip = LaunchConfiguration("robot_ip")
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_rviz = LaunchConfiguration("use_rviz")
