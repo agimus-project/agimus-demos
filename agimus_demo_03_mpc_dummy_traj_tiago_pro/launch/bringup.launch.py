@@ -10,13 +10,10 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import (
     PathJoinSubstitution,
-    Command,
-    FindExecutable,
     LaunchConfiguration,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.parameter_descriptions import ParameterValue
 
 from agimus_demos_common.launch_utils import (
     generate_default_tiago_pro_args,
@@ -88,26 +85,6 @@ def launch_setup(
         output="screen",
     )
 
-    #
-    # Environment
-    #
-    environment_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("agimus_demo_03_mpc_dummy_traj_tiago_pro"),
-                        "urdf",
-                        "empty.urdf",
-                    ]
-                ),
-                # Convert dict to list of parameters
-            ]
-        ),
-        value_type=str,
-    )
     # No collision avoidance case
     environment_publisher_node = Node(
         package="agimus_demos_common",
