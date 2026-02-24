@@ -330,6 +330,7 @@ def launch_setup(
             "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
             "external_controllers_params": external_controllers_params_str,
+            "external_controllers_names": external_controllers_names,
         }.items(),
         condition=UnlessCondition(
             OrSubstitution(
