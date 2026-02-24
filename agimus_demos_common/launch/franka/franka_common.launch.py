@@ -329,6 +329,7 @@ def launch_setup(
             "disable_collision_safety": disable_collision_safety,
             "use_ft_sensor": use_ft_sensor,
             "franka_controllers_params": franka_controllers_params,
+            "external_controllers_params": external_controllers_params_str,
         }.items(),
         condition=UnlessCondition(
             OrSubstitution(
