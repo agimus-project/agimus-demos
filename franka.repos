@@ -1,10 +1,5 @@
 ---
 repositories:
-  vcs_franka/libfranka:
-    type: git
-    url: https://github.com/agimus-project/libfranka
-    version: humble
-
   vcs_franka/franka_ros2:
     type: git
     url: https://github.com/agimus-project/franka_ros2
