@@ -25,6 +25,9 @@ from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     JointSpaceMotionGenerator,
 )
+from agimus_demo_07_deburring.planner.trajectory_smoother.trajectory_smoother import (
+    GenericTrajectorySmoother,
+)
 
 loadServerPlugin("corbaserver", "manipulation-corba.so")
 Client().problem.resetProblem()
@@ -56,10 +59,13 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         deburred_object_name: str,
         joints_to_shrink: list[str],
         joint_shrink_range: float,
+        trajectory_smoother: GenericTrajectorySmoother | None,
     ) -> None:
         self._ocp_dt = ocp_dt
         self._nq = robot_model.nq
         self._nv = robot_model.nv
+
+        self._trajectory_smoother = trajectory_smoother
 
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
@@ -106,7 +112,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
 
         vf = ViewerFactory(self._ps)
         vf.loadObjectModel(deburred_object_object, deburred_object_object.name)
-        self._v = vf.createViewer()
+        # self._v = vf.createViewer()
 
         robot.setJointBounds(
             f"{deburred_object_object.name}/root_joint",
@@ -174,7 +180,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
             1.0,
         ]
 
-        self._v(self._q_init)
+        # self._v(self._q_init)
 
         self._path_planner = PathPlanner(self._ps, cg, f"{robot_name}/{gripper_name}")
 
@@ -190,6 +196,9 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._q_init[-7:-4] = xyzquat[:3]
         self._q_init[-4:] = xyzquat[3:]
 
+        if self._trajectory_smoother is not None:
+            self._trajectory_smoother.update_poses(T_deburred_object)
+
     def get_path(
         self,
         q0: npt.ArrayLike,
@@ -198,7 +207,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         T_init: pin.SE3 | None = None,
     ) -> list[npt.ArrayLike]:
         self._q_init[: self._nq] = q0
-        self._v(self._q_init)
+        # self._v(self._q_init)
         if not self._path_planner.checkConfigurationValid(self._q_init):
             raise RuntimeError("Invalid initial configuration!")
 
@@ -217,7 +226,10 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
 
         length = p.length()
         slowdown = 4
-        n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
+        if self._trajectory_smoother is None:
+            n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
+        else:
+            n_traj_points = self._trajectory_smoother.n_samples
         trajectory = np.array(
             [
                 p.call(i * self._ocp_dt / slowdown)[0][: self._nq]
@@ -226,7 +238,10 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         )
         p.deleteThis()
 
-        # velocities = np.gradient(trajectory, axis=0) / self._ocp_dt
+        if self._trajectory_smoother is not None:
+            trajectory, velocities = self._trajectory_smoother(trajectory)
+        else:
+            velocities = np.gradient(trajectory, axis=0) / self._ocp_dt
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             q = trajectory[i, :]
@@ -236,7 +251,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
                 id=i,
                 time_ns=0,
                 robot_configuration=q,
-                robot_velocity=np.zeros_like(q),
+                robot_velocity=velocities,
                 robot_acceleration=np.zeros(self._nv),
                 robot_effort=np.zeros(self._nv),
                 forces={},

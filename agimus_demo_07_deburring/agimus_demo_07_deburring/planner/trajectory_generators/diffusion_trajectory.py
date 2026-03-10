@@ -10,6 +10,9 @@ from agimus_controller.trajectory import TrajectoryPoint
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     JointSpaceMotionGenerator,
 )
+from agimus_demo_07_deburring.planner.trajectory_smoothers.trajectory_smoother import (
+    GenericTrajectorySmoother,
+)
 
 from agimus_demo_07_deburring.planner.diffusion.model import Model
 
@@ -25,10 +28,18 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         n_samples: int,
         tool_frame_id: str,
         hpp_handle_correction: pin.SE3,
+        trajectory_smoother: GenericTrajectorySmoother | None,
     ) -> None:
         self._robot_model = robot_model
         self._robot_data = robot_model.createData()
         self._hpp_handle_correction = hpp_handle_correction
+
+        if trajectory_smoother is None:
+            raise RuntimeError(
+                "DiffusionPathGenerator requires setting a trajectory smoother!"
+            )
+
+        self._trajectory_smoother = trajectory_smoother
 
         self._model = Model.load_from_checkpoint(wights_path)
         self._model.eval()
@@ -47,7 +58,7 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         )
 
     def update_deburred_object_pose(self, T_deburred_object: pin.SE3) -> None:
-        pass
+        self._trajectory_smoother.update_poses(T_deburred_object)
 
     def get_path(
         self,
@@ -70,35 +81,15 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
                 configuration_size=self._nq,
             )
 
-        # TODO implement some metric to choose best trajectory
-        trajectory = sampled_trajs[0].cpu().numpy()
-
-        # Compute highest joint velocities between trajectory points
-        trajectory_vel = np.gradient(trajectory, axis=0)
-        trajectory_vel_max = np.max(np.abs(trajectory_vel), axis=0)
-        # Get rescaling between computed velocities and maximum allowed values
-        joint_lim = np.asarray(self._max_joint_velocity)
-        velocity_scale = trajectory_vel_max / joint_lim
-        # Compute minimum number of interpolation steps to not violate joint
-        # velocity limits
-        n_interp = np.ceil(velocity_scale / self._ocp_dt * trajectory.shape[0])
-        # Choose minimum of already predicted steps for the interpolation
-        n_interp = int(np.max(np.append(n_interp, trajectory.shape[0])))
-
-        # Interpolate trajectories
-        old_times = np.linspace(0, 1, trajectory.shape[0])
-        new_times = np.linspace(0, 1, n_interp)
-        interpolated = np.zeros((n_interp, self._nq))
-
-        for i in range(self._nq):
-            interpolated[:, i] = np.interp(new_times, old_times, trajectory[:, i])
-
-        # Compute joint velocities from a trajectory using finite differences.
-        velocities = np.gradient(interpolated, axis=0) / self._ocp_dt
+        for trajectory in sampled_trajs:
+            trajectory, velocities = self._trajectory_smoother(trajectory.cpu().numpy())
+            # If trajectory is nicely smoothed, use it
+            if trajectory is not None:
+                break
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             pin.framesForwardKinematics(
-                self._robot_model, self._robot_data, interpolated[i, :]
+                self._robot_model, self._robot_data, trajectory[i, :]
             )
             pin.updateFramePlacement(
                 self._robot_model, self._robot_data, self._tool_frame_id_pin_frame
@@ -107,7 +98,7 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
             return TrajectoryPoint(
                 id=i,
                 time_ns=0,
-                robot_configuration=interpolated[i, :],
+                robot_configuration=trajectory[i, :],
                 robot_velocity=velocities[i, :],
                 robot_acceleration=np.zeros(self._nv),
                 robot_effort=np.zeros(self._nv),
@@ -119,4 +110,4 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
                 },
             )
 
-        return [_create_trajectory_point(i) for i in range(n_interp)]
+        return [_create_trajectory_point(i) for i in range(trajectory.shape[0])]

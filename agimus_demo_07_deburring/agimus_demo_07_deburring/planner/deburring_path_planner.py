@@ -55,6 +55,13 @@ from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory imp
 )
 
 
+"""
+TODO:
+- create objects for trajectory smoothers and handle their allocation
+- make the code work...
+"""
+
+
 class DeburringPathPlanner(Node):
     def __init__(self):
         super().__init__("deburring_path_planner")
@@ -68,6 +75,10 @@ class DeburringPathPlanner(Node):
 
         self._robot_model: pin.Model | None = None
         self._robot_data: pin.Data | None = None
+        self._robot_description: str | None = None
+        self._robot_model_sc: pin.Model | None = None
+        self._robot_data_sc: pin.Data | None = None
+        self._robot_description_sc: str | None = None
         self._tool_frame_id_name: str = self._params.tool_frame_id
         self._tool_frame_id_pin_frame: int | None = None
         self._joint_states: JointState | None = None
@@ -78,8 +89,8 @@ class DeburringPathPlanner(Node):
         self._path_generators_initialized = False
         self._nv = len(self._params.moving_joints)
         self._nq = len(self._params.moving_joints)
-        self._robot_description: str | None = None
         self._environment_description: str | None = None
+        self._environment_description_sc: str | None = None
         self._T_pylone: pin.SE3 | None = None
         self._buffer_len: int | None = None
         self._last_handle = "none"
@@ -158,10 +169,31 @@ class DeburringPathPlanner(Node):
             ),
         )
 
+        self._robot_description_sc_sub = self.create_subscription(
+            String,
+            "/robot_description_sc",
+            self._robot_description_sc_cb,
+            qos_profile=QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+
         self._environment_description_sub = self.create_subscription(
             String,
             "/environment_description_without_collision",
             self._environment_description_cb,
+            qos_profile=QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+        self._environment_description_sc_sub = self.create_subscription(
+            String,
+            "/environment_description_with_collision",
+            self._environment_description_sc_cb,
             qos_profile=QoSProfile(
                 depth=1,
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -296,8 +328,16 @@ class DeburringPathPlanner(Node):
             self._tool_frame_id_name
         )
 
+    def _robot_description_sc_cb(self, msg: String) -> None:
+        self._robot_sc_description = msg.data
+        self._robot_sc_model = pin.buildModelFromXML(self._robot_description)
+        self._robot_sc_data = self._robot_model.createData()
+
     def _environment_description_cb(self, msg: String) -> None:
         self._environment_description = msg.data
+
+    def _environment_description_sc_cb(self, msg: String) -> None:
+        self._environment_description_sc = msg.data
 
     def _joint_state_cb(self, msg: JointState) -> None:
         self._joint_states = msg
@@ -372,6 +412,11 @@ class DeburringPathPlanner(Node):
         for topic_name, object in (
             (self._robot_description_sub.topic, self._robot_model),
             (self._environment_description_sub.topic, self._environment_description),
+            (self._robot_description_sc_sub.topic, self._robot_description_sc),
+            (
+                self._environment_description_sc_sub.topic,
+                self._environment_description_sc,
+            ),
             (self._joint_states_sub.topic, self._joint_states),
             (self._buffer_size_sub.topic, self._buffer_size),
         ):
