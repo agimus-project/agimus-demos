@@ -61,7 +61,7 @@ def launch_setup(
     motion_generator_str = motion_generator.perform(context)
 
     smooth_with_ocp = LaunchConfiguration("smooth_with_ocp")
-    smooth_with_ocp_bool = smooth_with_ocp.perform(context)
+    smooth_with_ocp_bool = smooth_with_ocp.perform(context).lower() == "true"
 
     if not smooth_with_ocp_bool:
         trajectory_smoother = "none" if motion_generator_str == "hpp" else "interpolate"

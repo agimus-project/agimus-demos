@@ -10,7 +10,7 @@ from agimus_controller.trajectory import TrajectoryPoint
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     JointSpaceMotionGenerator,
 )
-from agimus_demo_07_deburring.planner.trajectory_smoothers.trajectory_smoother import (
+from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
     GenericTrajectorySmoother,
 )
 

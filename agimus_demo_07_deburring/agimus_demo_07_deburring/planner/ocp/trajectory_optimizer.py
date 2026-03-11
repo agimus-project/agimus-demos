@@ -45,6 +45,7 @@ class TrajecotryOptimizer:
         terminal_w_frame_translation: npt.ArrayLike,
     ):
         self._ocp_dt = ocp_dt
+        self._horizon = horizon
 
         robot_params = RobotModelParameters(
             robot_urdf=robot_description,
@@ -70,12 +71,12 @@ class TrajecotryOptimizer:
 
         dt_factor_n_seq = DTFactorsNSeq(
             factors=[1],
-            n_steps=[horizon],
+            n_steps=[self._horizon],
         )
         ocp_params = OCPParamsBaseCroco(
             dt_factor_n_seq=dt_factor_n_seq,
             dt=self._ocp_dt,
-            horizon_size=horizon,
+            horizon_size=self._horizon,
             solver_iters=solver_iters,
             callbacks=callbacks,
             qp_iters=qp_iters,
@@ -153,8 +154,12 @@ class TrajecotryOptimizer:
             for q in trajectory[:-1]
         ]
 
-        def _create_trajecotry_point(q):
-            p = copy.deepcopy(self._wighted_traj_point_base)
+        def _create_trajecotry_point(q, is_terminal):
+            p = (
+                copy.deepcopy(self._running_wpt)
+                if not is_terminal
+                else copy.deepcopy(self._terminal_wpt)
+            )
             p.point.robot_configuration = q
             pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
             p.point.end_effector_poses[self._ee_tool_frame] = self._robot_data.oMf[
@@ -164,7 +169,10 @@ class TrajecotryOptimizer:
 
         # Set references for the OCP
         self._ocp.set_reference_weighted_trajectory(
-            [_create_trajecotry_point(q) for q in trajectory]
+            [
+                _create_trajecotry_point(q, i == self._horizon - 1)
+                for i, q in enumerate(trajectory)
+            ]
         )
 
         self._ocp.solve(x0, x_init, u_init)
@@ -178,4 +186,4 @@ class TrajecotryOptimizer:
 
     def update_poses(self, T_pylone: pin.SE3) -> None:
         for name, placement, type in self._geometries:
-            self.ocp.update_geometry_placement(name, T_pylone * placement, type)
+            self._ocp.update_geometry_placement(name, T_pylone * placement, type)

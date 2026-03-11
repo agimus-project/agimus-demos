@@ -25,7 +25,7 @@ from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     JointSpaceMotionGenerator,
 )
-from agimus_demo_07_deburring.planner.trajectory_smoother.trajectory_smoother import (
+from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
     GenericTrajectorySmoother,
 )
 

@@ -24,12 +24,14 @@
                   scale="1.0 1.0 1.0" />
             </geometry>
          </collision>
-         <collision>
-            <origin rpy="1.57 0.0 1.57" xyz="0.0 0.0 -0.265" />
-            <geometry>
-               <box size="0.410 0.0025 0.370" />
-            </geometry>
-         </collision>
+         <xacro:if value="${with_sc}">
+            <collision>
+               <origin rpy="1.57 0.0 1.57" xyz="0.0 0.0 -0.265" />
+               <geometry>
+                  <box size="0.410 0.0025 0.370" />
+               </geometry>
+            </collision>
+         </xacro:if>
          <inertial>
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
             <mass value="0.1" />

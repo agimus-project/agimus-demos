@@ -1,7 +1,6 @@
 import numpy as np
 import json
 import yaml
-import copy
 import pinocchio as pin
 import numpy.typing as npt
 from pathlib import Path
@@ -114,21 +113,19 @@ class OCPSmoother(GenericTrajectorySmoother):
         collision_pairs = []
         for rl in robot_collision_links:
             for env in environment_links:
-                collision_pairs.append((rl, env, collision_distance))
+                collision_pairs.append((rl, env))
 
         constraints = []
-        for i, (a, b, lim) in enumerate(collision_pairs):
+        for i, (a, b) in enumerate(collision_pairs):
             constraints.append(
                 self._create_constraint(
-                    self._create_constraint(
-                        f"collision_{i}",
-                        lim,
-                        "inf",
-                        {
-                            "class": "ResidualDistanceCollision",
-                            "collision_pair": [a, b],
-                        },
-                    )
+                    f"collision_{i}",
+                    collision_distance,
+                    "inf",
+                    {
+                        "class": "ResidualDistanceCollision",
+                        "collision_pair": [a, b],
+                    },
                 )
             )
 
@@ -143,25 +140,31 @@ class OCPSmoother(GenericTrajectorySmoother):
 
         running_model = {
             "class": "IntegratedActionModelEuler",
-            "differential": {self._create_cost(cost) for cost in running_costs},
-            "constraints": [
-                self._create_constraint(
-                    "state", x_min, x_max, {"class": "ResidualModelState"}
-                )
-            ],
+            "differential": {
+                "class": "DifferentialActionModelFreeFwdDynamics",
+                "costs": [self._create_cost(cost) for cost in running_costs],
+                "constraints": [
+                    self._create_constraint(
+                        "state", x_min, x_max, {"class": "ResidualModelState"}
+                    )
+                ],
+            },
         }
-        running_model["differential"]["constraints"].extend(copy.deepcopy(constraints))
+        running_model["differential"]["constraints"].extend(constraints)
 
         terminal_model = {
             "class": "IntegratedActionModelEuler",
-            "differential": {self._create_cost(cost) for cost in terminal_costs},
-            "constraints": [
-                self._create_constraint(
-                    "state", x_min, x_max, {"class": "ResidualModelState"}
-                )
-            ],
+            "differential": {
+                "class": "DifferentialActionModelFreeFwdDynamics",
+                "costs": [self._create_cost(cost) for cost in terminal_costs],
+                "constraints": [
+                    self._create_constraint(
+                        "state", x_min, x_max, {"class": "ResidualModelState"}
+                    )
+                ],
+            },
         }
-        terminal_model["differential"]["constraints"].extend(copy.deepcopy(constraints))
+        terminal_model["differential"]["constraints"].extend(constraints)
 
         data = {"running_model": running_model, "terminal_model": terminal_model}
 
@@ -169,8 +172,10 @@ class OCPSmoother(GenericTrajectorySmoother):
         with NamedTemporaryFile(
             mode="w", prefix="agimus_demo_07_path_optimizer_params_", delete=False
         ) as f:
+            # Remove references within generated YAML file
+            yaml.Dumper.ignore_aliases = lambda *args: True
+            yaml.dump(data, f, sort_keys=False)
             param_file_path = Path(f.name)
-            yaml.dump(data, param_file_path, sort_keys=False)
 
         return param_file_path
 

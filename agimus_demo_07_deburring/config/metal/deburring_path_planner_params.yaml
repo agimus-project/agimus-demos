@@ -76,21 +76,21 @@ deburring_path_planner_node:
         - fer_link5_sc_capsule_1
         - fer_ref_camera_link_capsule_0
         environment_links:
-        - pylone_link_1"
-        - pylone_sc_link_18"
-        - pylone_sc_link_19"
-        - pylone_sc_link_20"
-        - pylone_sc_link_21"
-        - pylone_sc_link_22"
-        - pylone_sc_link_23"
-        - pylone_sc_link_capsule_0"
-        - pylone_sc_link_capsule_1"
-        - pylone_sc_link_capsule_2"
-        - pylone_sc_link_capsule_3"
-        - pylone_sc_link_capsule_4"
-        - pylone_sc_link_capsule_5"
-        - base_box_link_0"
-        - table_link_0"
+        - pylone_link_1
+        - pylone_sc_link_18
+        - pylone_sc_link_19
+        - pylone_sc_link_20
+        - pylone_sc_link_21
+        - pylone_sc_link_22
+        - pylone_sc_link_23
+        - pylone_sc_link_capsule_0
+        - pylone_sc_link_capsule_1
+        - pylone_sc_link_capsule_2
+        - pylone_sc_link_capsule_3
+        - pylone_sc_link_capsule_4
+        - pylone_sc_link_capsule_5
+        - base_box_link_0
+        - table_link_0
         collision_distance: 0.02
         joint_shrink_range: 0.95
         n_threads: 6
