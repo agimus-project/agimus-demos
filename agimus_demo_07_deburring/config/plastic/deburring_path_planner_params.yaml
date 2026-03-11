@@ -94,7 +94,7 @@ deburring_path_planner_node:
         collision_distance: 0.02
         joint_shrink_range: 0.95
         n_threads: 1
-        solver_iters: 10
+        solver_iters: 20
         qp_iters: 5000
         use_line_search: true
         callbacks: true
