@@ -198,12 +198,16 @@ deburring_path_planner:
           gt<>: [0]
       running_costs:
         type: string_array
-        description: Names of running costs used to generate OCP config file.
+        description: Block of target YAML file that is part of `residual` block inserted to
+          running cost section. Requires `class` field and it's params. Formatted in JSON
+          to stand out in ROS YAML config.
         default_value: ['']
         read_only: true
       terminal_costs:
         type: string_array
-        description: Names of terminal costs used to generate OCP config file.
+        description: Block of target YAML file that is part of `residual` block inserted to
+          terminal cost section. Requires `class` field and it's params. Formatted in JSON
+          to stand out in ROS YAML config.
         default_value: ['']
         read_only: true
       robot_collision_links:
@@ -323,6 +327,11 @@ deburring_path_planner:
       moving_joints:
         type: string_array
         description: List of moving joints optimized by the trajectory OCP.
+        default_value: ['']
+        read_only: true
+      collision_frames_id:
+        type: string_array
+        description: List of collision frames of which position has to be updated.
         default_value: ['']
         read_only: true
 

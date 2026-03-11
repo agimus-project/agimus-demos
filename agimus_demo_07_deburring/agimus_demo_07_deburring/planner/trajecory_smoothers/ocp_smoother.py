@@ -1,4 +1,5 @@
 import numpy as np
+import json
 import yaml
 import copy
 import pinocchio as pin
@@ -23,8 +24,7 @@ class OCPSmoother(GenericTrajectorySmoother):
         robot_model: pin.Model,
         robot_description: str,
         environment_description: str,
-        ocp_dt: float,
-        max_joint_velocity: npt.ArrayLike,
+        interpolation_smoother: BasicInterpolationSmoother,
         optimizer_ocp_dt: float,
         optimizer_ocp_horizon: int,
         running_costs: list[str],
@@ -38,17 +38,15 @@ class OCPSmoother(GenericTrajectorySmoother):
         qp_iters: int,
         use_line_search: bool,
         callbacks: bool,
-        parent_collision_frame_id: str,
-        extra_collision_frames_id: list[str],
         ee_tool_frame: str,
-        running_w_robot_configuration: npt.ArrayLike,
-        terminal_w_robot_configuration: npt.ArrayLike,
         w_robot_velocity: npt.ArrayLike,
         w_robot_effort: npt.ArrayLike,
+        running_w_robot_configuration: npt.ArrayLike,
         running_w_frame_rotation: npt.ArrayLike,
         running_w_frame_translation: npt.ArrayLike,
         terminal_w_frame_rotation: npt.ArrayLike,
         terminal_w_frame_translation: npt.ArrayLike,
+        terminal_w_robot_configuration: npt.ArrayLike,
         moving_joints: list[str],
     ) -> None:
         self._optimizer_ocp_horizon = optimizer_ocp_horizon
@@ -75,8 +73,7 @@ class OCPSmoother(GenericTrajectorySmoother):
             qp_iters,
             use_line_search,
             callbacks,
-            parent_collision_frame_id,
-            extra_collision_frames_id,
+            environment_links,
             ee_tool_frame,
             running_w_robot_configuration,
             terminal_w_robot_configuration,
@@ -88,11 +85,7 @@ class OCPSmoother(GenericTrajectorySmoother):
             terminal_w_frame_translation,
         )
 
-        self._interpolation_smoother = BasicInterpolationSmoother(
-            robot_model,
-            ocp_dt,
-            max_joint_velocity,
-        )
+        self._interpolation_smoother = interpolation_smoother
 
     def __call__(
         self, trajectory: npt.ArrayLike
@@ -150,10 +143,7 @@ class OCPSmoother(GenericTrajectorySmoother):
 
         running_model = {
             "class": "IntegratedActionModelEuler",
-            "differential": {
-                self._create_cost(self._camel_to_snake(cost), cost)
-                for cost in running_costs
-            },
+            "differential": {self._create_cost(cost) for cost in running_costs},
             "constraints": [
                 self._create_constraint(
                     "state", x_min, x_max, {"class": "ResidualModelState"}
@@ -164,10 +154,7 @@ class OCPSmoother(GenericTrajectorySmoother):
 
         terminal_model = {
             "class": "IntegratedActionModelEuler",
-            "differential": {
-                self._create_cost(self._camel_to_snake(cost), cost)
-                for cost in terminal_costs
-            },
+            "differential": {self._create_cost(cost) for cost in terminal_costs},
             "constraints": [
                 self._create_constraint(
                     "state", x_min, x_max, {"class": "ResidualModelState"}
@@ -195,9 +182,12 @@ class OCPSmoother(GenericTrajectorySmoother):
             out = out[1:]
         return out
 
-    def _create_cost(self, name: str, residual_class: str) -> str:
+    def _create_cost(self, cost_params_data: str) -> str:
+        residual = json.loads(cost_params_data)
         return {
-            "name": name,
+            # Use residual class as it's name.
+            # Multiple objects of the same class are not supported!
+            "name": self._camel_to_snake(residual["class"]),
             "update": True,
             "weight": 1.0,
             "cost": {
@@ -206,7 +196,7 @@ class OCPSmoother(GenericTrajectorySmoother):
                     "class": "ActivationModelWeightedQuad",
                     "weights": 1.0,
                 },
-                "residual": {"class": residual_class},
+                "residual": residual,
             },
         }
 

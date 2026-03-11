@@ -54,12 +54,12 @@ from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory imp
     GraspPathGenerator,
 )
 
-
-"""
-TODO:
-- create objects for trajectory smoothers and handle their allocation
-- make the code work...
-"""
+from agimus_demo_07_deburring.planner.trajecory_smoothers.basic_interpolation import (
+    BasicInterpolationSmoother,
+)
+from agimus_demo_07_deburring.planner.trajecory_smoothers.ocp_smoother import (
+    OCPSmoother,
+)
 
 
 class DeburringPathPlanner(Node):
@@ -171,7 +171,7 @@ class DeburringPathPlanner(Node):
 
         self._robot_description_sc_sub = self.create_subscription(
             String,
-            "/robot_description_sc",
+            "/robot_description_with_collision",
             self._robot_description_sc_cb,
             qos_profile=QoSProfile(
                 depth=1,
@@ -412,7 +412,7 @@ class DeburringPathPlanner(Node):
         for topic_name, object in (
             (self._robot_description_sub.topic, self._robot_model),
             (self._environment_description_sub.topic, self._environment_description),
-            (self._robot_description_sc_sub.topic, self._robot_description_sc),
+            (self._robot_description_sc_sub.topic, self._robot_sc_model),
             (
                 self._environment_description_sc_sub.topic,
                 self._environment_description_sc,
@@ -429,6 +429,46 @@ class DeburringPathPlanner(Node):
 
         if not self._path_generators_initialized:
             try:
+                trajecory_smoothers = None
+                interpolation_smoother = BasicInterpolationSmoother(
+                    robot_model=self._robot_model,
+                    ocp_dt=self._params.ocp_dt,
+                    max_joint_velocity=np.array(self._params.max_joint_velocity),
+                )
+                if self._params.generators_params.trajectory_smoother == "interpolate":
+                    trajecory_smoothers = interpolation_smoother
+                elif self._params.generators_params.trajectory_smoother == "ocp":
+                    smth_params = self._params.generators_params.ocp_smoother
+                    trajecory_smoothers = OCPSmoother(
+                        self._robot_model,
+                        self._robot_description_sc,
+                        self._environment_description_sc,
+                        interpolation_smoother,
+                        smth_params.optimizer_ocp_dt,
+                        smth_params.optimizer_ocp_horizon,
+                        smth_params.running_costs,
+                        smth_params.terminal_costs,
+                        smth_params.robot_collision_links,
+                        smth_params.environment_links,
+                        smth_params.collision_distance,
+                        smth_params.joint_shrink_range,
+                        smth_params.n_threads,
+                        smth_params.solver_iters,
+                        smth_params.qp_iters,
+                        smth_params.use_line_search,
+                        smth_params.callbacks,
+                        self._tool_frame_id_name,
+                        smth_params.w_robot_velocity,
+                        smth_params.w_robot_effort,
+                        smth_params.running_w_robot_configuration,
+                        smth_params.running_w_frame_rotation,
+                        smth_params.running_w_frame_translation,
+                        smth_params.terminal_w_robot_configuration,
+                        smth_params.terminal_w_frame_rotation,
+                        smth_params.terminal_w_frame_translation,
+                        self._params.moving_joints,
+                    )
+
                 if self._params.generators_params.main_generator_type == "diffusion":
                     from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
                         DiffusionPathGenerator,
@@ -442,11 +482,9 @@ class DeburringPathPlanner(Node):
                             n_samples=gen_params.n_samples,
                             robot_model=self._robot_model,
                             ocp_dt=self._params.ocp_dt,
-                            max_joint_velocity=np.array(
-                                self._params.max_joint_velocity
-                            ),
                             tool_frame_id=self._tool_frame_id_name,
                             hpp_handle_correction=self._R_insert,
+                            trajecory_smoothers=trajecory_smoothers,
                         )
                     )
                 else:
@@ -475,6 +513,7 @@ class DeburringPathPlanner(Node):
                             deburred_object_name=gen_params.deburred_object_name,
                             joints_to_shrink=gen_params.joints_to_shrink,
                             joint_shrink_range=gen_params.joint_shrink_range,
+                            trajecory_smoothers=trajecory_smoothers,
                         )
                     )
                 gen_params = self._params.generators_params.grasp_generator

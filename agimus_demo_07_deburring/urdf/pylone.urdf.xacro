@@ -24,6 +24,12 @@
                   scale="1.0 1.0 1.0" />
             </geometry>
          </collision>
+         <collision>
+            <origin rpy="1.57 0.0 1.57" xyz="0.0 0.0 -0.265" />
+            <geometry>
+               <box size="0.410 0.0025 0.370" />
+            </geometry>
+         </collision>
          <inertial>
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
             <mass value="0.1" />
@@ -34,11 +40,14 @@
          <link name="pylone_sc_link">
             <!-- Side edges representing the hole -->
             <xacro:collision_capsule xyz="0.03 0.1 -0.045" direction="z" radius="0.004" length="0.6" />
-            <xacro:collision_capsule xyz="0.03 -0.1 -0.045" direction="z" radius="0.004" length="0.6" />
+            <xacro:collision_capsule xyz="0.03 -0.1 -0.045" direction="z" radius="0.004"
+               length="0.6" />
 
             <!-- Top and bottom bard representing the hole -->
-            <xacro:collision_capsule xyz="0.03 0.0 ${0.15 - 0.045}" direction="y" radius="0.004" length="0.4" />
-            <xacro:collision_capsule xyz="0.03 0.0 ${-0.15 - 0.045}" direction="y" radius="0.004" length="0.4" />
+            <xacro:collision_capsule xyz="0.03 0.0 ${0.15 - 0.045}" direction="y" radius="0.004"
+               length="0.4" />
+            <xacro:collision_capsule xyz="0.03 0.0 ${-0.15 - 0.045}" direction="y" radius="0.004"
+               length="0.4" />
 
             <!-- Edges of the pytlone -->
             <xacro:collision_capsule xyz="0.0 0.205 0.0" direction="z" radius="0.004" length="1.3" />
@@ -47,7 +56,37 @@
             <collision>
                <origin rpy="0 0 0" xyz="0.25 0.2025 0.0" />
                <geometry>
-                  <box size="0.5 0.005 0.55"/>
+                  <box size="0.5 0.005 0.55" />
+               </geometry>
+            </collision>
+            <collision>
+               <origin rpy="0 0 0" xyz="0.25 -0.2025 0.0" />
+               <geometry>
+                  <box size="0.5 0.005 0.55" />
+               </geometry>
+            </collision>
+            <collision>
+               <origin rpy="0.0 0 1.57" xyz="0.032 0.1525 -0.058" />
+               <geometry>
+                  <box size="0.105 0.0025 0.478" />
+               </geometry>
+            </collision>
+            <collision>
+               <origin rpy="0.0 0 1.57" xyz="0.032 -0.1525 -0.058" />
+               <geometry>
+                  <box size="0.105 0.0025 0.478" />
+               </geometry>
+            </collision>
+            <collision>
+               <origin rpy="0.0 0 1.57" xyz="0.032 0.0 0.14" />
+               <geometry>
+                  <box size="0.410 0.0025 0.075" />
+               </geometry>
+            </collision>
+            <collision>
+               <origin rpy="0.0 0 1.57" xyz="0.032 0.0 -0.23" />
+               <geometry>
+                  <box size="0.410 0.0025 0.075" />
                </geometry>
             </collision>
          </link>

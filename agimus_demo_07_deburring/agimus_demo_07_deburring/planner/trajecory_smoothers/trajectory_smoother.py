@@ -14,8 +14,8 @@ class GenericTrajectorySmoother(ABC):
     ) -> tuple[npt.ArrayLike, npt.ArrayLike] | tuple[None, None]:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def n_samples(self) -> int:
         pass
 

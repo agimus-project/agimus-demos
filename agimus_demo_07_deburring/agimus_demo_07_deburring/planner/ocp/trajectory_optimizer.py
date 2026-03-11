@@ -33,8 +33,7 @@ class TrajecotryOptimizer:
         qp_iters: int,
         use_line_search: bool,
         callbacks: bool,
-        parent_collision_frame_id: str,
-        extra_collision_frames_id: list[str],
+        collision_frames_id: list[str],
         ee_tool_frame: str,
         running_w_robot_configuration: npt.ArrayLike,
         terminal_w_robot_configuration: npt.ArrayLike,
@@ -88,11 +87,10 @@ class TrajecotryOptimizer:
         self._ocp._solver.use_filter_line_search = use_line_search
 
         # Update pose of all collisions used by OCP
-        frame_id = self._robot_models.robot_model.getFrameId(parent_collision_frame_id)
         self._geometries = [
             (geom.name, geom.placement.copy(), pin.GeometryType.COLLISION)
             for geom in self._robot_models.collision_model.geometryObjects
-            if geom.parentFrame == frame_id or geom.name in extra_collision_frames_id
+            if geom.name in collision_frames_id
         ]
 
         weighted_traj_point_base = WeightedTrajectoryPoint(
