@@ -58,7 +58,7 @@ deburring_path_planner_node:
       # They are independent from the OCP inside of the MPC controlling the robot
       ocp_smoother:
         optimizer_ocp_dt: 0.1
-        optimizer_ocp_horizon: 49
+        optimizer_ocp_horizon: 50
         running_costs:
         - '{"class": "ResidualModelState"}'
         - '{"class": "ResidualModelControlGrav"}'
@@ -93,9 +93,9 @@ deburring_path_planner_node:
         - table_link_0
         collision_distance: 0.02
         joint_shrink_range: 0.95
-        n_threads: 6
-        solver_iters: 50
-        qp_iters: 100000
+        n_threads: 1
+        solver_iters: 10
+        qp_iters: 5000
         use_line_search: true
         callbacks: true
         w_robot_effort: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
@@ -103,9 +103,10 @@ deburring_path_planner_node:
         running_w_robot_configuration: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
         running_w_frame_rotation: [0.0, 0.0, 0.0]
         running_w_frame_translation: [0.0, 0.0, 0.0]
-        terminal_w_robot_configuration: [500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0]
-        terminal_w_frame_rotation: [20000.0, 20000.0, 50.0]
-        terminal_w_frame_translation: [40000.0, 40000.0, 40000.0]
+        terminal_w_robot_configuration: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0,
+          100.0]
+        terminal_w_frame_rotation: [200000.0, 200000.0, 50.0]
+        terminal_w_frame_translation: [400000.0, 400000.0, 400000.0]
       grasp_generator:
         linear_vel: 0.1
         linear_acc: 0.07

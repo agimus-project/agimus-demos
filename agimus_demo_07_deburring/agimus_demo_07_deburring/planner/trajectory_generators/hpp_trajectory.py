@@ -225,11 +225,10 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         self._ps.client.basic.problem.addPath(p)
 
         length = p.length()
+
+        # Hardcoded value to slowdown the robot for safety
         slowdown = 4
-        if self._trajectory_smoother is None:
-            n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
-        else:
-            n_traj_points = self._trajectory_smoother.n_samples
+        n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
         trajectory = np.array(
             [
                 p.call(i * self._ocp_dt / slowdown)[0][: self._nq]
@@ -239,7 +238,9 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         p.deleteThis()
 
         if self._trajectory_smoother is not None:
-            trajectory, velocities = self._trajectory_smoother(trajectory)
+            opt_trajectory, opt_velocities = self._trajectory_smoother(trajectory)
+            if trajectory is not None:
+                trajectory, velocities = opt_trajectory, opt_velocities
         else:
             velocities = np.gradient(trajectory, axis=0) / self._ocp_dt
 
@@ -251,7 +252,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
                 id=i,
                 time_ns=0,
                 robot_configuration=q,
-                robot_velocity=velocities,
+                robot_velocity=velocities[i, :],
                 robot_acceleration=np.zeros(self._nv),
                 robot_effort=np.zeros(self._nv),
                 forces={},
@@ -262,4 +263,4 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
                 },
             )
 
-        return [_create_trajectory_point(i) for i in range(n_traj_points)]
+        return [_create_trajectory_point(i) for i in range(trajectory.shape[0])]

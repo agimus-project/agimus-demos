@@ -23,7 +23,6 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         wights_path: Path,
         robot_model: pin.Model,
         ocp_dt: float,
-        max_joint_velocity: npt.ArrayLike,
         sequence_length: int,
         n_samples: int,
         tool_frame_id: str,
@@ -48,7 +47,6 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         self._nq = robot_model.nq
         self._nv = robot_model.nv
         self._ocp_dt = ocp_dt
-        self._max_joint_velocity = max_joint_velocity
         self._sequence_length = sequence_length
         self._n_samples = n_samples
 

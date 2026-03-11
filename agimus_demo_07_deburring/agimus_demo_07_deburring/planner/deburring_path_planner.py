@@ -416,7 +416,7 @@ class DeburringPathPlanner(Node):
                 self._environment_description_sc,
             ),
             (self._joint_states_sub.topic, self._joint_states),
-            # (self._buffer_size_sub.topic, self._buffer_size),
+            (self._buffer_size_sub.topic, self._buffer_size),
         ):
             if object is None:
                 self.get_logger().info(
@@ -438,33 +438,33 @@ class DeburringPathPlanner(Node):
                 elif self._params.generators_params.trajectory_smoother == "ocp":
                     smth_params = self._params.generators_params.ocp_smoother
                     trajectory_smoother = OCPSmoother(
-                        self._robot_model,
-                        self._robot_description_sc,
-                        self._environment_description_sc,
-                        interpolation_smoother,
-                        smth_params.optimizer_ocp_dt,
-                        smth_params.optimizer_ocp_horizon,
-                        smth_params.running_costs,
-                        smth_params.terminal_costs,
-                        smth_params.robot_collision_links,
-                        smth_params.environment_links,
-                        smth_params.collision_distance,
-                        smth_params.joint_shrink_range,
-                        smth_params.n_threads,
-                        smth_params.solver_iters,
-                        smth_params.qp_iters,
-                        smth_params.use_line_search,
-                        smth_params.callbacks,
-                        self._tool_frame_id_name,
-                        smth_params.w_robot_velocity,
-                        smth_params.w_robot_effort,
-                        smth_params.running_w_robot_configuration,
-                        smth_params.running_w_frame_rotation,
-                        smth_params.running_w_frame_translation,
-                        smth_params.terminal_w_robot_configuration,
-                        smth_params.terminal_w_frame_rotation,
-                        smth_params.terminal_w_frame_translation,
-                        self._params.moving_joints,
+                        robot_model=self._robot_model,
+                        robot_description=self._robot_description_sc,
+                        environment_description=self._environment_description_sc,
+                        interpolation_smoother=interpolation_smoother,
+                        optimizer_ocp_dt=smth_params.optimizer_ocp_dt,
+                        optimizer_ocp_horizon=smth_params.optimizer_ocp_horizon,
+                        running_costs=smth_params.running_costs,
+                        terminal_costs=smth_params.terminal_costs,
+                        robot_collision_links=smth_params.robot_collision_links,
+                        environment_links=smth_params.environment_links,
+                        collision_distance=smth_params.collision_distance,
+                        joint_shrink_range=smth_params.joint_shrink_range,
+                        n_threads=smth_params.n_threads,
+                        solver_iters=smth_params.solver_iters,
+                        qp_iters=smth_params.qp_iters,
+                        use_line_search=smth_params.use_line_search,
+                        callbacks=smth_params.callbacks,
+                        ee_tool_frame=self._tool_frame_id_name,
+                        w_robot_velocity=smth_params.w_robot_velocity,
+                        w_robot_effort=smth_params.w_robot_effort,
+                        running_w_robot_configuration=smth_params.running_w_robot_configuration,
+                        running_w_frame_rotation=smth_params.running_w_frame_rotation,
+                        running_w_frame_translation=smth_params.running_w_frame_translation,
+                        terminal_w_robot_configuration=smth_params.terminal_w_robot_configuration,
+                        terminal_w_frame_rotation=smth_params.terminal_w_frame_rotation,
+                        terminal_w_frame_translation=smth_params.terminal_w_frame_translation,
+                        moving_joints=self._params.moving_joints,
                     )
 
                 if self._params.generators_params.main_generator_type == "diffusion":
@@ -768,13 +768,13 @@ class DeburringPathPlanner(Node):
                     "insert_retract_tool", q, T_handle_rot, T_pregrasp_rot
                 )
                 initial_trajectory_len += segment_len
-                # Perform deburring
-                with self._trajectory_buffer_lock:
-                    q = self._trajectory_buffer[-1].point.robot_configuration
-                segment_len = self._insert_sequence_to_buffer(
-                    "deburring_motion", q, T_handle_rot, T_pregrasp_rot
-                )
-                initial_trajectory_len += segment_len
+                # # Perform deburring
+                # with self._trajectory_buffer_lock:
+                #     q = self._trajectory_buffer[-1].point.robot_configuration
+                # segment_len = self._insert_sequence_to_buffer(
+                #     "deburring_motion", q, T_handle_rot, T_pregrasp_rot
+                # )
+                # initial_trajectory_len += segment_len
                 # Retract from the hole
                 self._path_generators["insert_retract_tool"][
                     "generator"

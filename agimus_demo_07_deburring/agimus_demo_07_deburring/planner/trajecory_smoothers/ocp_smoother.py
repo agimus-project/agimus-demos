@@ -43,12 +43,13 @@ class OCPSmoother(GenericTrajectorySmoother):
         running_w_robot_configuration: npt.ArrayLike,
         running_w_frame_rotation: npt.ArrayLike,
         running_w_frame_translation: npt.ArrayLike,
+        terminal_w_robot_configuration: npt.ArrayLike,
         terminal_w_frame_rotation: npt.ArrayLike,
         terminal_w_frame_translation: npt.ArrayLike,
-        terminal_w_robot_configuration: npt.ArrayLike,
         moving_joints: list[str],
     ) -> None:
         self._optimizer_ocp_horizon = optimizer_ocp_horizon
+        self._nq = robot_model.nq
 
         ocp_params_path = self._generate_ocp_config(
             robot_model,
@@ -61,38 +62,47 @@ class OCPSmoother(GenericTrajectorySmoother):
         )
 
         self._optimizer = TrajecotryOptimizer(
-            robot_description,
-            environment_description,
-            moving_joints,
-            ocp_params_path,
-            optimizer_ocp_horizon,
-            optimizer_ocp_dt,
-            n_threads,
-            solver_iters,
-            qp_iters,
-            use_line_search,
-            callbacks,
-            environment_links,
-            ee_tool_frame,
-            running_w_robot_configuration,
-            terminal_w_robot_configuration,
-            w_robot_velocity,
-            w_robot_effort,
-            running_w_frame_rotation,
-            running_w_frame_translation,
-            terminal_w_frame_rotation,
-            terminal_w_frame_translation,
+            robot_description=robot_description,
+            environment_description=environment_description,
+            moving_joints=moving_joints,
+            ocp_params_path=ocp_params_path,
+            horizon=optimizer_ocp_horizon - 1,
+            ocp_dt=optimizer_ocp_dt,
+            n_threads=n_threads,
+            solver_iters=solver_iters,
+            qp_iters=qp_iters,
+            use_line_search=use_line_search,
+            callbacks=callbacks,
+            collision_frames_id=environment_links,
+            ee_tool_frame=ee_tool_frame,
+            w_robot_velocity=w_robot_velocity,
+            w_robot_effort=w_robot_effort,
+            running_w_robot_configuration=running_w_robot_configuration,
+            running_w_frame_rotation=running_w_frame_rotation,
+            running_w_frame_translation=running_w_frame_translation,
+            terminal_w_robot_configuration=terminal_w_robot_configuration,
+            terminal_w_frame_rotation=terminal_w_frame_rotation,
+            terminal_w_frame_translation=terminal_w_frame_translation,
         )
 
         self._interpolation_smoother = interpolation_smoother
 
     def __call__(
         self, trajectory: npt.ArrayLike
-    ) -> tuple[npt.ArrayLike, npt.ArrayLike] | None:
-        optimized_trajectory = self._optimizer(trajectory)
+    ) -> tuple[npt.ArrayLike, npt.ArrayLike] | tuple[None, None]:
+        # Resize trajectory to match what OCP expects
+        old_times = np.linspace(0, 1, trajectory.shape[0])
+        new_times = np.linspace(0, 1, self._optimizer_ocp_horizon)
+        interpolated = np.zeros((self._optimizer_ocp_horizon, self._nq))
+
+        for i in range(self._nq):
+            interpolated[:, i] = np.interp(new_times, old_times, trajectory[:, i])
+
+        optimized_trajectory = self._optimizer(interpolated)
         if optimized_trajectory is None:
             return None, None
 
+        # Interpolate the trajectory to make it feasible in time
         return self._interpolation_smoother(optimized_trajectory)
 
     @property
@@ -130,10 +140,10 @@ class OCPSmoother(GenericTrajectorySmoother):
             )
 
         # Absurdly large number to avoid using "inf"
-        vel_lim = -10000000.0
+        vel_lim = 10000000.0
         x_min = (
             np.array(robot_model.lowerPositionLimit) * joint_shrink_range
-        ).tolist() + [vel_lim] * robot_model.nv
+        ).tolist() + [-vel_lim] * robot_model.nv
         x_max = (
             np.array(robot_model.upperPositionLimit) * joint_shrink_range
         ).tolist() + [vel_lim] * robot_model.nv
