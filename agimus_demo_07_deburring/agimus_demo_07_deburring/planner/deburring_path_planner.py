@@ -54,6 +54,13 @@ from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory imp
     GraspPathGenerator,
 )
 
+from agimus_demo_07_deburring.planner.trajecory_smoothers.basic_interpolation import (
+    BasicInterpolationSmoother,
+)
+from agimus_demo_07_deburring.planner.trajecory_smoothers.ocp_smoother import (
+    OCPSmoother,
+)
+
 
 class DeburringPathPlanner(Node):
     def __init__(self):
@@ -68,6 +75,10 @@ class DeburringPathPlanner(Node):
 
         self._robot_model: pin.Model | None = None
         self._robot_data: pin.Data | None = None
+        self._robot_description: str | None = None
+        self._robot_model_sc: pin.Model | None = None
+        self._robot_data_sc: pin.Data | None = None
+        self._robot_description_sc: str | None = None
         self._tool_frame_id_name: str = self._params.tool_frame_id
         self._tool_frame_id_pin_frame: int | None = None
         self._joint_states: JointState | None = None
@@ -78,8 +89,8 @@ class DeburringPathPlanner(Node):
         self._path_generators_initialized = False
         self._nv = len(self._params.moving_joints)
         self._nq = len(self._params.moving_joints)
-        self._robot_description: str | None = None
         self._environment_description: str | None = None
+        self._environment_description_sc: str | None = None
         self._T_pylone: pin.SE3 | None = None
         self._buffer_len: int | None = None
         self._last_handle = "none"
@@ -121,7 +132,10 @@ class DeburringPathPlanner(Node):
         self._handles = {}
         for handle in root.findall("handle"):
             pos = handle.find("position")
-            self._handles[handle.get("name")] = pin.XYZQUATToSE3(
+            clearance = float(handle.get("clearance"))
+            T_pregrasp = pin.SE3(np.eye(3), np.array([-clearance, 0.0, 0.0]))
+
+            pose = pin.XYZQUATToSE3(
                 np.concatenate(
                     (
                         np.fromstring(pos.get("xyz"), count=3, sep=" "),
@@ -129,6 +143,9 @@ class DeburringPathPlanner(Node):
                     ),
                 )
             )
+            self._handles[handle.get("name")] = {}
+            self._handles[handle.get("name")]["pose"] = pose
+            self._handles[handle.get("name")]["pregrasp"] = pose * T_pregrasp
 
         self._node_initialized = False
         self._waiting_for_planner = False
@@ -152,10 +169,31 @@ class DeburringPathPlanner(Node):
             ),
         )
 
+        self._robot_description_sc_sub = self.create_subscription(
+            String,
+            "/robot_description_with_collision",
+            self._robot_description_sc_cb,
+            qos_profile=QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+
         self._environment_description_sub = self.create_subscription(
             String,
             "/environment_description_without_collision",
             self._environment_description_cb,
+            qos_profile=QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+        self._environment_description_sc_sub = self.create_subscription(
+            String,
+            "/environment_description_with_collision",
+            self._environment_description_sc_cb,
             qos_profile=QoSProfile(
                 depth=1,
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -290,8 +328,14 @@ class DeburringPathPlanner(Node):
             self._tool_frame_id_name
         )
 
+    def _robot_description_sc_cb(self, msg: String) -> None:
+        self._robot_description_sc = msg.data
+
     def _environment_description_cb(self, msg: String) -> None:
         self._environment_description = msg.data
+
+    def _environment_description_sc_cb(self, msg: String) -> None:
+        self._environment_description_sc = msg.data
 
     def _joint_state_cb(self, msg: JointState) -> None:
         self._joint_states = msg
@@ -366,6 +410,11 @@ class DeburringPathPlanner(Node):
         for topic_name, object in (
             (self._robot_description_sub.topic, self._robot_model),
             (self._environment_description_sub.topic, self._environment_description),
+            (self._robot_description_sc_sub.topic, self._robot_description_sc),
+            (
+                self._environment_description_sc_sub.topic,
+                self._environment_description_sc,
+            ),
             (self._joint_states_sub.topic, self._joint_states),
             (self._buffer_size_sub.topic, self._buffer_size),
         ):
@@ -378,6 +427,46 @@ class DeburringPathPlanner(Node):
 
         if not self._path_generators_initialized:
             try:
+                trajectory_smoother = None
+                interpolation_smoother = BasicInterpolationSmoother(
+                    robot_model=self._robot_model,
+                    ocp_dt=self._params.ocp_dt,
+                    max_joint_velocity=np.array(self._params.max_joint_velocity),
+                )
+                if self._params.generators_params.trajectory_smoother == "interpolate":
+                    trajectory_smoother = interpolation_smoother
+                elif self._params.generators_params.trajectory_smoother == "ocp":
+                    smth_params = self._params.generators_params.ocp_smoother
+                    trajectory_smoother = OCPSmoother(
+                        robot_model=self._robot_model,
+                        robot_description=self._robot_description_sc,
+                        environment_description=self._environment_description_sc,
+                        interpolation_smoother=interpolation_smoother,
+                        optimizer_ocp_dt=smth_params.optimizer_ocp_dt,
+                        optimizer_ocp_horizon=smth_params.optimizer_ocp_horizon,
+                        running_costs=smth_params.running_costs,
+                        terminal_costs=smth_params.terminal_costs,
+                        robot_collision_links=smth_params.robot_collision_links,
+                        environment_links=smth_params.environment_links,
+                        collision_distance=smth_params.collision_distance,
+                        joint_shrink_range=smth_params.joint_shrink_range,
+                        n_threads=smth_params.n_threads,
+                        solver_iters=smth_params.solver_iters,
+                        qp_iters=smth_params.qp_iters,
+                        use_line_search=smth_params.use_line_search,
+                        callbacks=smth_params.callbacks,
+                        ee_tool_frame=self._tool_frame_id_name,
+                        w_robot_velocity=smth_params.w_robot_velocity,
+                        w_robot_effort=smth_params.w_robot_effort,
+                        running_w_robot_configuration=smth_params.running_w_robot_configuration,
+                        running_w_frame_rotation=smth_params.running_w_frame_rotation,
+                        running_w_frame_translation=smth_params.running_w_frame_translation,
+                        terminal_w_robot_configuration=smth_params.terminal_w_robot_configuration,
+                        terminal_w_frame_rotation=smth_params.terminal_w_frame_rotation,
+                        terminal_w_frame_translation=smth_params.terminal_w_frame_translation,
+                        moving_joints=self._params.moving_joints,
+                    )
+
                 if self._params.generators_params.main_generator_type == "diffusion":
                     from agimus_demo_07_deburring.planner.trajectory_generators.diffusion_trajectory import (
                         DiffusionPathGenerator,
@@ -388,12 +477,12 @@ class DeburringPathPlanner(Node):
                         DiffusionPathGenerator(
                             wights_path=gen_params.weights_path,
                             sequence_length=gen_params.sequence_length,
+                            n_samples=gen_params.n_samples,
                             robot_model=self._robot_model,
                             ocp_dt=self._params.ocp_dt,
-                            max_joint_velocity=np.array(
-                                self._params.max_joint_velocity
-                            ),
                             tool_frame_id=self._tool_frame_id_name,
+                            hpp_handle_correction=self._R_insert,
+                            trajectory_smoother=trajectory_smoother,
                         )
                     )
                 else:
@@ -422,6 +511,7 @@ class DeburringPathPlanner(Node):
                             deburred_object_name=gen_params.deburred_object_name,
                             joints_to_shrink=gen_params.joints_to_shrink,
                             joint_shrink_range=gen_params.joint_shrink_range,
+                            trajectory_smoother=trajectory_smoother,
                         )
                     )
                 gen_params = self._params.generators_params.grasp_generator
@@ -578,7 +668,8 @@ class DeburringPathPlanner(Node):
                 else:
                     self._trajectory_buffer.clear()
 
-            target_handle = self._T_pylone * self._handles[handle_name]
+            T_handle = self._T_pylone * self._handles[handle_name]["pose"]
+            T_pregrasp = self._T_pylone * self._handles[handle_name]["pregrasp"]
             initial_trajectory_len = 0
 
             if goal_handle.request.do_plan:
@@ -598,7 +689,7 @@ class DeburringPathPlanner(Node):
                 if compute_new_trajectory:
                     trajectory = self._path_generators["follow_joint_trajectory"][
                         "generator"
-                    ].get_path(robot_configuration, target_handle, handle_name)
+                    ].get_path(robot_configuration, T_pregrasp, handle_name)
                     if (
                         self._use_precomputed_trajectories
                         and self._last_handle != "none"
@@ -666,25 +757,24 @@ class DeburringPathPlanner(Node):
                         q = self._trajectory_buffer[-1].point.robot_configuration
                 else:
                     q = self._get_remapped_joints()
-                T_pregrasp = self._trajectory_buffer[-1].point.end_effector_poses[
-                    self._tool_frame_id_name
-                ]
+                T_pregrasp_rot = T_pregrasp * self._R_insert
+                T_handle_rot = T_handle * self._R_insert
 
                 # Insert into the hole
                 self._path_generators["insert_retract_tool"][
                     "generator"
                 ].set_insert_mode()
                 segment_len = self._insert_sequence_to_buffer(
-                    "insert_retract_tool", q, target_handle * self._R_insert, T_pregrasp
+                    "insert_retract_tool", q, T_handle_rot, T_pregrasp_rot
                 )
                 initial_trajectory_len += segment_len
-                # Perform deburring
-                with self._trajectory_buffer_lock:
-                    q = self._trajectory_buffer[-1].point.robot_configuration
-                segment_len = self._insert_sequence_to_buffer(
-                    "deburring_motion", q, target_handle * self._R_insert, T_pregrasp
-                )
-                initial_trajectory_len += segment_len
+                # # Perform deburring
+                # with self._trajectory_buffer_lock:
+                #     q = self._trajectory_buffer[-1].point.robot_configuration
+                # segment_len = self._insert_sequence_to_buffer(
+                #     "deburring_motion", q, T_handle_rot, T_pregrasp_rot
+                # )
+                # initial_trajectory_len += segment_len
                 # Retract from the hole
                 self._path_generators["insert_retract_tool"][
                     "generator"
@@ -692,7 +782,7 @@ class DeburringPathPlanner(Node):
                 with self._trajectory_buffer_lock:
                     q = self._trajectory_buffer[-1].point.robot_configuration
                 segment_len = self._insert_sequence_to_buffer(
-                    "insert_retract_tool", q, T_pregrasp, target_handle * self._R_insert
+                    "insert_retract_tool", q, T_pregrasp_rot, T_handle_rot
                 )
                 initial_trajectory_len += segment_len
 

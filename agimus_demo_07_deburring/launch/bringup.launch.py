@@ -57,6 +57,17 @@ def launch_setup(
     arm_id = LaunchConfiguration("arm_id")
     arm_id_str = arm_id.perform(context)
 
+    motion_generator = LaunchConfiguration("motion_generator")
+    motion_generator_str = motion_generator.perform(context)
+
+    smooth_with_ocp = LaunchConfiguration("smooth_with_ocp")
+    smooth_with_ocp_bool = smooth_with_ocp.perform(context).lower() == "true"
+
+    if not smooth_with_ocp_bool:
+        trajectory_smoother = "none" if motion_generator_str == "hpp" else "interpolate"
+    else:
+        trajectory_smoother = "ocp"
+
     rviz_config_path = PathJoinSubstitution(
         [
             FindPackageShare("agimus_demo_07_deburring"),
@@ -123,6 +134,7 @@ def launch_setup(
         parameters=[
             get_use_sim_time(),
             ParameterFile(param_file=deburring_path_planner_params, allow_substs=True),
+            {"generators_params.trajectory_smoother": trajectory_smoother},
         ],
     )
 
@@ -164,6 +176,12 @@ def generate_launch_description():
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
+            "smooth_with_ocp",
+            default_value="false",
+            description="Whether to optimize the trajectory of HPP or diffusion with an OCP.",
+            choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
             "object_material",
             default_value="plastic",
             description="Which deburred material setup to use.",
@@ -175,6 +193,12 @@ def generate_launch_description():
             description="Whether to expect Pylone detector to be running "
             "or to mock it.",
             choices=["true", "false"],
+        ),
+        DeclareLaunchArgument(
+            "motion_generator",
+            default_value="hpp",
+            description="Motion generator type to use for free movement.",
+            choices=["hpp", "diffusion"],
         ),
     ]
 
