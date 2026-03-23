@@ -5,7 +5,7 @@
   <xacro:include filename="$(find agimus_demo_07_deburring)/urdf/pylone.urdf.xacro"/>
 
   <!-- Include the fer robot xacro -->
-  <xacro:include filename="$(find franka_description)/robots/common/franka_robot.xacro"/>
+  <xacro:include filename="$(find agimus_franka_description)/robots/common/franka_robot.xacro"/>
 
   <xacro:arg name="with_sc" default="false" />
 

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="obstacle">
-  <xacro:include filename="$(find franka_description)/robots/common/utils.xacro" />
+  <xacro:include filename="$(find agimus_franka_description)/robots/common/utils.xacro" />
 
 
   <material name="blue">

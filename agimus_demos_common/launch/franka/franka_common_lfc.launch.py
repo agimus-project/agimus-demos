@@ -109,7 +109,7 @@ def generate_launch_description():
             "gz_world_path",
             default_value=PathJoinSubstitution(
                 [
-                    FindPackageShare("franka_description"),
+                    FindPackageShare("agimus_franka_description"),
                     "worlds",
                     "empty.sdf",
                 ]

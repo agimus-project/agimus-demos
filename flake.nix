@@ -2,8 +2,9 @@
   description = "Whole Body Model Predictive Control in the AGIMUS architecture";
 
   inputs = {
-    gazebros2nix.url = "github:gepetto/gazebros2nix";
+    gazebros2nix.url = "github:gepetto/gazebros2nix/fork";
     flake-parts.follows = "gazebros2nix/flake-parts";
+    flakoboros.follows = "gazebros2nix/flakoboros";
     nixpkgs.follows = "gazebros2nix/nixpkgs";
     nix-ros-overlay.follows = "gazebros2nix/nix-ros-overlay";
     systems.follows = "gazebros2nix/systems";
@@ -19,11 +20,11 @@
         imports = [
           inputs.gazebros2nix.flakeModule
           {
-            gazebros2nix = {
+            flakoboros = {
               rosDistros = [ "humble" ];
               rosShellDistro = "humble";
-              rosPackages = {
-                agimus-demo-00-franka-controller = _final: _ros-final: {
+              rosOverrideAttrs = {
+                agimus-demo-00-franka-controller = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -32,7 +33,7 @@
                   };
                 };
 
-                agimus-demo-01-lfc-alone = _final: _ros-final: {
+                agimus-demo-01-lfc-alone = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -41,7 +42,7 @@
                   };
                 };
 
-                agimus-demo-02-simple-pd-plus = _final: _ros-final: {
+                agimus-demo-02-simple-pd-plus = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -50,7 +51,7 @@
                   };
                 };
 
-                agimus-demo-02-simple-pd-plus-tiago-pro = _final: _ros-final: {
+                agimus-demo-02-simple-pd-plus-tiago-pro = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -59,7 +60,7 @@
                   };
                 };
 
-                agimus-demo-03-mpc-dummy-traj = _final: _ros-final: {
+                agimus-demo-03-mpc-dummy-traj = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -68,7 +69,7 @@
                   };
                 };
 
-                agimus-demo-03-mpc-dummy-traj-tiago-pro = _final: _ros-final: {
+                agimus-demo-03-mpc-dummy-traj-tiago-pro = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -78,7 +79,7 @@
                 };
 
                 # TODO: need demo 9
-                # agimus-demo-04-dual-arm-tiago-pro = _final: _ros-final: {
+                # agimus-demo-04-dual-arm-tiago-pro = _:_:{
                 #   src = lib.fileset.toSource {
                 #     root = ./.;
                 #     fileset = lib.fileset.unions [
@@ -87,7 +88,7 @@
                 #   };
                 # };
 
-                agimus-demo-04-visual-servoing = _final: _ros-final: {
+                agimus-demo-04-visual-servoing = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -96,7 +97,7 @@
                   };
                 };
 
-                agimus-demo-05-pick-and-place = _final: _ros-final: {
+                agimus-demo-05-pick-and-place = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -105,7 +106,7 @@
                   };
                 };
 
-                agimus-demo-06-regrasp = _final: _ros-final: {
+                agimus-demo-06-regrasp = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -115,7 +116,7 @@
                 };
 
                 # TODO: need pytroller
-                # agimus-demo-07-deburring = _final: _ros-final: {
+                # agimus-demo-07-deburring = _:_:{
                 #   src = lib.fileset.toSource {
                 #     root = ./.;
                 #     fileset = lib.fileset.unions [
@@ -124,7 +125,7 @@
                 #   };
                 # };
 
-                agimus-demo-08-collision-avoidance = _final: _ros-final: {
+                agimus-demo-08-collision-avoidance = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -133,7 +134,7 @@
                   };
                 };
 
-                agimus-demos = _final: _ros-final: {
+                agimus-demos = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -142,7 +143,7 @@
                   };
                 };
 
-                agimus-demos-common = _final: _ros-final: {
+                agimus-demos-common = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -151,7 +152,7 @@
                   };
                 };
 
-                agimus-demos-controllers = _final: _ros-final: {
+                agimus-demos-controllers = _: _: {
                   src = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [

@@ -191,7 +191,7 @@ def generate_default_franka_args() -> list[DeclareLaunchArgument]:
         ),
         DeclareLaunchArgument(
             "ee_id",
-            default_value="franka_hand",
+            default_value="agimus_franka_hand",
             description="Name of the end effector used.",
         ),
         DeclareLaunchArgument(

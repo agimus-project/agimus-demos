@@ -63,7 +63,7 @@ def launch_setup(
             [
                 PathJoinSubstitution(
                     [
-                        FindPackageShare("franka_gripper"),
+                        FindPackageShare("agimus_franka_gripper"),
                         "launch",
                         "gripper.launch.py",
                     ]

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="pylone">
-   <xacro:include filename="$(find franka_description)/robots/common/utils.xacro" />
+   <xacro:include filename="$(find agimus_franka_description)/robots/common/utils.xacro" />
 
    <xacro:macro name="pylone" params="with_sc:=false">
 

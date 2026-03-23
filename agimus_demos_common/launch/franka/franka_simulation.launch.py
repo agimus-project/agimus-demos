@@ -89,7 +89,7 @@ def launch_setup(
     )
 
     controllers = ["joint_state_broadcaster"]
-    if ee_id_str == "franka_hand":
+    if ee_id_str == "agimus_franka_hand":
         controllers.append("gripper_action_controller")
 
     if use_ft_sensor_bool:
@@ -130,7 +130,7 @@ def generate_launch_description():
             "gz_world_path",
             default_value=PathJoinSubstitution(
                 [
-                    FindPackageShare("franka_description"),
+                    FindPackageShare("agimus_franka_description"),
                     "worlds",
                     "empty.sdf",
                 ]
@@ -145,7 +145,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "ee_id",
-            default_value="franka_hand",
+            default_value="agimus_franka_hand",
             description="Name of the end effector used.",
         ),
     ]
