@@ -49,7 +49,9 @@ def launch_setup(
     disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     external_controllers_params = LaunchConfiguration("external_controllers_params")
     external_controllers_names = LaunchConfiguration("external_controllers_names")
-    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+    agimus_franka_controllers_params = LaunchConfiguration(
+        "agimus_franka_controllers_params"
+    )
     initial_joint_position = LaunchConfiguration("initial_joint_position")
     robot_safety_distance = LaunchConfiguration("robot_safety_distance")
     use_rviz = LaunchConfiguration("use_rviz")
@@ -167,13 +169,14 @@ def launch_setup(
             "`use_ft_sensor:=false` and `ee_id:=ati_mini45_with_camera`."
         )
 
-    # Parsing franka_controllers_params with arm_id replacement
+    # Parsing agimus_franka_controllers_params with arm_id replacement
     replacements = {
         "arm_id": arm_id.perform(context),
     }
 
-    franka_controllers_params = parse_config(
-        path=franka_controllers_params.perform(context), replacements=replacements
+    agimus_franka_controllers_params = parse_config(
+        path=agimus_franka_controllers_params.perform(context),
+        replacements=replacements,
     )
     external_controllers_params_str = parse_config(
         path=external_controllers_params_str, replacements=replacements
@@ -182,13 +185,13 @@ def launch_setup(
     cleanup_action = RegisterEventHandler(
         OnShutdown(
             on_shutdown=lambda event, context: (
-                safe_remove(franka_controllers_params),
+                safe_remove(agimus_franka_controllers_params),
                 safe_remove(external_controllers_params_str),
             )
         )
     )
     print(
-        f"Temporary franka_controllers_params file: {franka_controllers_params}, {external_controllers_params_str}"
+        f"Temporary agimus_franka_controllers_params file: {agimus_franka_controllers_params}, {external_controllers_params_str}"
     )
 
     wait_for_non_zero_joints_node = Node(
@@ -288,7 +291,7 @@ def launch_setup(
             "arm_id": arm_id,
             "disable_collision_safety": disable_collision_safety,
             "use_ft_sensor": use_ft_sensor,
-            "franka_controllers_params": franka_controllers_params,
+            "agimus_franka_controllers_params": agimus_franka_controllers_params,
         }.items(),
         condition=UnlessCondition(
             OrSubstitution(
@@ -328,7 +331,7 @@ def launch_setup(
             "arm_id": arm_id,
             "disable_collision_safety": disable_collision_safety,
             "use_ft_sensor": use_ft_sensor,
-            "franka_controllers_params": franka_controllers_params,
+            "agimus_franka_controllers_params": agimus_franka_controllers_params,
             "external_controllers_params": external_controllers_params_str,
             "external_controllers_names": external_controllers_names,
         }.items(),
@@ -375,7 +378,7 @@ def launch_setup(
         "use_camera": use_camera,
         "gazebo_effort": "true",
         "with_sc": "false",
-        "franka_controllers_params": franka_controllers_params,
+        "agimus_franka_controllers_params": agimus_franka_controllers_params,
         "use_ft_sensor": use_ft_sensor,
         "ft_sensor_ip": ft_sensor_ip,
         "rdt_sampling_rate": str(int(7000 / 6)),
@@ -539,7 +542,7 @@ def generate_launch_description():
             description="List of names of the external controllers to spawn.",
         ),
         DeclareLaunchArgument(
-            "franka_controllers_params",
+            "agimus_franka_controllers_params",
             default_value=PathJoinSubstitution(
                 [
                     FindPackageShare("agimus_demos_common"),

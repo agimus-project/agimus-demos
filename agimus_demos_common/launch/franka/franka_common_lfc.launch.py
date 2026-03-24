@@ -49,8 +49,8 @@ def launch_setup(
                 "linear_feedback_controller_params"
             ),
             "external_controllers_names": str(linear_feedback_controllers_names),
-            "franka_controllers_params": LaunchConfiguration(
-                "franka_controllers_params"
+            "agimus_franka_controllers_params": LaunchConfiguration(
+                "agimus_franka_controllers_params"
             ),
             "initial_joint_position": LaunchConfiguration("initial_joint_position"),
             "robot_safety_distance": LaunchConfiguration("robot_safety_distance"),
@@ -71,7 +71,7 @@ def launch_setup(
 def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
-            "franka_controllers_params",
+            "agimus_franka_controllers_params",
             default_value=PathJoinSubstitution(
                 [
                     FindPackageShare("agimus_demos_common"),

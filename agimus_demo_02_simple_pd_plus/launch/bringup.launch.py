@@ -28,7 +28,7 @@ def launch_setup(
         ]
     )
 
-    # Parsing franka_controllers_params with arm_id replacement
+    # Parsing agimus_franka_controllers_params with arm_id replacement
     replacements = {"arm_id": arm_id.perform(context)}
     pd_plus_controller_params = parse_config(
         path=pd_plus_controller_params.perform(context), replacements=replacements

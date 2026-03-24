@@ -59,7 +59,7 @@ def launch_setup(
     arm_id = LaunchConfiguration("arm_id")
 
     arm_id_str = arm_id.perform(context)
-    # Parsing franka_controllers_params with arm_id replacement
+    # Parsing agimus_franka_controllers_params with arm_id replacement
     replacements = {"arm_id": arm_id_str}
     ocp_definition_params_file = parse_config(
         path=ocp_definition_params.perform(context), replacements=replacements

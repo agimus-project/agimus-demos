@@ -74,7 +74,7 @@ def launch_setup(
     aux_computer_ip = LaunchConfiguration("aux_computer_ip")
     aux_computer_user = LaunchConfiguration("aux_computer_user")
     external_controllers_params = LaunchConfiguration("external_controllers_params")
-    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+    agimus_franka_controllers_params = LaunchConfiguration("agimus_franka_controllers_params")
 
     aux_computer_ip_str = context.perform_substitution(aux_computer_ip)
     aux_computer_user_str = context.perform_substitution(aux_computer_user)
@@ -117,7 +117,7 @@ def launch_setup(
             "name": "aux-scp-franka-params",
             "cmd": [
                 "scp",
-                franka_controllers_params,
+                agimus_franka_controllers_params,
                 f"{remote}:{FRANKA_PARAMS_REMOTE_PATH.as_posix()}",
             ],
             "on_exit": None,
@@ -261,7 +261,7 @@ def generate_launch_description():
             description="Names of the external controllers to spawn.",
         ),
         DeclareLaunchArgument(
-            "franka_controllers_params",
+            "agimus_franka_controllers_params",
             default_value=PathJoinSubstitution(
                 [
                     FindPackageShare("agimus_demos_common"),

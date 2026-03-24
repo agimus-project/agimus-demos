@@ -27,7 +27,7 @@ Launch arguments specific to this launch file:
 
     List of names of the external controllers to spawn.
 
-- **franka_controllers_params**:
+- **agimus_franka_controllers_params**:
 
     Default: *agimus_demos_common/config/franka/controllers.yaml*
 

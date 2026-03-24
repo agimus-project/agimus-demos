@@ -37,7 +37,7 @@ def launch_setup(
 
     arm_id_str = LaunchConfiguration("arm_id").perform(context)
 
-    # Parsing franka_controllers_params with arm_id replacement
+    # Parsing agimus_franka_controllers_params with arm_id replacement
     replacements = {"arm_id": arm_id_str}
 
     agimus_controller_yaml = PathJoinSubstitution(

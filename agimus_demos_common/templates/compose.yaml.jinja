@@ -20,7 +20,7 @@ services:
       memlock: 8428281856
     command: >
       ros2 launch agimus_demos_common franka_common.launch.py
-        franka_controllers_params:={{ franka_params_remote_path }}
+        agimus_franka_controllers_params:={{ franka_params_remote_path }}
         external_controllers_params:={{ external_controllers_params_remote_path }}
         external_controllers_names:={{ external_controllers_names }}
         robot_ip:={{ robot_ip }}

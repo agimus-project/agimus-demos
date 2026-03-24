@@ -23,7 +23,7 @@ def launch_setup(
     robot_ip = LaunchConfiguration("robot_ip")
     disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
-    franka_controllers_params = LaunchConfiguration("franka_controllers_params")
+    agimus_franka_controllers_params = LaunchConfiguration("agimus_franka_controllers_params")
 
     disable_collision_safety_bool = (
         context.perform_substitution(disable_collision_safety).lower() == "true"
@@ -34,7 +34,7 @@ def launch_setup(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            franka_controllers_params,
+            agimus_franka_controllers_params,
             {"arm_id": arm_id, "load_gripper": "true"},
         ],
         remappings=[
@@ -134,7 +134,7 @@ def generate_launch_description():
             choices=["true", "false"],
         ),
         DeclareLaunchArgument(
-            "franka_controllers_params",
+            "agimus_franka_controllers_params",
             default_value=PathJoinSubstitution(
                 [
                     FindPackageShare("agimus_demos_common"),
