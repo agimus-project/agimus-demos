@@ -199,7 +199,7 @@ def launch_setup(
         executable="wait_for_non_zero_joints_node",
         name="wait_for_non_zero_joints_node",
         parameters=[get_use_sim_time()],
-        remappings=[("joint_states", "franka/joint_states")],
+        remappings=[("joint_states", "agimus_franka/joint_states")],
         output="screen",
         condition=IfCondition(
             OrSubstitution(
@@ -481,7 +481,7 @@ def launch_setup(
             get_use_sim_time(),
             {
                 "source_list": [
-                    "franka/joint_states",
+                    "agimus_franka/joint_states",
                     f"{arm_id_str}_gripper/joint_states",
                 ],
                 "rate": 30,

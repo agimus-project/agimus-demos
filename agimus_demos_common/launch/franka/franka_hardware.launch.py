@@ -38,7 +38,7 @@ def launch_setup(
             {"arm_id": arm_id, "load_gripper": "true"},
         ],
         remappings=[
-            ("joint_states", "franka/joint_states"),
+            ("joint_states", "agimus_franka/joint_states"),
             ("/controller_manager/robot_description", "/robot_description"),
         ],
         output={
