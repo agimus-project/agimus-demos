@@ -769,12 +769,12 @@ class DeburringPathPlanner(Node):
                 )
                 initial_trajectory_len += segment_len
                 # # Perform deburring
-                # with self._trajectory_buffer_lock:
-                #     q = self._trajectory_buffer[-1].point.robot_configuration
-                # segment_len = self._insert_sequence_to_buffer(
-                #     "deburring_motion", q, T_handle_rot, T_pregrasp_rot
-                # )
-                # initial_trajectory_len += segment_len
+                with self._trajectory_buffer_lock:
+                    q = self._trajectory_buffer[-1].point.robot_configuration
+                segment_len = self._insert_sequence_to_buffer(
+                    "deburring_motion", q, T_handle_rot, T_pregrasp_rot
+                )
+                initial_trajectory_len += segment_len
                 # Retract from the hole
                 self._path_generators["insert_retract_tool"][
                     "generator"
@@ -816,7 +816,9 @@ class DeburringPathPlanner(Node):
                         MarkerArray(
                             markers=[
                                 _crate_marker(i, point.point)
+                                # Points are so dense, that they can be significantly downsampled
                                 for i, point in enumerate(self._trajectory_buffer)
+                                if i % 150 == 0
                             ],
                         )
                     )

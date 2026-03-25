@@ -103,10 +103,9 @@ deburring_path_planner_node:
         running_w_robot_configuration: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
         running_w_frame_rotation: [0.0, 0.0, 0.0]
         running_w_frame_translation: [0.0, 0.0, 0.0]
-        terminal_w_robot_configuration: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0,
-          100.0]
-        terminal_w_frame_rotation: [200000.0, 200000.0, 50.0]
-        terminal_w_frame_translation: [400000.0, 400000.0, 400000.0]
+        terminal_w_robot_configuration: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+        terminal_w_frame_rotation: [200000.0, 200000.0, 1000.0]
+        terminal_w_frame_translation: [400.0, 400.0, 400.0]
       grasp_generator:
         linear_vel: 0.1
         linear_acc: 0.07

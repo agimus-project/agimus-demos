@@ -184,6 +184,17 @@ class TrajecotryOptimizer:
             ]
         )
 
+        # I am well aware this should be part of agimus controller api, and
+        # that the constraint name is defined in ocp_smoother.py making
+        # the architecture a nonsense. I just don't care now...
+        constraints = (
+            self._ocp.problem.terminalModel.differential.constraints.constraints
+        )
+        constraints["ee_translation"].constraint.updateBounds(
+            T_final.translation - np.ones(3) * 0.001,
+            T_final.translation + np.ones(3) * 0.001,
+        )
+
         self._ocp.solve(x0, x_init, u_init)
 
         if self._ocp._debug_data.problem_solved:

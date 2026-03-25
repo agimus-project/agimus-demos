@@ -50,6 +50,7 @@ class OCPSmoother(GenericTrajectorySmoother):
     ) -> None:
         self._optimizer_ocp_horizon = optimizer_ocp_horizon
         self._nq = robot_model.nq
+        self._ee_tool_frame = ee_tool_frame
 
         ocp_params_path = self._generate_ocp_config(
             robot_model,
@@ -170,7 +171,16 @@ class OCPSmoother(GenericTrajectorySmoother):
                 "constraints": [
                     self._create_constraint(
                         "state", x_min, x_max, {"class": "ResidualModelState"}
-                    )
+                    ),
+                    self._create_constraint(
+                        "ee_translation",
+                        [-1.0] * 3,
+                        [1.0] * 3,
+                        {
+                            "class": "ResidualModelFrameTranslationStatic",
+                            "frame_id": self._ee_tool_frame,
+                        },
+                    ),
                 ],
             },
         }
