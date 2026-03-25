@@ -20,7 +20,10 @@ class DiffusionMotion(pl.LightningModule):
             self.noise_scheduler = DDPMScheduler(
                 num_train_timesteps=default_diffusion_steps,
                 beta_schedule="linear",
+                variance_type="learned_range",
                 clip_sample=False,
+                # beta_start = 0.005,
+                # beta_end = 0.002,
             )
         else:
             self.noise_scheduler = noise_scheduler

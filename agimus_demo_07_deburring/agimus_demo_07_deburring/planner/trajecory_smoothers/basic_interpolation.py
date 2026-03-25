@@ -20,7 +20,7 @@ class BasicInterpolationSmoother(GenericTrajectorySmoother):
         self._max_joint_velocity = max_joint_velocity
 
     def __call__(
-        self, trajectory: npt.ArrayLike
+        self, trajectory: npt.ArrayLike, T_final: pin.SE3
     ) -> tuple[npt.ArrayLike, npt.ArrayLike]:
         # Compute highest joint velocities between trajectory points
         trajectory_vel = np.gradient(trajectory, axis=0)

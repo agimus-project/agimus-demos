@@ -10,7 +10,7 @@ class GenericTrajectorySmoother(ABC):
 
     @abstractmethod
     def __call__(
-        self, q0: npt.ArrayLike
+        self, q0: npt.ArrayLike, T_final: pin.SE3
     ) -> tuple[npt.ArrayLike, npt.ArrayLike] | tuple[None, None]:
         pass
 

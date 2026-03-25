@@ -142,7 +142,9 @@ class TrajecotryOptimizer:
             )
         )
 
-    def __call__(self, trajectory: npt.ArrayLike) -> npt.ArrayLike | None:
+    def __call__(
+        self, trajectory: npt.ArrayLike, T_final: pin.SE3
+    ) -> npt.ArrayLike | None:
         # Assemble initial state
         dq = np.zeros(7)
         x0 = np.hstack((trajectory[0], dq))
@@ -164,9 +166,14 @@ class TrajecotryOptimizer:
             )
             p.point.robot_configuration = q
             pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
-            p.point.end_effector_poses[self._ee_tool_frame] = self._robot_data.oMf[
-                self._ee_tool_frame_pin
-            ]
+
+            T_ee = (
+                self._robot_data.oMf[self._ee_tool_frame_pin]
+                if not is_terminal
+                else T_final
+            )
+
+            p.point.end_effector_poses[self._ee_tool_frame] = T_ee
             return p
 
         # Set references for the OCP

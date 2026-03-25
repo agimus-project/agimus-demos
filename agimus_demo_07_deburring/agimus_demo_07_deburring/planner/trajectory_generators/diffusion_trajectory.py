@@ -80,7 +80,9 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
             )
 
         for trajectory in sampled_trajs:
-            trajectory, velocities = self._trajectory_smoother(trajectory.cpu().numpy())
+            trajectory, velocities = self._trajectory_smoother(
+                trajectory.cpu().numpy(), T_final
+            )
             # If trajectory is nicely smoothed, use it
             if trajectory is not None:
                 break
