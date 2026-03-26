@@ -90,7 +90,7 @@ class OCPSmoother(GenericTrajectorySmoother):
 
     def __call__(
         self, trajectory: npt.ArrayLike, T_final: pin.SE3
-    ) -> tuple[npt.ArrayLike, npt.ArrayLike] | tuple[None, None]:
+    ) -> tuple[npt.ArrayLike, npt.ArrayLike, float] | tuple[None, None, None]:
         # Resize trajectory to match what OCP expects
         old_times = np.linspace(0, 1, trajectory.shape[0])
         new_times = np.linspace(0, 1, self._optimizer_ocp_horizon)
@@ -99,12 +99,15 @@ class OCPSmoother(GenericTrajectorySmoother):
         for i in range(self._nq):
             interpolated[:, i] = np.interp(new_times, old_times, trajectory[:, i])
 
-        optimized_trajectory = self._optimizer(interpolated, T_final)
+        optimized_trajectory, kkt_norm = self._optimizer(interpolated, T_final)
         if optimized_trajectory is None:
-            return None, None
+            return None, None, None
 
         # Interpolate the trajectory to make it feasible in time
-        return self._interpolation_smoother(optimized_trajectory, T_final)
+        trajectory, velocities, _ = self._interpolation_smoother(
+            optimized_trajectory, T_final
+        )
+        return trajectory, velocities, kkt_norm
 
     @property
     def n_samples(self) -> int:

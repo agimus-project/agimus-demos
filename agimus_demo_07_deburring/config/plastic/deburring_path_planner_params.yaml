@@ -34,7 +34,7 @@ deburring_path_planner_node:
       diffusion_generator:
         weights_path: $(find-pkg-share agimus_demo_07_deburring)/weights/weights.ckpt
         sequence_length: 50
-        n_samples: 1
+        n_samples: 10
       hpp_generator:
         handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
         robot_self_collision_config: $(find-pkg-share agimus_demo_07_deburring)/environment/panda.srdf
@@ -58,7 +58,7 @@ deburring_path_planner_node:
       # They are independent from the OCP inside of the MPC controlling the robot
       ocp_smoother:
         optimizer_ocp_dt: 0.1
-        optimizer_ocp_horizon: 75
+        optimizer_ocp_horizon: 40
         running_costs:
         - '{"class": "ResidualModelState"}'
         - '{"class": "ResidualModelControlGrav"}'
@@ -94,8 +94,8 @@ deburring_path_planner_node:
         collision_distance: 0.02
         joint_shrink_range: 0.95
         n_threads: 16
-        solver_iters: 100
-        qp_iters: 200
+        solver_iters: 25
+        qp_iters: 25
         use_line_search: true
         callbacks: true
         w_robot_effort: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
@@ -104,8 +104,8 @@ deburring_path_planner_node:
         running_w_frame_rotation: [0.0, 0.0, 0.0]
         running_w_frame_translation: [0.0, 0.0, 0.0]
         terminal_w_robot_configuration: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-        terminal_w_frame_rotation: [200000.0, 200000.0, 200000.0]
-        terminal_w_frame_translation: [1000000.0, 1000000.0, 1000000.0]
+        terminal_w_frame_rotation: [4000000.0, 4000000.0, 4000000.0]
+        terminal_w_frame_translation: [10.0, 10.0, 10.0]
       grasp_generator:
         linear_vel: 0.1
         linear_acc: 0.07

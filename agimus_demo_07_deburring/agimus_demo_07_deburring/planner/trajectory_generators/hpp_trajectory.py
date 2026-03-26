@@ -238,7 +238,7 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         p.deleteThis()
 
         if self._trajectory_smoother is not None:
-            opt_trajectory, opt_velocities = self._trajectory_smoother(
+            opt_trajectory, opt_velocities, _ = self._trajectory_smoother(
                 trajectory, T_final
             )
             if trajectory is not None:

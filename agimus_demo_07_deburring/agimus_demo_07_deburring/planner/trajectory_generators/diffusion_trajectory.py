@@ -79,13 +79,27 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
                 configuration_size=self._nq,
             )
 
-        for trajectory in sampled_trajs:
-            trajectory, velocities = self._trajectory_smoother(
+        optimized = []
+        costs = []
+        for i, trajectory in enumerate(sampled_trajs):
+            trajectory, velocities, cost = self._trajectory_smoother(
                 trajectory.cpu().numpy(), T_final
             )
-            # If trajectory is nicely smoothed, use it
-            if trajectory is not None:
+            optimized.append((trajectory, velocities))
+            costs.append(cost)
+
+            if i == len(sampled_trajs):
+                cost = min(costs)
+                idx = costs.index(cost)
+                trajectory, velocities = optimized[idx]
                 break
+
+            # If trajectory deos not violate constraints, use it
+            if cost < 0.5:
+                break
+
+        if trajectory is None:
+            raise RuntimeError("Failed to optimize any of the trajectories!")
 
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             pin.framesForwardKinematics(

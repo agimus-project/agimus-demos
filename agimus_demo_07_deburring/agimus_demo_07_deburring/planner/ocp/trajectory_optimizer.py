@@ -64,6 +64,8 @@ class TrajecotryOptimizer:
         self._nq = self._robot_model.nq
         self._nv = self._robot_model.nv
 
+        self._solver_iters = solver_iters
+
         self._ee_tool_frame = ee_tool_frame
         self._ee_tool_frame_pin = self._robot_models.robot_model.getFrameId(
             self._ee_tool_frame
@@ -80,8 +82,10 @@ class TrajecotryOptimizer:
             solver_iters=solver_iters,
             callbacks=callbacks,
             qp_iters=qp_iters,
-            use_debug_data=False,
+            use_debug_data=True,
             n_threads=n_threads,
+            termination_tolerance=1e-2,
+            eps_abs=1e-4,
         )
 
         self._ocp = OCPCrocoGeneric(self._robot_models, ocp_params, ocp_params_path)
@@ -144,7 +148,7 @@ class TrajecotryOptimizer:
 
     def __call__(
         self, trajectory: npt.ArrayLike, T_final: pin.SE3
-    ) -> npt.ArrayLike | None:
+    ) -> tuple[npt.ArrayLike, float] | tuple[None, None]:
         # Assemble initial state
         dq = np.zeros(7)
         x0 = np.hstack((trajectory[0], dq))
@@ -197,12 +201,12 @@ class TrajecotryOptimizer:
 
         self._ocp.solve(x0, x_init, u_init)
 
-        if self._ocp._debug_data.problem_solved:
-            return None
+        # if self._ocp._debug_data.nb_iter >= self._solver_iters - 1:
+        #     return None
 
         trajectory = np.array([x[: self._nq] for x in self._ocp.ocp_results.states])
 
-        return trajectory
+        return trajectory, self._ocp._debug_data.kkt_norm
 
     def update_poses(self, T_pylone: pin.SE3) -> None:
         for name, placement, type in self._geometries:
