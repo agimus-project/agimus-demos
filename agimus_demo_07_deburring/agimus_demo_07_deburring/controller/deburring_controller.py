@@ -269,9 +269,9 @@ class ControllerImpl(ControllerImplBase):
             self._ocp_res_is_none = True
             if self._in_pd_mode:
                 # Compute safety PD control
-                return (
+                return np.clip((
                     self._q_init - self._last_q
-                ) * self._p_gains - dq * self._d_gains
+                ) * self._p_gains - dq * self._d_gains, -2.0, 2.0)
             return self._u_zeros
         self._ocp_res_is_none = False
         self._in_pd_mode = False
