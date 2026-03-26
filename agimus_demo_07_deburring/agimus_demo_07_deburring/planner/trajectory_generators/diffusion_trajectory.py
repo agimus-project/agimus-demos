@@ -83,7 +83,7 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
         costs = []
         for i, trajectory in enumerate(sampled_trajs):
             trajectory, velocities, cost = self._trajectory_smoother(
-                trajectory.cpu().numpy(), T_final
+                trajectory.cpu().numpy(), T_final * self._hpp_handle_correction
             )
             optimized.append((trajectory, velocities))
             costs.append(cost)

@@ -176,11 +176,20 @@ class OCPSmoother(GenericTrajectorySmoother):
                         "state", x_min, x_max, {"class": "ResidualModelState"}
                     ),
                     self._create_constraint(
-                        "ee_translation",
-                        [-1.0] * 3,
-                        [1.0] * 3,
+                        "ee_placement",
+                        [-0.0001] * 3,
+                        [0.0001] * 3,
                         {
                             "class": "ResidualModelFrameTranslationStatic",
+                            "frame_id": self._ee_tool_frame,
+                        },
+                    ),
+                    self._create_constraint(
+                        "ee_rotation",
+                        [-0.0001] * 3,
+                        [0.0001] * 3,
+                        {
+                            "class": "ResidualModelFrameRotationStatic",
                             "frame_id": self._ee_tool_frame,
                         },
                     ),

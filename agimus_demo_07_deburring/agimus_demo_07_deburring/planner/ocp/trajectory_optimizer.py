@@ -194,10 +194,9 @@ class TrajecotryOptimizer:
         constraints = (
             self._ocp.problem.terminalModel.differential.constraints.constraints
         )
-        constraints["ee_translation"].constraint.updateBounds(
-            T_final.translation - np.ones(3) * 0.001,
-            T_final.translation + np.ones(3) * 0.001,
-        )
+
+        constraints["ee_placement"].constraint.residual.reference = T_final.translation
+        constraints["ee_rotation"].constraint.residual.reference = T_final.rotation
 
         self._ocp.solve(x0, x_init, u_init)
 
