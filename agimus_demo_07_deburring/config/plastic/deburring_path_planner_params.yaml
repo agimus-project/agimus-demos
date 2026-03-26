@@ -15,7 +15,7 @@ deburring_path_planner_node:
       marker_size: 0.01
       marker_color: [1.0, 0.0, 0.0, 0.5]
     # Velocities based on the datasheet. Values are eight of the maximum velocity
-    max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    max_joint_velocity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     ocp_dt: 0.002
     ocp_buffer_size: 100
     moving_joints:
@@ -57,8 +57,8 @@ deburring_path_planner_node:
       # Those are used by an OCP refining the trajectory to smooth it out before execution
       # They are independent from the OCP inside of the MPC controlling the robot
       ocp_smoother:
-        optimizer_ocp_dt: 0.1
-        optimizer_ocp_horizon: 40
+        optimizer_ocp_dt: 0.5
+        optimizer_ocp_horizon: 100
         running_costs:
         - '{"class": "ResidualModelState"}'
         - '{"class": "ResidualModelControlGrav"}'
