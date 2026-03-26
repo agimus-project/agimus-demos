@@ -168,11 +168,11 @@ agimus_pytroller:
       ocp_definition_file: package://agimus_demo_07_deburring/config/metal/ocp_definition_file.yaml
       dt_factor_n_seq:
         factors: [1]
-        n_steps: [10]
+        n_steps: [15]
       ocp_params:
         dt: 0.002
-        horizon_size: 10
-        solver_iters: 10
+        horizon_size: 15
+        solver_iters: 20
         callbacks: false
         qp_iters: 100
         use_debug_data: false
