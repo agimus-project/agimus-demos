@@ -1,0 +1,12 @@
+# Goal
+string gripper
+string handle
+---
+# Result
+bool success
+int32 path_id
+string message
+---
+# Feedback
+string status
+float32 elapsed_time
