@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>agimus_demo_10_tiago_pro_bar_manip</name>
+  <version>0.0.0</version>
+  <description>
+    agimus_demo_10_tiago_pro_bar_manip contains implements scripts to manipulate a bar with tiago's arms
+  </description>
+  <maintainer email="timothee.carecchio@inria.fr">Timothee Carecchio</maintainer>
+  <license>BSD-2</license>
+  <author email="timothee.carecchio@inria.fr">Timothee Carecchio</author>
+
+  <url type="website">https://www.agimus-project.eu/</url>
+  <url type="repository">https://github.com/agimus-project/agimus-demos</url>
+  <url type="bugtracker">https://github.com/agimus-project/agimus-demos/issues</url>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+  <exec_depend>agimus_demos_common</exec_depend>
+  <depend>test_agimus_type</depend>
+
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>agimus_demo_09_glue_spreading</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <controller_interface plugin="${prefix}/controller_plugins.xml" />
+  </export>
+</package>
