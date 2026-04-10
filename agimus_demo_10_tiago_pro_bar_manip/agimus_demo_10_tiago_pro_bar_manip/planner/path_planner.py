@@ -97,6 +97,7 @@ class PathPlanner(object):
         Returns:
             tuple: A tuple containing the pregrasp configuration, grasp configuration, and preplace configuration. If no valid configurations are found, returns (None, None, None).
         """
+        self.ps.setInitialConfig(q_init)
         self.problem.addNumericalConstraints(
             "cp",
             [
@@ -109,10 +110,10 @@ class PathPlanner(object):
             [0, 0, 0, 0, 0],
         )
         prefix = f"{gripper} > {handle} | f"
-        self.problem.setRightHandSideFromConfigByName(
+        self.ps.setRightHandSideFromConfigByName(
             "place_reinforcement_bar/complement", q_init
         )
-        self.problem.setRightHandSideFromConfigByName("locked_plate/root_joint", q_init)
+        self.ps.setRightHandSideFromConfigByName("locked_plate/root_joint", q_init)
         handle_idx = self.robot.rankInConfiguration["reinforcement_bar/root_joint"]
         handle_pose = q_init[handle_idx : handle_idx + 7].copy()
         r = self.robot.rankInConfiguration["tiago_pro/root_joint"]
@@ -121,13 +122,13 @@ class PathPlanner(object):
         )
         print(f"Handle pose: {handle_pose}")
         print(f"Computed base pose from handle: {q_base}")
+        v(q_init)
         res = False
         for i in range(attempts):
             q = q_init[:]
             q[r : r + 4] = q_base
             _, q, _ = self.graph.applyNodeConstraints("free", q)
             edge = "transit_free"
-            v(q)
             res, qap, err = self.graph.generateTargetConfig(edge, q_init, q)
             if not res:
                 continue
@@ -173,12 +174,29 @@ class PathPlanner(object):
                     continue
             if res:
                 break
-        self.problem.resetConstraints()
         if res:
             return qap, qpg, qg, qpp
         return None, None, None, None
 
+    def _log(self, logger, level, msg):
+        if logger is None:
+            print(f"[PathPlanner][{level}] {msg}")
+        elif level == "ERROR":
+            logger.error(f"[PathPlanner] {msg}")
+        elif level == "WARN":
+            logger.warn(f"[PathPlanner] {msg}")
+        else:
+            logger.info(f"[PathPlanner] {msg}")
+
     def planPathtoBarHandling(self, gripper, handle, q_init, v, logger):
+        res, q_init, msg = self.graph.applyNodeConstraints("free", q_init)
+        if not res:
+            self._log(
+                logger,
+                "ERROR",
+                f"applyNodeConstraints('free', q_init) failed — err={msg}. Using raw q_init.",
+            )
+
         qap, qpg, qg, qpp = self.generateGraspingConfigurations(
             gripper,
             handle,
@@ -188,10 +206,11 @@ class PathPlanner(object):
             v=v,
             logger=logger,
         )
-        print("Generated configurations for grasping")
         if not qpg or not qg or not qpp:
-            print("Fail to generate intermediate config")
+            self._log(logger, "ERROR", "Fail to generate intermediate config")
             return None
+        else:
+            self._log(logger, "INFO", "Generated configurations for grasping")
 
         prefix = f"{gripper} > {handle} | f"
         v(qap)
@@ -201,7 +220,13 @@ class PathPlanner(object):
         edge = "transit_free"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p0, res, msg = self.transitionPlanner.directPath(q_init, qap, True)
-
+        if not p0 or not res:
+            self._log(
+                logger,
+                "ERROR",
+                f"Segment 0 FAILED: directPath on '{edge}' failed — {msg}",
+            )
+            return None
         # ------------------------------------------------------------------
         # Segment 1: free space -> pregrasp  (RRT-like, most under-optimal)
         # ------------------------------------------------------------------
@@ -209,6 +234,10 @@ class PathPlanner(object):
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p1 = self.transitionPlanner.planPath(qap, [qpg], True)
         if not p1:
+            self._log(
+                logger, "ERROR", f"Segment 1 FAILED: planPath on '{edge}' returned None"
+            )
+            p0.deleteThis()
             return None
 
         # Optimise p1 specifically: it is the longest segment and benefits
@@ -223,16 +252,22 @@ class PathPlanner(object):
         edge = prefix + "_12"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p2, res, msg = self.transitionPlanner.directPath(qpg, qg, True)
+        if not res:
+            self._log(
+                logger,
+                "ERROR",
+                f"Segment 2 FAILED: directPath on '{edge}' failed — {msg}",
+            )
+            if p2:
+                p2.deleteThis()
+            p1.deleteThis()
+            p0.deleteThis()
+            return None
         p21 = p2.asVector()
         p22 = self.transitionPlanner.timeParameterization(p21)
         p2.deleteThis()
         p21.deleteThis()
         p2 = p22
-        if not res:
-            if p2:
-                p2.deleteThis()
-            p1.deleteThis()
-            return None
 
         # ------------------------------------------------------------------
         # Segment 3: grasp -> preplace  (constrained direct path)
@@ -240,18 +275,23 @@ class PathPlanner(object):
         edge = prefix + "_23"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p3, res, msg = self.transitionPlanner.directPath(qg, qpp, True)
+        if not res:
+            self._log(
+                logger,
+                "ERROR",
+                f"Segment 3 FAILED: directPath on '{edge}' failed — {msg}",
+            )
+            if p3:
+                p3.deleteThis()
+            p2.deleteThis()
+            p1.deleteThis()
+            p0.deleteThis()
+            return None
         p31 = p3.asVector()
         p32 = self.transitionPlanner.timeParameterization(p31)
         p3.deleteThis()
         p31.deleteThis()
         p3 = p32
-        if not res:
-            if p3:
-                p3.deleteThis()
-            if p2:
-                p2.deleteThis()
-            p1.deleteThis()
-            return None
 
         # ------------------------------------------------------------------
         # Concatenate and run a final global optimisation pass
@@ -262,6 +302,7 @@ class PathPlanner(object):
         p1.deleteThis()
         p2.deleteThis()
         p3.deleteThis()
+        self.problem.resetConstraints()
         return wd(result)
 
     # def planPathToBarPlacement(self, gripper, handle, q_init, q_goal):
