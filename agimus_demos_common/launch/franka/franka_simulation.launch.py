@@ -16,6 +16,8 @@ from controller_manager.launch_utils import (
     generate_controllers_spawner_launch_description,  # noqa: I001
 )
 
+from agimus_demos_common.launch_utils import get_use_sim_time
+
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
@@ -88,6 +90,17 @@ def launch_setup(
         output="screen",
     )
 
+    relay_node = Node(
+        package="topic_tools",
+        executable="relay",
+        arguments=["/joint_states", "/agimus_franka/joint_states"],
+        parameters=[get_use_sim_time()],
+        output="screen",
+        # silent warn "Some, but not all, publishers on topic /joint_states offer 'transient local' durability.
+        # Falling back to 'volatile' durability in orderto connect to all publishers"
+        ros_arguments=["--log-level", "relay:=ERROR"],
+    )
+
     controllers = ["joint_state_broadcaster"]
     if ee_id_str == "agimus_franka_hand":
         controllers.append("gripper_action_controller")
@@ -103,6 +116,7 @@ def launch_setup(
         gazebo_empty_world,
         ros_gz_bridge_node,
         robot_spawner_node,
+        relay_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=robot_spawner_node,
