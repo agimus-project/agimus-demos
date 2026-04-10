@@ -29,7 +29,6 @@
   <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_description</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_gripper</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_hardware</exec_depend>
-  <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_ign_ros2_control</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">agimus_franka_robot_state_broadcaster</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">gripper_controllers</exec_depend>
   <exec_depend condition="$PAL_DISTRO != alum">net_ft_description</exec_depend>
