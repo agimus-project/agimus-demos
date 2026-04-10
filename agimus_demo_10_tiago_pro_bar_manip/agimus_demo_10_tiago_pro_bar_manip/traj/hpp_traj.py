@@ -311,8 +311,8 @@ class HPPPathGenerator:
     def _create_locked_plate(self) -> list[str]:
         joint = f"{self._plate_object.name}/root_joint"
         name = f"locked_{joint}"
-        self._ps.createLockedJoint(name, joint, [0.6, 0, 0.66, 0, 0, 0, 1])
-        self._ps.setConstantRightHandSide(name, True)
+        self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
+        self._ps.setConstantRightHandSide(name, False)
         return [name]
 
     def _create_locked_table(self) -> list[str]:
@@ -326,7 +326,7 @@ class HPPPathGenerator:
         """Lock base en transit avec barre — suiverait q_init par défaut"""
         name = "locked_base"
         self._ps.createLockedJoint(name, f"{robot_name}/root_joint", [0, 0, 1, 0])
-        self._ps.setConstantRightHandSide(name, False)  # Flexible sur orientation
+        self._ps.setConstantRightHandSide(name, False)
         return [name]
 
     def _create_locked_arms_and_torso(
@@ -434,15 +434,13 @@ class HPPPathGenerator:
                 )
 
         # --- Global constraints (applied to the whole graph) ---------------
+        # !! If a constraint is applied with that, it applied to the whole graph (node + edge)
+        # and on nodes rhs is fixed at init so it's not possible to change dynamically
         cg.addConstraints(
             graph=True,
             constraints=Constraints(
                 numConstraints=(
-                    self._locked_grippers
-                    + self._locked_head
-                    + self._locked_wheels
-                    + self._locked_plate
-                    # + self._locked_table
+                    self._locked_grippers + self._locked_head + self._locked_wheels
                 )
             ),
         )
@@ -497,10 +495,15 @@ class HPPPathGenerator:
         cg.setWeight("Loop | f", 1)
         cg.setWeight("Loop | 0-0", 1)
 
-        # -- Base placement constraints on graspng and releasing the bar ----------------
+        # --- Lock plate in all transitions ( plate didn't move)
+        for e in cg.edges.keys():
+            cg.addConstraints(
+                edge=e, constraints=Constraints(numConstraints=self._locked_plate)
+            )
 
         print(f"[HPPPathGenerator] constraint graph edge count: {len(cg.edges)}")
         cg.initialize()
+
         return cg
 
     # ---------------------------------------------------------------------- #

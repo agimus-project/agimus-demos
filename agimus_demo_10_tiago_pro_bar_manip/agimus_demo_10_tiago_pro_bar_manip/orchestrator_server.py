@@ -324,9 +324,9 @@ class HPPActionServer(Node):
         q[r_bar : r_bar + 7] = self._bar_pose
 
         # Plate
-        # r_plate = robot.rankInConfiguration["plate/root_joint"]
-        # q[r_plate:r_plate+7] = self._plate_pose
-        _, q, _ = self._hpp._cg.applyNodeConstraints("free", q)
+        r_plate = robot.rankInConfiguration["plate/root_joint"]
+        q[r_plate : r_plate + 7] = self._plate_pose
+        # _, q, _ = self._hpp._cg.applyNodeConstraints("free", q)
         return q
 
 
