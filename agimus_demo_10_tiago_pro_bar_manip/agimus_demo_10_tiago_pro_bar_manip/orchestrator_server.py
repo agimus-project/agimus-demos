@@ -117,7 +117,7 @@ class HPPActionServer(Node):
                 name="plate",
             ),
             table_object=BaseObject(
-                root_joint_type="anchor",
+                root_joint_type="freeflyer",
                 urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/table.urdf",
                 srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/table.srdf",
                 name="table",
@@ -135,9 +135,10 @@ class HPPActionServer(Node):
 
     # def _cb_odom(self, msg):      self._odom        = msg
     def _cb_object_pose(self):
-        self._bar_pose = self._lookup_pose("table_link", "bar_base_link")
-        self._plate_pose = self._lookup_pose("table_link", "plate_base_link")
-        self._odom = self._lookup_pose("table_link", "base_footprint")
+        self._bar_pose = self._lookup_pose(self._world_frame, "bar_base_link")
+        self._plate_pose = self._lookup_pose(self._world_frame, "plate_base_link")
+        self._odom = self._lookup_pose(self._world_frame, "base_footprint")
+        self._table_pose = self._lookup_pose(self._world_frame, "table_link")
 
     # ── Action callbacks ──────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ class HPPActionServer(Node):
                     self._odom,
                     self._bar_pose,
                     self._plate_pose,
+                    self._table_pose,
                 ]
             ):
                 break
@@ -291,7 +293,13 @@ class HPPActionServer(Node):
     def _build_q_init(self) -> list | None:
         if any(
             m is None
-            for m in [self._joint_state, self._odom, self._bar_pose, self._plate_pose]
+            for m in [
+                self._joint_state,
+                self._odom,
+                self._bar_pose,
+                self._plate_pose,
+                self._table_pose,
+            ]
         ):
             return None
 
@@ -316,8 +324,8 @@ class HPPActionServer(Node):
         q[r : r + 4] = self._tf_to_base_odom(self._odom)
 
         # Table
-        # r_table = robot.rankInConfiguration["table/root_joint"]
-        # q[r_table:r_table+7] = self._table_pose
+        r_table = robot.rankInConfiguration["table/root_joint"]
+        q[r_table : r_table + 7] = self._table_pose
 
         # Barre
         r_bar = robot.rankInConfiguration["reinforcement_bar/root_joint"]

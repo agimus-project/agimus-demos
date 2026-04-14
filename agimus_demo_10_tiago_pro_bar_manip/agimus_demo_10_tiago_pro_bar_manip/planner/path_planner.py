@@ -54,27 +54,40 @@ class PathPlanner(object):
         self.problem = ps.hppcorba.problem
 
     def checkConfigurationValid(self, q):
-        res, msg = self.robot.isConfigValid(q)
+        res, _ = self.robot.isConfigValid(q)
         return res
 
     def compute_base_pose_from_handle(
-        self, handle_pose, distance=0.6, angle_offset=0.0
+        self, handle_pose, current_base_pose, distance=0.75
     ):
         """
-        Give a pose for so2 object close from the handle pose with the same orientation
+        Compute a base pose close to the bar (at a certain 'distance'),
+        while preserving the current axis between the robot and the bar to avoid
+        teleporting it to the other side of the table or inside it.
         """
+        hx, hy = handle_pose[0], handle_pose[1]
+        rx, ry = current_base_pose[0], current_base_pose[1]
 
-        hx, hy, hz = handle_pose[:3]
-        qx, qy, qz, qw = handle_pose[3:]
+        vx = rx - hx
+        vy = ry - hy
+        norm = np.hypot(vx, vy)
 
-        # PLacing in direction of the object
-        theta = np.arctan2(hy, hx) + angle_offset
+        if (
+            norm < 1e-3
+        ):  # If the robot is too close from the bar, we cannot reliably keep the same axis, so we choose a default one (facing the table)
+            vx, vy = -1.0, 0.0
+            norm = 1.0
 
-        # Close to the object
-        x = hx + distance
-        y = hy
+        # Normalize vector
+        vx /= norm
+        vy /= norm
 
-        return x, y, -np.cos(theta), np.sin(theta)
+        x = hx + vx * distance
+        y = hy + vy * distance
+
+        theta = np.arctan2(-vy, -vx)
+
+        return x, y, np.cos(theta), np.sin(theta)
 
     def generateGraspingConfigurations(
         self,
@@ -82,7 +95,7 @@ class PathPlanner(object):
         handle,
         q_init,
         testCollision=True,
-        attempts=10000,
+        attempts=10,
         v=None,
         logger=None,
     ):
@@ -103,27 +116,30 @@ class PathPlanner(object):
             [
                 "tiago_pro/left grasps reinforcement_bar/left",
                 "tiago_pro/right grasps reinforcement_bar/right",
-                "preplace_reinforcement_bar",
                 "locked_plate/root_joint",
-                "place_reinforcement_bar/complement",
+                "locked_reinforcement_bar/root_joint",
+                "locked_table/root_joint",
             ],
             [0, 0, 0, 0, 0],
         )
         prefix = f"{gripper} > {handle} | f"
         self.ps.setRightHandSideFromConfigByName(
-            "place_reinforcement_bar/complement", q_init
+            "locked_reinforcement_bar/root_joint", q_init
         )
         self.ps.setRightHandSideFromConfigByName("locked_plate/root_joint", q_init)
+        self.ps.setRightHandSideFromConfigByName("locked_table/root_joint", q_init)
         handle_idx = self.robot.rankInConfiguration["reinforcement_bar/root_joint"]
         handle_pose = q_init[handle_idx : handle_idx + 7].copy()
         r = self.robot.rankInConfiguration["tiago_pro/root_joint"]
+        current_base_pose = q_init[r : r + 4].copy()
         q_base = self.compute_base_pose_from_handle(
-            handle_pose, distance=0.8, angle_offset=0.0
+            handle_pose, current_base_pose, distance=0.75
         )
         print(f"Handle pose: {handle_pose}")
         print(f"Computed base pose from handle: {q_base}")
         v(q_init)
         res = False
+        qap, qpg, qg, qpp = None, None, None, None
         for i in range(attempts):
             q = q_init[:]
             q[r : r + 4] = q_base
@@ -131,18 +147,29 @@ class PathPlanner(object):
             edge = "transit_free"
             res, qap, err = self.graph.generateTargetConfig(edge, q_init, q)
             if not res:
+                self._log(
+                    logger,
+                    "WARN",
+                    f"Attempt {i + 1}/{attempts}: qap generation failed — {err}",
+                )
                 continue
             if testCollision:
                 res, msg = self.transitionPlanner.validateConfiguration(
                     qap, self.graph.edges[edge]
                 )
                 if not res:
+                    self._log(
+                        logger, "WARN", f"Attempt {i + 1}/{attempts}: qap fail — {msg}"
+                    )
                     continue
 
             # Project random configuration in pregrasp reachable from q_init
             edge = prefix + "_01"
             res, qpg, err = self.graph.generateTargetConfig(edge, qap, qap)
             if not res:
+                self._log(
+                    logger, "WARN", f"Attempt {i + 1}/{attempts}: qpg fail — {msg}"
+                )
                 continue
             if testCollision:
                 res, msg = self.transitionPlanner.validateConfiguration(
@@ -154,29 +181,44 @@ class PathPlanner(object):
             edge = prefix + "_12"
             res, qg, err = self.graph.generateTargetConfig(edge, qpg, qpg)
             if not res:
+                self._log(
+                    logger, "WARN", f"Attempt {i + 1}/{attempts}: qg fail — {msg}"
+                )
                 continue
             if testCollision:
                 res, msg = self.transitionPlanner.validateConfiguration(
                     qg, self.graph.edges[edge]
                 )
                 if not res:
+                    self._log(
+                        logger, "WARN", f"Attempt {i + 1}/{attempts}: qg fail — {msg}"
+                    )
                     continue
-            # Generate corresponding preplace configuration
-            edge = prefix + "_23"
-            res, qpp, err = self.graph.generateTargetConfig(edge, qg, qg)
+            # Generate a pose to elevate the bar above its initial position, to avoid collision with the table during manipulation
+            edge = "Loop | 0-0"  # the robot cannot move its base in this edge, so the generated configuration will be similar to qg but with the bar lifted
+            qpp_guess = qg[:]  # On part de la position saisie
+            # On monte la barre de 15 cm sur l'axe Z du monde
+            qpp_guess[handle_idx + 2] += 0.15
+            torso_idx = self.robot.rankInConfiguration["tiago_pro/torso_lift_joint"]
+            qpp_guess[torso_idx] += 0.15
+            res, qpp, err = self.graph.generateTargetConfig(edge, qg, qpp_guess)
             if not res:
+                self._log(
+                    logger,
+                    "WARN",
+                    f"Attempt {i + 1}/{attempts}: qpp (Loop | 0-0) fail — {err}",
+                )
                 continue
             if testCollision:
                 res, msg = self.transitionPlanner.validateConfiguration(
-                    qpp, self.graph.edges[edge]
+                    qpp, self.graph.edges["Loop | 0-0"]
                 )
                 if not res:
                     continue
             if res:
                 break
-        if res:
-            return qap, qpg, qg, qpp
-        return None, None, None, None
+        self._log(logger, "WARN", f"Attempt q_grasp : {qg}\nq_preplace : {qpp}")
+        return qap, qpg, qg, qpp
 
     def _log(self, logger, level, msg):
         if logger is None:
@@ -202,18 +244,24 @@ class PathPlanner(object):
             handle,
             q_init,
             testCollision=True,
-            attempts=10000,
             v=v,
             logger=logger,
         )
-        if not qpg or not qg or not qpp:
+        for q in [qap, qpg, qg, qpp]:
+            if q is not None:
+                # v(q)
+                pass
+            else:
+                self._log(
+                    logger, "WARN", f"One of the generated configurations is None ({q})"
+                )
+        if not qpg or not qg:
             self._log(logger, "ERROR", "Fail to generate intermediate config")
             return None
         else:
             self._log(logger, "INFO", "Generated configurations for grasping")
 
         prefix = f"{gripper} > {handle} | f"
-        v(qap)
         #
         # Segment 0
         #
@@ -270,16 +318,16 @@ class PathPlanner(object):
         p2 = p22
 
         # ------------------------------------------------------------------
-        # Segment 3: grasp -> preplace  (constrained direct path)
+        # Segment 2: pregrasp -> grasp  (constrained direct path)
         # ------------------------------------------------------------------
-        edge = prefix + "_23"
+        edge = "Loop | 0-0"
         self.transitionPlanner.setEdge(self.graph.edges[edge])
         p3, res, msg = self.transitionPlanner.directPath(qg, qpp, True)
         if not res:
             self._log(
                 logger,
                 "ERROR",
-                f"Segment 3 FAILED: directPath on '{edge}' failed — {msg}",
+                f"Segment 2 FAILED: directPath on '{edge}' failed — {msg}",
             )
             if p3:
                 p3.deleteThis()
@@ -304,77 +352,3 @@ class PathPlanner(object):
         p3.deleteThis()
         self.problem.resetConstraints()
         return wd(result)
-
-    # def planPathToBarPlacement(self, gripper, handle, q_init, q_goal):
-    #     qpg, qp, qpp = self.generatePlacementConfigurations(
-    #         gripper, handle, q_init, q_goal, testCollision=True, attempts=10000
-    #     )
-    #     if not qpg or not qp or not qpp:
-    #         return None
-
-    #     prefix = f"{gripper} > {handle} | f"
-
-    #     # Plan between q_init and q_preplace
-    #     edge = prefix + "_34"
-    #     self.transitionPlanner.setEdge(self.graph.edges[edge])
-    #     p1 = self.transitionPlanner.planPath(q_init, [qpp], True)
-    #     if not p1:
-    #         return None
-
-    #     # Plan between q_preplace and q_place
-    #     edge = prefix + "_23"
-    #     self.transitionPlanner.setEdge(self.graph.edges[edge])
-    #     p2, res, msg = self.transitionPlanner.directPath(qpp, qp, True)
-    #     p21 = p2.asVector()
-    #     p22 = self.transitionPlanner.timeParameterization(p21)
-    #     p2.deleteThis()
-    #     p21.deleteThis()
-    #     p2 = p22
-    #     if not res:
-    #         if p2:
-    #             p2.deleteThis()
-    #         p1.deleteThis()
-    #         return None
-
-    #     # Plan between q_place and q_pregrasp for release
-    #     edge = prefix + "_12"
-    #     self.transitionPlanner.setEdge(self.graph.edges[edge])
-    #     p3, res, msg = self.transitionPlanner.directPath(qp, qpg, True)
-    #     p31 = p3.asVector()
-    #     p32 = self.transitionPlanner.timeParameterization(p31)
-    #     p3.deleteThis()
-    #     p31.deleteThis()
-    #     p3 = p32
-    #     if not res:
-    #         if p3:
-    #             p3.deleteThis()
-    #         if p2:
-    #             p2.deleteThis()
-    #         p1.deleteThis()
-    #         return None
-
-    #     # Plan between q_pregrasp and q_goal
-    #     # edge = prefix + "_01"
-    #     # self.transitionPlanner.setEdge(self.graph.edges[edge])
-    #     # p4, res, msg = self.transitionPlanner.directPath(qpg, q_goal, True)
-    #     # p41 = p4.asVector()
-    #     # p42 = self.transitionPlanner.timeParameterization(p41)
-    #     # p4.deleteThis()
-    #     # p41.deleteThis()
-    #     # p4 = p42
-    #     # if not res:
-    #     #     if p4:
-    #     #         p4.deleteThis()
-    #     #     if p3:
-    #     #         p3.deleteThis()
-    #     #     if p2:
-    #     #         p2.deleteThis()
-    #     #     p1.deleteThis()
-    #     #     return None
-
-    #     result = concatenatePaths([p1, p2, p3])
-    #     self.problem.addPath(result)
-    #     p1.deleteThis()
-    #     p2.deleteThis()
-    #     p3.deleteThis()
-    #     return wd(result)
