@@ -147,9 +147,10 @@ class HPPPathGenerator:
             f"{self._plate_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
         )
-        # robot.setJointBounds(
-        #     "table/root_joint",[-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
-        # )
+        robot.setJointBounds(
+            "table/root_joint",
+            [-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
+        )
         robot.setJointBounds(
             f"{robot_name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, -1, 1, -1, 1],
@@ -163,11 +164,12 @@ class HPPPathGenerator:
         self._locked_head = self._create_locked_head(robot_name)
         self._locked_wheels = self._create_locked_wheels(robot_name)
         self._locked_plate = self._create_locked_plate()
-        # self._locked_table =self._create_locked_table()
+        self._locked_table = self._create_locked_table()
         self._locked_base_mobility = self._create_locked_base_mobility(robot_name)
         self._locked_arms, self._locked_torso = self._create_locked_arms_and_torso(
             robot, robot_name
         )
+        self._locked_handle = self._create_locked_handle()
 
         # ------------------------------------------------------------------ #
         # Grippers
@@ -319,7 +321,7 @@ class HPPPathGenerator:
         joint = "table/root_joint"
         name = f"locked_{joint}"
         self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
-        self._ps.setConstantRightHandSide(name, True)
+        self._ps.setConstantRightHandSide(name, False)
         return [name]
 
     def _create_locked_base_mobility(self, robot_name: str) -> list[str]:
@@ -363,6 +365,14 @@ class HPPPathGenerator:
 
         return locked_arms, locked_torso
 
+    def _create_locked_handle(self) -> list[str]:
+        """Lock handle object to a fixed pose (would be overridden by grasp constraints)."""
+        joint = f"{self._handle_object.name}/root_joint"
+        name = f"locked_{joint}"
+        self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
+        self._ps.setConstantRightHandSide(name, False)
+        return [name]
+
     def _generate_constraint_graph(
         self,
         robot: Robot,
@@ -390,7 +400,7 @@ class HPPPathGenerator:
         factory.setObjects(
             [handle_object_name],
             [[f"{primary_handle}"]],
-            [[f"{handle_object_name}/bottom"]],
+            [[]],
         )
         factory.generate()
 
@@ -414,14 +424,6 @@ class HPPPathGenerator:
                 (
                     f"{primary_gripper} > {primary_handle} | f_pregrasp",
                     f"{secondary_gripper} pregrasps {secondary_handle}",
-                ),
-                (
-                    f"{primary_gripper} > {primary_handle} | f_intersec",
-                    f"{secondary_gripper} grasps {secondary_handle}",
-                ),
-                (
-                    f"{primary_gripper} > {primary_handle} | f_preplace",
-                    f"{secondary_gripper} grasps {secondary_handle}",
                 ),
                 (
                     f"{primary_gripper} grasps {primary_handle}",
@@ -458,7 +460,7 @@ class HPPPathGenerator:
             constraints=Constraints(
                 numConstraints=self._locked_arms
                 + self._locked_torso
-                + [f"place_{handle_object_name}/complement"]
+                + self._locked_handle
             ),
         )
 
@@ -471,21 +473,17 @@ class HPPPathGenerator:
         )
         cg.addConstraints(
             edge=f"{primary_gripper} > {primary_handle} | f_01",
-            constraints=Constraints(numConstraints=self._locked_base_mobility),
-        )
-        cg.addConstraints(
-            edge=f"{primary_gripper} > {primary_handle} | f_12",
-            constraints=Constraints(numConstraints=self._locked_base_mobility),
-        )
-        cg.addConstraints(
-            edge=f"{primary_gripper} > {primary_handle} | f_23",
-            constraints=Constraints(numConstraints=self._locked_base_mobility),
+            constraints=Constraints(
+                numConstraints=self._locked_base_mobility + self._locked_handle
+            ),
         )
 
         # --- Lock base mobility on loop edges ------------------------------
         cg.addConstraints(
             edge="Loop | f",
-            constraints=Constraints(numConstraints=self._locked_base_mobility),
+            constraints=Constraints(
+                numConstraints=self._locked_base_mobility + self._locked_handle
+            ),
         )
         cg.addConstraints(
             edge="Loop | 0-0",
@@ -498,11 +496,17 @@ class HPPPathGenerator:
         # --- Lock plate in all transitions ( plate didn't move)
         for e in cg.edges.keys():
             cg.addConstraints(
-                edge=e, constraints=Constraints(numConstraints=self._locked_plate)
+                edge=e,
+                constraints=Constraints(
+                    numConstraints=self._locked_plate + self._locked_table
+                ),
             )
 
         print(f"[HPPPathGenerator] constraint graph edge count: {len(cg.edges)}")
         cg.initialize()
+        print("Liste des arêtes du graphe :")
+        for edge_name in cg.edges.keys():
+            print(f" - {edge_name}")
 
         return cg
 
