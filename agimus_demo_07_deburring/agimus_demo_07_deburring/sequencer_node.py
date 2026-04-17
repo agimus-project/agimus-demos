@@ -264,10 +264,6 @@ def main(args=None) -> int:
         weighted_handles = [
             ([0.000021, 0.000021, 0.000021], "hole_left_31", True),
             ([0.000030, 0.000030, 0.000030], "hole_left_16", True),
-
-
-
-
             ([0.000007, 0.000007, 0.000007], "hole_left_inside_43", True),
             ([0.000015, 0.000015, 0.000015], "hole_left_12", True),
         ]
