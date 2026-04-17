@@ -1,28 +1,28 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
  <tabbed_widget parent="main_window" name="Main Window">
-  <Tab tab_name="tab1" containers="1">
+  <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter sizes="0.333003;0.333994;0.333003" orientation="-" count="3">
+    <DockSplitter sizes="0.333333;0.333333;0.333333" orientation="-" count="3">
      <DockArea name="...">
-      <plot mode="TimeSeries" style="Lines" flip_y="false" flip_x="false">
-       <range top="40.000000" right="8.407182" left="0.000000" bottom="-40.000000"/>
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-40.000000" left="6.425830" right="11.425673" top="40.000000"/>
        <limitY min="-40" max="40"/>
-       <curve color="#1f77b4" name="/ft_calibration_filter/wrench/wrench/force/x"/>
+       <curve name="/ft_calibration_filter/wrench/wrench/force/x" color="#1f77b4"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot mode="TimeSeries" style="Lines" flip_y="false" flip_x="false">
-       <range top="40.000000" right="8.407182" left="0.000000" bottom="-40.000000"/>
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-40.000000" left="6.425830" right="11.425673" top="40.000000"/>
        <limitY min="-40" max="40"/>
-       <curve color="#d62728" name="/ft_calibration_filter/wrench/wrench/force/y"/>
+       <curve name="/ft_calibration_filter/wrench/wrench/force/y" color="#d62728"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot mode="TimeSeries" style="Lines" flip_y="false" flip_x="false">
-       <range top="100.000000" right="8.407182" left="0.000000" bottom="-1.000000"/>
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-1.000000" left="6.425830" right="11.425673" top="100.000000"/>
        <limitY min="-1" max="100"/>
-       <curve color="#1ac938" name="/ft_calibration_filter/wrench/wrench/force/z"/>
+       <curve name="/ft_calibration_filter/wrench/wrench/force/z" color="#1ac938"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -69,8 +69,10 @@
  </Plugins>
  <!-- - - - - - - - - - - - - - - -->
  <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS2 Topic Subscriber"/>
  <!-- - - - - - - - - - - - - - - -->
  <customMathEquations/>
  <snippets/>
  <!-- - - - - - - - - - - - - - - -->
 </root>
+
