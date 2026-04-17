@@ -149,6 +149,16 @@ def launch_setup(
         xyz=["1.6", "0", "0.67"],
         rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
     )
+
+    quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, -np.pi / 2])))
+
+    tf_goal_bar = static_transform_publisher_node(
+        frame_id="plate_base_link",
+        child_frame_id="bar_goal_pose",
+        xyz=["0", "0.4", "0.01"],
+        rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
+    )
+
     quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, np.pi])))
 
     tf_node_table = static_transform_publisher_node(
@@ -170,6 +180,37 @@ def launch_setup(
         additional_env=ament_prefix_to_ros_package(context),
         output="screen",
     )
+    # TODO we should get the srdf use by hpp from a topic directly
+    # robot_srdf_description =  ParameterValue(
+    #     Command(
+    #         [
+    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
+    #             " ",
+    #             PathJoinSubstitution(
+    #                 [
+    #                     FindPackageShare("tiago_pro_moveit_config"),
+    #                     "config/srdf",
+    #                     "tiago_pro.srdf.xacro",
+    #                 ]
+    #             ),
+    #             " ",
+    #             "end_effector_left:=pal-pro-gripper",
+    #             " ",
+    #             "end_effector_right:=pal-pro-gripper",
+    #             " ",
+    #         ]
+    #     ),
+    #     value_type=str,
+    # )
+    # robot_collision_publisher = Node(
+    #     package="robot_state_publisher",
+    #     executable="robot_state_publisher",
+    #     name="robot_collision_publisher",
+    #     output="screen",
+    #     parameters=[get_use_sim_time(), {"robot_description": robot_srdf_description}],
+    #     remappings=[("robot_description", "robot_description_collision")],
+    # )
+
     return [
         rviz,
         wait_for_non_zero_joints_node,
@@ -183,6 +224,7 @@ def launch_setup(
         hpp_corba_server,
         gepetto_gui,
         orchestrator,
+        tf_goal_bar,
     ]
 
 
