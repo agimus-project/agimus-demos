@@ -1,85 +1,107 @@
-"""
-HPP Action Server for TIAGo Pro bimanual bar handling.
-
-Provides a ROS2 action server for HPP planning requests.
-
-Action: /hpp/plan_bar_handling (PlanBarGrasp)
-    Goal:   gripper (string), handle (string)
-    Result: success (bool), path_id (int), message (string)
-    Feedback: status (string), elapsed_time (float)
-
-"""
-
 import os
 import time
-import threading
+
 import numpy as np
+import pinocchio as pin
 import rclpy
-from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
-from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import JointState
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped
-from ament_index_python.packages import get_package_share_directory
-from tf2_ros import TransformListener, Buffer
-from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
+from std_msgs.msg import String
+from tf2_ros import (
+    Buffer,
+    ConnectivityException,
+    ExtrapolationException,
+    LookupException,
+    TransformListener,
+)
 
 from test_agimus_type.action import PlanBarGrasp
-
 from agimus_demo_10_tiago_pro_bar_manip.traj.hpp_traj import (
-    HPPPathGenerator,
     BaseObject,
+    HPPPathGenerator,
 )
+from agimus_demo_10_tiago_pro_bar_manip.rostools import process_xacro
+
+
+def _patch_srdf(srdf_str: str) -> str:
+    """Inject disabled collision pairs into SRDF string."""
+    i = srdf_str.find("</robot>")
+    assert i != -1, "SRDF string does not contain </robot>"
+    pairs = [
+        ("base_link", "wheel_front_left_link"),
+        ("base_link", "wheel_front_right_link"),
+        ("base_link", "wheel_rear_left_link"),
+        ("base_link", "wheel_rear_right_link"),
+        ("gripper_left_screw_left_link", "gripper_left_fingertip_left_link"),
+        ("gripper_right_screw_left_link", "gripper_right_fingertip_left_link"),
+    ]
+    insert = "".join(
+        f'  <disable_collisions link1="{l1}" link2="{l2}" reason="Never"/>\n'
+        for l1, l2 in pairs
+    )
+    return srdf_str[:i] + insert + "</robot>"
 
 
 class HPPActionServer(Node):
-    """
-    ROS2 Action Server wrapping HPPPathGenerator.
-
-    Subscribes:
-        /joint_states
-        /tf
-    Action Server:
-        /hpp/plan_bar_handling  (PlanBarGrasp)
-    """
-
     def __init__(self):
         super().__init__("hpp_action_server")
 
-        # ── Internal state ────────────────────────────────────────────────────
-        self._joint_state: JointState | None = None
-        self._odom: Odometry | None = None
-        self._bar_pose: PoseStamped | None = None
-        self._plate_pose: PoseStamped | None = None
-        self._hpp_path = None
-        self._planning = False
+        # ── Sensor state ───────────────────────────────────────────────────
+        self._joint_state = None
+        self._odom = None
+        self._bar_pose = None
+        self._plate_pose = None
 
-        # ── Callback group pour permettre planification + spin simultanés ─────
+        # ── Planning state ─────────────────────────────────────────────────
+        self._planning = False
+        self._traj_pick = None
+        self._traj_place = None
+        self._q_after_grasp = None
+
         self._cb_group = ReentrantCallbackGroup()
 
-        # ── ROS subscribers ───────────────────────────────────────────────────
-        qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        # ── HPP init (deferred until /robot_description received) ──────────
+        self._hpp: HPPPathGenerator | None = None
+        self.get_logger().info("Waiting for /robot_description …")
+
+        # ── /robot_description — transient_local so we get the latched value
+        qos_rd = QoSProfile(
+            depth=1,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        self._urdf_str: str | None = None
+        self.create_subscription(
+            String,
+            "/robot_description",
+            self._cb_robot_description,
+            qos_rd,
+            callback_group=self._cb_group,
+        )
+
+        # ── /joint_states ──────────────────────────────────────────────────
+        from rclpy.qos import QoSReliabilityPolicy as Rel
+
+        qos_js = QoSProfile(depth=10, reliability=Rel.BEST_EFFORT)
         self.create_subscription(
             JointState,
             "/joint_states",
             self._cb_joints,
-            qos,
+            qos_js,
             callback_group=self._cb_group,
         )
-        # self.create_subscription(
-        #     Odometry,    "/mobile_base_controller/odom",         self._cb_odom,       qos,
-        #     callback_group=self._cb_group
-        # )
-        self.create_timer(0.5, self._cb_object_pose, callback_group=self._cb_group)
 
+        # ── TF2 ────────────────────────────────────────────────────────────
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread=True)
-        self._world_frame = "world"
+        self.create_timer(0.5, self._cb_object_pose, callback_group=self._cb_group)
 
-        # ── Action server ─────────────────────────────────────────────────────
+        # ── Action server ──────────────────────────────────────────────────
         self._action_server = ActionServer(
             self,
             PlanBarGrasp,
@@ -90,19 +112,42 @@ class HPPActionServer(Node):
             callback_group=self._cb_group,
         )
 
-        # ── HPP setup ─────────────────────────────────────────────────────────
-        pkg = get_package_share_directory("agimus_demo_10_tiago_pro_bar_manip")
-        tiago_pkg = get_package_share_directory("tiago_pro_description")
-        moveit_pkg = get_package_share_directory("tiago_pro_moveit_config")
+    # ── /robot_description callback ────────────────────────────────────────
 
-        self.get_logger().info("Initializing HPPPathGenerator ...")
+    def _cb_robot_description(self, msg: String):
+        if self._hpp is not None:
+            return  # already initialized
+        self._urdf_str = msg.data
+        self.get_logger().info("robot_description received — building HPP …")
+        self._init_hpp()
+
+    def _init_hpp(self):
+        urdf_str = self._urdf_str
+
+        # ── Pinocchio model from URDF string ────────────────────────────────
+        robot_model = pin.buildModelFromXML(urdf_str)
+        self.get_logger().info(f"Pinocchio model built: {robot_model.nq} dof")
+
+        # ── SRDF string ─────────────────────────────────────────────────────
+        moveit_pkg = get_package_share_directory("tiago_pro_moveit_config")
+        srdf_raw = os.path.join(moveit_pkg, "config", "srdf", "tiago_pro.srdf.xacro")
+
+        srdf_string = process_xacro(
+            str(srdf_raw),
+            "end_effector_left:=pal-pro-gripper",
+            "end_effector_right:=pal-pro-gripper",
+        )
+        srdf_str = _patch_srdf(srdf_string)
+
+        # ── Package paths for objects ───────────────────────────────────────
+        pkg = get_package_share_directory("agimus_demo_10_tiago_pro_bar_manip")
+
         self._hpp = HPPPathGenerator(
+            urdf_str=urdf_str,
+            srdf_str=srdf_str,
+            robot_model=robot_model,
             handle_config=os.path.join(
                 pkg, "config/planning", "handles_configurations.yaml"
-            ),
-            robot_description=os.path.join(tiago_pkg, "robots", "tiago_pro.urdf.xacro"),
-            robot_description_srdf=os.path.join(
-                moveit_pkg, "config", "srdf", "tiago_pro.srdf.xacro"
             ),
             handle_object=BaseObject(
                 root_joint_type="freeflyer",
@@ -117,7 +162,7 @@ class HPPActionServer(Node):
                 name="plate",
             ),
             table_object=BaseObject(
-                root_joint_type="freeflyer",
+                root_joint_type="anchor",
                 urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/table.urdf",
                 srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/table.srdf",
                 name="table",
@@ -126,34 +171,46 @@ class HPPActionServer(Node):
             robot_name="tiago_pro",
             logger=self.get_logger(),
         )
-        self.get_logger().info("HPPPathGenerator ready — action server started.")
+        self.get_logger().info("HPPPathGenerator ready — action server active.")
 
-    # ── ROS callbacks ─────────────────────────────────────────────────────────
+    # ── ROS callbacks ──────────────────────────────────────────────────────
 
     def _cb_joints(self, msg):
         self._joint_state = msg
 
-    # def _cb_odom(self, msg):      self._odom        = msg
     def _cb_object_pose(self):
-        self._bar_pose = self._lookup_pose(self._world_frame, "bar_base_link")
-        self._plate_pose = self._lookup_pose(self._world_frame, "plate_base_link")
-        self._odom = self._lookup_pose(self._world_frame, "base_footprint")
-        self._table_pose = self._lookup_pose(self._world_frame, "table_link")
+        self._bar_pose = self._lookup_pose("table_link", "bar_base_link")
+        self._plate_pose = self._lookup_pose("table_link", "plate_base_link")
+        self._odom = self._lookup_pose("table_link", "base_footprint")
 
-    # ── Action callbacks ──────────────────────────────────────────────────────
+    # ── Action callbacks ───────────────────────────────────────────────────
 
     def _goal_cb(self, goal_request):
-        # DEBUG : Vérifier ici si ROS voit les données
+        if self._hpp is None:
+            self.get_logger().error("REJECTED: HPP not ready yet")
+            return GoalResponse.REJECT
+
+        action_type = goal_request.action_type
+        gripper = goal_request.gripper
+        handle = goal_request.handle
+
         self.get_logger().info(
-            f"Goal Request - Gripper: '{goal_request.gripper}', Handle: '{goal_request.handle}'"
+            f"Goal — action_type='{action_type}' gripper='{gripper}' handle='{handle}'"
         )
 
-        if not goal_request.gripper or not goal_request.handle:
-            self.get_logger().error("REJECTED: Received empty strings in Goal Callback")
+        if not action_type or not gripper or not handle:
+            self.get_logger().error("REJECTED: empty field")
+            return GoalResponse.REJECT
+        if action_type not in ("grasp", "place"):
+            self.get_logger().error(f"REJECTED: unknown action_type '{action_type}'")
+            return GoalResponse.REJECT
+        if action_type == "place" and self._q_after_grasp is None:
+            self.get_logger().error("REJECTED: no grasp planned yet")
+            return GoalResponse.REJECT
+        if self._planning:
+            self.get_logger().warn("REJECTED: already planning")
             return GoalResponse.REJECT
 
-        if self._planning:
-            return GoalResponse.REJECT
         return GoalResponse.ACCEPT
 
     def _cancel_cb(self, goal_handle):
@@ -162,16 +219,88 @@ class HPPActionServer(Node):
 
     def _execute_cb(self, goal_handle):
         self._planning = True
-        feedback_msg = PlanBarGrasp.Feedback()
         result_msg = PlanBarGrasp.Result()
-        t_start = time.time()
-
+        action_type = goal_handle.request.action_type
         gripper_name = goal_handle.request.gripper
         handle_name = goal_handle.request.handle
-        self.get_logger().info(f"Executing plan for: {gripper_name} / {handle_name}")
 
-        # 1. Waiting to get robot state
-        timeout = 5.0
+        self.get_logger().info(
+            f"Executing '{action_type}' — {gripper_name} / {handle_name}"
+        )
+
+        if not self._wait_for_state(timeout=5.0):
+            result_msg.success = False
+            result_msg.message = "Timeout waiting for robot state."
+            goal_handle.abort()
+            self._planning = False
+            return result_msg
+
+        try:
+            if action_type == "grasp":
+                success, message, path_id = self._plan_grasp(gripper_name, handle_name)
+            else:
+                success, message, path_id = self._plan_place(gripper_name, handle_name)
+        except Exception as e:
+            import traceback
+
+            self.get_logger().error(f"Planning exception:\n{traceback.format_exc()}")
+            success, message, path_id = False, str(e), -1
+
+        result_msg.success = success
+        result_msg.message = message
+        result_msg.path_id = path_id
+
+        if success:
+            goal_handle.succeed()
+        else:
+            goal_handle.abort()
+
+        self._planning = False
+        return result_msg
+
+    # ── Planning helpers ───────────────────────────────────────────────────
+
+    def _plan_grasp(self, gripper, handle):
+        q_init = self._build_q_init()
+        if q_init is None:
+            return False, "Failed to build q_init.", -1
+
+        traj, q_end = self._hpp.plan_grasp(
+            gripper=gripper, handle=handle, q_init=q_init
+        )
+        if traj is None:
+            return False, "Grasp planning failed.", -1
+
+        self._traj_pick = traj
+        self._q_after_grasp = q_end
+        path_id = self._hpp._ps.numberPaths() - 1
+        self.get_logger().info(f"Grasp planned (path_id={path_id})")
+        return True, "Grasp planned successfully.", path_id
+
+    def _plan_place(self, gripper, handle):
+        q_init_place = list(self._q_after_grasp)  # copy
+        r = self._hpp.robot.rankInConfiguration["tiago_pro/root_joint"]
+        q_init_place[r] = 3.0
+
+        target_bar_pose = [1.2, 0.0, 0.67, 0.0, 0.0, 0.0, 1.0]
+
+        traj, _ = self._hpp.plan_place(
+            gripper=gripper,
+            handle=handle,
+            q_init=q_init_place,
+            target_bar_pose=target_bar_pose,
+        )
+        if traj is None:
+            return False, "Place planning failed.", -1
+
+        self._traj_place = traj
+        path_id = self._hpp._ps.numberPaths() - 1
+        self.get_logger().info(f"Place planned (path_id={path_id})")
+        return True, "Place planned successfully.", path_id
+
+    # ── State helpers ──────────────────────────────────────────────────────
+
+    def _wait_for_state(self, timeout=5.0):
         deadline = time.time() + timeout
         while time.time() < deadline:
             if all(
@@ -181,79 +310,13 @@ class HPPActionServer(Node):
                     self._odom,
                     self._bar_pose,
                     self._plate_pose,
-                    self._table_pose,
                 ]
             ):
-                break
-            # Do nothing, spin_once handle by the MultiThreaded Executor
-            time.sleep(0.1)
-        else:
-            result_msg.success = False
-            result_msg.message = "Timeout waiting for robot state."
-            goal_handle.abort()
-            self._planning = False
-            return result_msg
+                return True
+            time.sleep(0.05)
+        return False
 
-        # 2. Build current environment config
-        q_init = self._build_q_init()
-        if q_init is None:
-            result_msg.success = False
-            result_msg.message = "Failed to build q_init."
-            goal_handle.abort()
-            self._planning = False
-            return result_msg
-
-        # 3. Planning
-        path_result = [None]
-
-        def _plan_worker(g, h, q):
-            try:
-                path_result[0] = self._hpp.plan_grasp(gripper=g, handle=h, q_init=q)
-            except Exception as e:
-                self.get_logger().error(f"HPP Thread Error: {e}")
-
-        plan_thread = threading.Thread(
-            target=_plan_worker, args=(gripper_name, handle_name, q_init)
-        )
-        plan_thread.start()
-
-        while plan_thread.is_alive():
-            if goal_handle.is_cancel_requested:
-                plan_thread.join()
-                result_msg.success = False
-                result_msg.message = "Cancelled."
-                goal_handle.canceled()
-                self._planning = False
-                return result_msg
-
-            feedback_msg.status = "Planning in progress..."
-            feedback_msg.elapsed_time = time.time() - t_start
-            goal_handle.publish_feedback(feedback_msg)
-            time.sleep(1.0)
-
-        plan_thread.join()
-
-        # 5. Résultat
-        if path_result[0] is None:
-            result_msg.success = False
-            result_msg.message = "Planning failed."
-            goal_handle.abort()
-        else:
-            result_msg.success = True
-            result_msg.message = "Success."
-            result_msg.path_id = self._hpp._ps.numberPaths() - 1
-            goal_handle.succeed()
-
-        self._planning = False
-        return result_msg
-
-    # ── State helpers ─────────────────────────────────────────────────────────
-
-    def _lookup_pose(self, parent_frame: str, child_frame: str) -> list | None:
-        """
-        Lookup transform parent_frame -> child_frame via tf2.
-        Returns [x, y, z, qx, qy, qz, qw] or None if not available.
-        """
+    def _lookup_pose(self, parent_frame, child_frame):
         try:
             t = self._tf_buffer.lookup_transform(
                 parent_frame,
@@ -263,82 +326,46 @@ class HPPActionServer(Node):
             )
             tr = t.transform.translation
             ro = t.transform.rotation
-            # Normalize the quat
             quat = np.array([ro.x, ro.y, ro.z, ro.w])
-            quat /= np.linalg.norm(quat)  # normalization
+            quat /= np.linalg.norm(quat)
             return [tr.x, tr.y, tr.z, quat[0], quat[1], quat[2], quat[3]]
         except (LookupException, ConnectivityException, ExtrapolationException) as e:
             self.get_logger().warn(f"TF lookup failed for {child_frame}: {e}")
             return None
 
-    def _odom_to_base(self, odom: Odometry) -> list:
-        p, o = odom.pose.pose.position, odom.pose.pose.orientation
-        siny = 2.0 * (o.w * o.z + o.x * o.y)
-        cosy = 1.0 - 2.0 * (o.y * o.y + o.z * o.z)
-        theta = np.arctan2(siny, cosy)
-        return [p.x, p.y, np.cos(theta), np.sin(theta)]
-
-    def _tf_to_base_odom(self, tf: list[float]) -> list:
-        x = tf[0]
-        y = tf[1]
-        qx = tf[3]
-        qy = tf[4]
-        qz = tf[5]
-        qw = tf[6]
+    def _tf_to_base_odom(self, tf):
+        x, y = tf[0], tf[1]
+        qx, qy, qz, qw = tf[3], tf[4], tf[5], tf[6]
         siny = 2.0 * (qw * qz + qx * qy)
         cosy = 1.0 - 2.0 * (qy * qy + qz * qz)
-        theta = np.arctan2(siny, cosy)
-        return [x, y, np.cos(theta), np.sin(theta)]
+        return [x, y, np.cos(np.arctan2(siny, cosy)), np.sin(np.arctan2(siny, cosy))]
 
-    def _build_q_init(self) -> list | None:
+    def _build_q_init(self):
         if any(
             m is None
-            for m in [
-                self._joint_state,
-                self._odom,
-                self._bar_pose,
-                self._plate_pose,
-                self._table_pose,
-            ]
+            for m in [self._joint_state, self._odom, self._bar_pose, self._plate_pose]
         ):
             return None
-
         robot = self._hpp.robot
         q = robot.getCurrentConfig()
-        # Tiago whole body
-        # Others joints
         for i, joint_name in enumerate(self._joint_state.name):
             full = f"tiago_pro/{joint_name}"
             if full in robot.jointNames:
                 rank = robot.rankInConfiguration[full]
                 value = self._joint_state.position[i]
-                # Wheel are defined as continuous joint (so2 object)
                 nq = robot.getJointConfigSize(full)
                 if nq == 2:
                     q[rank] = np.cos(value)
                     q[rank + 1] = np.sin(value)
-                elif nq == 1:  # Joint standard
+                elif nq == 1:
                     q[rank] = value
-        # Base
         r = robot.rankInConfiguration["tiago_pro/root_joint"]
         q[r : r + 4] = self._tf_to_base_odom(self._odom)
-
-        # Table
-        r_table = robot.rankInConfiguration["table/root_joint"]
-        q[r_table : r_table + 7] = self._table_pose
-
-        # Barre
         r_bar = robot.rankInConfiguration["reinforcement_bar/root_joint"]
         q[r_bar : r_bar + 7] = self._bar_pose
-
-        # Plate
         r_plate = robot.rankInConfiguration["plate/root_joint"]
         q[r_plate : r_plate + 7] = self._plate_pose
-        # _, q, _ = self._hpp._cg.applyNodeConstraints("free", q)
         return q
-
-
-# ── Entrypoint ────────────────────────────────────────────────────────────────
 
 
 def main():
@@ -356,5 +383,4 @@ def main():
 
 
 if __name__ == "__main__":
-    rclpy.init()
-    node = HPPActionServer()
+    main()

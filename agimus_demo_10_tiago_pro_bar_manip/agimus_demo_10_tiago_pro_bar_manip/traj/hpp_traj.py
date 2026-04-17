@@ -1,6 +1,8 @@
 from math import sqrt
 from pathlib import Path
 
+import numpy as np
+import pinocchio as pin
 import yaml
 from hpp.corbaserver import loadServerPlugin
 from hpp.corbaserver.manipulation import (
@@ -12,7 +14,6 @@ from hpp.corbaserver.manipulation import (
     Robot,
 )
 from hpp.gepetto.manipulation import ViewerFactory
-from agimus_demo_10_tiago_pro_bar_manip.rostools import process_xacro
 
 from agimus_demo_10_tiago_pro_bar_manip.planner.path_planner import PathPlanner
 
@@ -20,17 +21,11 @@ loadServerPlugin("corbaserver", "manipulation-corba.so")
 Client().problem.resetProblem()
 
 
-class BaseObject(object):
+class BaseObject:
     """Wrapper to describe a URDF/SRDF object for HPP."""
 
-    def __init__(
-        self,
-        root_joint_type: str,
-        urdf_path: str,
-        srdf_path: str,
-        name: str,
-    ):
-        self.rootJointType = root_joint_type  # HPP expects this attribute name
+    def __init__(self, root_joint_type: str, urdf_path: str, srdf_path: str, name: str):
+        self.rootJointType = root_joint_type
         self.urdfFilename = urdf_path
         self.srdfFilename = srdf_path
         self.name = name
@@ -42,39 +37,30 @@ class HPPPathGenerator:
 
     Parameters
     ----------
-    bar_placement_config_path : Path
-        YAML file describing the bar placement (handles + optional q_guesses).
-    robot_description : Path
-        Path to the robot URDF xacro file.
-    robot_description_srdf : Path
-        Path to the robot SRDF xacro file.
-    environment_description : Path
-        (Currently unused – reserved for future environment URDF loading.)
-    handle_object : BaseObject
-        The object that carries the handles (reinforcement bar).
-    plate_object : BaseObject
-        The plate object (fixed on the table).
-    table_object : BaseObject
-        The table object (static environment).
-    ocp_dt : float
-        Time step used by the MPC / OCP downstream.
-    tool_frame_id : str
-        Name of the tool frame in the Pinocchio model.
+    urdf_str : str
+        Robot URDF as a plain string (already processed, no xacro).
+    srdf_str : str
+        Robot SRDF as a plain string (already processed, no xacro).
     robot_model : pin.Model
-        Pinocchio model of the robot (without objects).
+        Pinocchio model built from urdf_str by the caller.
+    handle_config : Path
+        YAML file with handle/gripper configuration.
+    handle_object, plate_object, table_object : BaseObject
+        HPP object descriptors.
+    ocp_dt : float
+        Sampling time step for trajectory extraction.
     robot_name : str
-        Prefix used in HPP joint names, e.g. ``"tiago_pro"``.
-    gripper_names : list[str]
-        List of gripper names (without prefix).  The *first* entry is used
-        for the TransitionPlanner; the second (if present) is the bimanual
-        helper gripper.
+        HPP joint name prefix, e.g. "tiago_pro".
+    logger :
+        ROS2 logger or None.
     """
 
     def __init__(
         self,
+        urdf_str: str,
+        srdf_str: str,
+        robot_model: pin.Model,
         handle_config: Path,
-        robot_description: Path,
-        robot_description_srdf: Path,
         handle_object: BaseObject,
         plate_object: BaseObject,
         table_object: BaseObject,
@@ -82,41 +68,32 @@ class HPPPathGenerator:
         robot_name: str,
         logger,
     ) -> None:
-        # ------------------------------------------------------------------ #
-        # Basic attributes
-        # ------------------------------------------------------------------ #
         self._ocp_dt = ocp_dt
         self._robot_name = robot_name
         self._logger = logger
+        self._robot_model = robot_model
 
-        # Objects
         self._handle_object = handle_object
         self._plate_object = plate_object
         self._table_object = table_object
 
-        # Load bar-placement config (handles + optional q_guesses per handle)
-        with open(handle_config, "r") as stream:
-            self._handle_config_file = yaml.safe_load(stream)
-
-        # Build {handle_name: q_guess_list} from YAML
-        # Expected YAML structure:
-        #   handles:
-        #     - name: left
-        #       q_guess: [0.0, ...]   # optional
-        #     - name: right
+        # Handle/gripper config
+        with open(handle_config, "r") as f:
+            self._handle_config_file = yaml.safe_load(f)
         self._handles_config: dict[str, list] = {}
-        for gripper_name, config in self._handle_config_file.get(
-            "grippers", {}
-        ).items():
-            self._handles_config[gripper_name] = config.get("handles", [])
-        # ------------------------------------------------------------------ #
-        # Build & configure the HPP robot
-        # ------------------------------------------------------------------ #
-        robot = self._process_Robot(robot_description, robot_description_srdf)
+        for gname, config in self._handle_config_file.get("grippers", {}).items():
+            self._handles_config[gname] = config.get("handles", [])
 
-        # ------------------------------------------------------------------ #
-        # Problem Solver
-        # ------------------------------------------------------------------ #
+        # ── HPP Robot ───────────────────────────────────────────────────────
+        # urdf_str must NOT contain "file://" prefixes
+        Robot.urdfString = urdf_str.replace("file://", "")
+        Robot.srdfString = srdf_str
+
+        robot = Robot("tiago_pro-manip", robot_name, rootJointType="planar")
+        # SRDF already injected via Robot.srdfString above;
+        # if you need to patch collision pairs do it in the caller before passing srdf_str.
+
+        # ── Problem Solver ─────────────────────────────────────────────────
         self._ps = ProblemSolver(robot)
         self._ps.loadPlugin("manipulation-spline-gradient-based.so")
         self._ps.setErrorThreshold(1e-2)
@@ -127,28 +104,20 @@ class HPPPathGenerator:
         self._ps.setParameter("SimpleTimeParameterization/order", 2)
         self._ps.setParameter("SimpleTimeParameterization/maxAcceleration", 0.2)
 
-        # ------------------------------------------------------------------ #
-        # Viewer (loads object models into HPP)
-        # ------------------------------------------------------------------ #
+        # ── Viewer / object loading ────────────────────────────────────────
         vf = ViewerFactory(self._ps)
-        vf.loadObjectModel(self._handle_object, self._handle_object.name)
-        vf.loadObjectModel(self._plate_object, self._plate_object.name)
-        vf.loadObjectModel(self._table_object, self._table_object.name)
+        vf.loadObjectModel(handle_object, handle_object.name)
+        vf.loadObjectModel(plate_object, plate_object.name)
+        vf.loadObjectModel(table_object, table_object.name)
         self._v = vf.createViewer()
 
-        # ------------------------------------------------------------------ #
-        # Joint bounds
-        # ------------------------------------------------------------------ #
+        # ── Joint bounds ───────────────────────────────────────────────────
         robot.setJointBounds(
-            f"{self._handle_object.name}/root_joint",
+            f"{handle_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
         )
         robot.setJointBounds(
-            f"{self._plate_object.name}/root_joint",
-            [-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
-        )
-        robot.setJointBounds(
-            "table/root_joint",
+            f"{plate_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
         )
         robot.setJointBounds(
@@ -157,23 +126,17 @@ class HPPPathGenerator:
         )
         self.robot = robot
 
-        # ------------------------------------------------------------------ #
-        # Locked joints
-        # ------------------------------------------------------------------ #
+        # ── Locked joints ──────────────────────────────────────────────────
         self._locked_grippers = self._create_locked_grippers(robot_name)
         self._locked_head = self._create_locked_head(robot_name)
         self._locked_wheels = self._create_locked_wheels(robot_name)
         self._locked_plate = self._create_locked_plate()
-        self._locked_table = self._create_locked_table()
         self._locked_base_mobility = self._create_locked_base_mobility(robot_name)
         self._locked_arms, self._locked_torso = self._create_locked_arms_and_torso(
             robot, robot_name
         )
-        self._locked_handle = self._create_locked_handle()
 
-        # ------------------------------------------------------------------ #
-        # Grippers
-        # ------------------------------------------------------------------ #
+        # ── Grippers & handles ─────────────────────────────────────────────
         c = sqrt(2) / 2
         self.define_gripper(
             robot,
@@ -187,8 +150,6 @@ class HPPPathGenerator:
             f"{robot_name}/right",
             [0, 0, 0.19, 0, -c, 0, c],
         )
-
-        # Handles on handle object
         self.define_handle(
             robot,
             f"{handle_object.name}/bar_base_link",
@@ -202,66 +163,20 @@ class HPPPathGenerator:
             [0, 0.01, 0.25, 0, 0, -c, c],
         )
 
-        # ------------------------------------------------------------------ #
-        # Constraint graph
-        # ------------------------------------------------------------------ #
+        # ── Constraint graph ───────────────────────────────────────────────
         gripper_names = list(self._handles_config.keys())
         self._cg = self._generate_constraint_graph(
             robot, "graph", robot_name, gripper_names
         )
         self._logger.info("Constraint graph built")
 
-        # # ------------------------------------------------------------------ #
-        # # PathPlanner (TransitionPlanner wrapper)
-        # # ------------------------------------------------------------------ #
-        # primary_gripper = gripper_names[0]
         self._path_planner = PathPlanner(self._ps, self._cg)
 
-    # ---------------------------------------------------------------------- #
-    # Private helpers
-    # ---------------------------------------------------------------------- #
+    # ── Private helpers (unchanged from previous version) ──────────────────
 
-    def _process_Robot(self, urdf_xacro: Path, srdf_xacro: Path) -> Robot:
-        """Build and return the HPP Robot from xacro files."""
-        Robot.urdfString = process_xacro(
-            str(urdf_xacro),
-            "end_effector_left:=pal-pro-gripper",
-            "end_effector_right:=pal-pro-gripper",
-        ).replace("file://", "")
-        Robot.srdfString = ""
-
-        srdf_string = process_xacro(
-            str(srdf_xacro),
-            "end_effector_left:=pal-pro-gripper",
-            "end_effector_right:=pal-pro-gripper",
-        )
-
-        # Patch SRDF: remove </robot>, add disabled collision pairs, close tag
-        i = srdf_string.find("</robot>")
-        assert i != -1, "SRDF string does not contain </robot>"
-        srdf_string = srdf_string[:i]
-        for l1, l2 in [
-            ("base_link", "wheel_front_left_link"),
-            ("base_link", "wheel_front_right_link"),
-            ("base_link", "wheel_rear_left_link"),
-            ("base_link", "wheel_rear_right_link"),
-            ("gripper_left_screw_left_link", "gripper_left_fingertip_left_link"),
-            ("gripper_right_screw_left_link", "gripper_right_fingertip_left_link"),
-        ]:
-            srdf_string += (
-                f'  <disable_collisions link1="{l1}" link2="{l2}" reason="Never"/>\n'
-            )
-        srdf_string += "</robot>"
-
-        robot = Robot("tiago_pro-manip", "tiago_pro", rootJointType="planar")
-        robot.client.manipulation.robot.insertRobotSRDFModelFromString(
-            "tiago_pro", srdf_string
-        )
-        return robot
-
-    def _create_locked_grippers(self, robot_name: str) -> list[str]:
+    def _create_locked_grippers(self, robot_name):
         locked = []
-        gripper_values = {
+        values = {
             f"{robot_name}/gripper_left_finger_joint": 0.05,
             f"{robot_name}/gripper_left_inner_finger_left_joint": -0.05,
             f"{robot_name}/gripper_left_fingertip_left_joint": 0.05,
@@ -279,13 +194,13 @@ class HPPPathGenerator:
             f"{robot_name}/gripper_right_outer_finger_left_joint": -0.05,
             f"{robot_name}/gripper_right_outer_finger_right_joint": -0.05,
         }
-        for joint, value in gripper_values.items():
+        for joint, value in values.items():
             name = f"locked_{joint}"
             self._ps.createLockedJoint(name, joint, [value])
             locked.append(name)
         return locked
 
-    def _create_locked_head(self, robot_name: str) -> list[str]:
+    def _create_locked_head(self, robot_name):
         locked = []
         for joint, value in {
             f"{robot_name}/head_1_joint": 0,
@@ -296,7 +211,7 @@ class HPPPathGenerator:
             locked.append(name)
         return locked
 
-    def _create_locked_wheels(self, robot_name: str) -> list[str]:
+    def _create_locked_wheels(self, robot_name):
         locked = []
         for joint in [
             f"{robot_name}/wheel_front_left_joint",
@@ -310,33 +225,21 @@ class HPPPathGenerator:
             locked.append(name)
         return locked
 
-    def _create_locked_plate(self) -> list[str]:
+    def _create_locked_plate(self):
         joint = f"{self._plate_object.name}/root_joint"
         name = f"locked_{joint}"
         self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
         self._ps.setConstantRightHandSide(name, False)
         return [name]
 
-    def _create_locked_table(self) -> list[str]:
-        joint = "table/root_joint"
-        name = f"locked_{joint}"
-        self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
-        self._ps.setConstantRightHandSide(name, False)
-        return [name]
-
-    def _create_locked_base_mobility(self, robot_name: str) -> list[str]:
-        """Lock base en transit avec barre — suiverait q_init par défaut"""
+    def _create_locked_base_mobility(self, robot_name):
         name = "locked_base"
         self._ps.createLockedJoint(name, f"{robot_name}/root_joint", [0, 0, 1, 0])
         self._ps.setConstantRightHandSide(name, False)
         return [name]
 
-    def _create_locked_arms_and_torso(
-        self, robot: Robot, robot_name: str
-    ) -> tuple[list[str], list[str]]:
-        """Create locked-joint constraints for all arm joints and the torso."""
-        locked_arms = []
-        seen = set()
+    def _create_locked_arms_and_torso(self, robot, robot_name):
+        locked_arms, seen = [], set()
         for j in robot.jointNames:
             if not j.startswith(f"{robot_name}/"):
                 continue
@@ -355,41 +258,19 @@ class HPPPathGenerator:
             self._ps.createLockedJoint(name, j, [0])
             self._ps.setConstantRightHandSide(name, False)
             locked_arms.append(name)
-
-        # Torso handled separately so it can be unlocked independently
         self._ps.createLockedJoint(
             "locked_torso", f"{robot_name}/torso_lift_joint", [0]
         )
         self._ps.setConstantRightHandSide("locked_torso", False)
-        locked_torso = ["locked_torso"]
+        return locked_arms, ["locked_torso"]
 
-        return locked_arms, locked_torso
-
-    def _create_locked_handle(self) -> list[str]:
-        """Lock handle object to a fixed pose (would be overridden by grasp constraints)."""
-        joint = f"{self._handle_object.name}/root_joint"
-        name = f"locked_{joint}"
-        self._ps.createLockedJoint(name, joint, [0, 0, 0, 0, 0, 0, 1])
-        self._ps.setConstantRightHandSide(name, False)
-        return [name]
-
-    def _generate_constraint_graph(
-        self,
-        robot: Robot,
-        graph_name: str,
-        robot_name: str,
-        gripper_names: list[str],
-    ) -> ConstraintGraph:
-        """Build and initialise the HPP constraint graph."""
+    def _generate_constraint_graph(self, robot, graph_name, robot_name, gripper_names):
         handle_object_name = self._handle_object.name
-        primary_gripper = f"{gripper_names[0]}"
-        primary_handle = self._handles_config[primary_gripper][0][
-            "name"
-        ]  # e.g. "left" or "right"
+        primary_gripper = gripper_names[0]
+        primary_handle = self._handles_config[primary_gripper][0]["name"]
 
         cg = ConstraintGraph(robot, graph_name)
         factory = ConstraintGraphFactory(cg)
-
         factory.setGrippers([primary_gripper])
         factory.environmentContacts(
             [
@@ -399,16 +280,14 @@ class HPPPathGenerator:
         )
         factory.setObjects(
             [handle_object_name],
-            [[f"{primary_handle}"]],
-            [[]],
+            [[primary_handle]],
+            [[f"{handle_object_name}/bottom"]],
         )
         factory.generate()
 
-        # --- Bimanual constraints (second gripper) -------------------------
         if len(gripper_names) == 2:
-            secondary_gripper = f"{gripper_names[1]}"
+            secondary_gripper = gripper_names[1]
             secondary_handle = self._handles_config[secondary_gripper][0]["name"]
-
             cg.createGrasp(
                 f"{secondary_gripper} grasps {secondary_handle}",
                 secondary_gripper,
@@ -419,11 +298,18 @@ class HPPPathGenerator:
                 secondary_gripper,
                 secondary_handle,
             )
-
             for node, constraint in [
                 (
                     f"{primary_gripper} > {primary_handle} | f_pregrasp",
                     f"{secondary_gripper} pregrasps {secondary_handle}",
+                ),
+                (
+                    f"{primary_gripper} > {primary_handle} | f_intersec",
+                    f"{secondary_gripper} grasps {secondary_handle}",
+                ),
+                (
+                    f"{primary_gripper} > {primary_handle} | f_preplace",
+                    f"{secondary_gripper} grasps {secondary_handle}",
                 ),
                 (
                     f"{primary_gripper} grasps {primary_handle}",
@@ -431,39 +317,31 @@ class HPPPathGenerator:
                 ),
             ]:
                 cg.addConstraints(
-                    node=node,
-                    constraints=Constraints(numConstraints=[constraint]),
+                    node=node, constraints=Constraints(numConstraints=[constraint])
                 )
 
-        # --- Global constraints (applied to the whole graph) ---------------
-        # !! If a constraint is applied with that, it applied to the whole graph (node + edge)
-        # and on nodes rhs is fixed at init so it's not possible to change dynamically
         cg.addConstraints(
             graph=True,
             constraints=Constraints(
-                numConstraints=(
-                    self._locked_grippers + self._locked_head + self._locked_wheels
-                )
+                numConstraints=self._locked_grippers
+                + self._locked_head
+                + self._locked_wheels
             ),
         )
 
-        # --- Additional nodes & edges (unconstrained / project-on-free) ----
         cg.createNode("unconstrained")
         cg.createEdge("unconstrained", "free", "project-on-free", 1, "unconstrained")
 
-        # --- Transit edges -------------------------------------------------
         node_grasp = f"{primary_gripper} grasps {primary_handle}"
-
         cg.createEdge("free", "free", "transit_free", 1, "free")
         cg.addConstraints(
             edge="transit_free",
             constraints=Constraints(
                 numConstraints=self._locked_arms
                 + self._locked_torso
-                + self._locked_handle
+                + [f"place_{handle_object_name}/complement"]
             ),
         )
-
         cg.createEdge(node_grasp, node_grasp, "transit_grasp", 1, node_grasp)
         cg.addConstraints(
             edge="transit_grasp",
@@ -471,122 +349,69 @@ class HPPPathGenerator:
                 numConstraints=self._locked_arms + self._locked_torso
             ),
         )
-        cg.addConstraints(
-            edge=f"{primary_gripper} > {primary_handle} | f_01",
-            constraints=Constraints(
-                numConstraints=self._locked_base_mobility + self._locked_handle
-            ),
-        )
-
-        # --- Lock base mobility on loop edges ------------------------------
-        cg.addConstraints(
-            edge="Loop | f",
-            constraints=Constraints(
-                numConstraints=self._locked_base_mobility + self._locked_handle
-            ),
-        )
-        cg.addConstraints(
-            edge="Loop | 0-0",
-            constraints=Constraints(numConstraints=self._locked_base_mobility),
-        )
+        for edge in [
+            f"{primary_gripper} > {primary_handle} | f_01",
+            f"{primary_gripper} > {primary_handle} | f_12",
+            f"{primary_gripper} > {primary_handle} | f_23",
+            "Loop | f",
+            "Loop | 0-0",
+        ]:
+            cg.addConstraints(
+                edge=edge,
+                constraints=Constraints(numConstraints=self._locked_base_mobility),
+            )
 
         cg.setWeight("Loop | f", 1)
         cg.setWeight("Loop | 0-0", 1)
 
-        # --- Lock plate in all transitions ( plate didn't move)
         for e in cg.edges.keys():
             cg.addConstraints(
-                edge=e,
-                constraints=Constraints(
-                    numConstraints=self._locked_plate + self._locked_table
-                ),
+                edge=e, constraints=Constraints(numConstraints=self._locked_plate)
             )
 
-        print(f"[HPPPathGenerator] constraint graph edge count: {len(cg.edges)}")
         cg.initialize()
-        print("Liste des arêtes du graphe :")
-        for edge_name in cg.edges.keys():
-            print(f" - {edge_name}")
-
         return cg
 
-    # ---------------------------------------------------------------------- #
-    # Public helpers (previously standalone methods)
-    # ---------------------------------------------------------------------- #
+    # ── Public helpers ─────────────────────────────────────────────────────
 
-    def define_gripper(
-        self,
-        robot: Robot,
-        frame_name: str,
-        gripper_name: str,
-        gripper_frame_pose: list[float],
-        clearance: float = 0.02,
-    ) -> None:
-        """Register a gripper on the robot model."""
+    def define_gripper(self, robot, frame_name, gripper_name, pose, clearance=0.02):
         robot.client.manipulation.robot.addGripper(
-            frame_name, gripper_name, gripper_frame_pose, clearance
+            frame_name, gripper_name, pose, clearance
         )
 
-    def define_handle(
-        self,
-        robot: Robot,
-        link_name: str,
-        handle_name: str,
-        handle_pose: list[float],
-        clearance: float = 0.05,
-    ) -> None:
-        """Register a handle on an object link."""
+    def define_handle(self, robot, link_name, handle_name, pose, clearance=0.05):
         robot.client.manipulation.robot.addHandle(
-            link_name,
-            handle_name,
-            handle_pose,
-            clearance,
-            6 * [True],
+            link_name, handle_name, pose, clearance, 6 * [True]
         )
 
-    def update_joint_values(self, q_now: list[float]) -> None:
-        """Update the robot's current configuration in HPP."""
-        self.robot.setCurrentConfig(q_now)
+    def sample_trajectory(self, path_obj) -> list | None:
+        if path_obj is None:
+            return None
+        length = path_obj.length()
+        dt = self._ocp_dt
+        n = max(2, int(np.ceil(length / dt)))
+        return [list(path_obj.call(min(i * dt, length))[0]) for i in range(n)]
 
-    def update_arm_joint_values(self, q_now: list[float]) -> None:
-        """Update only the arm joints' values in HPP, keeping the rest unchanged."""
-        q_current = self.robot.getCurrentConfig()
-        r = self.robot.rankInConfiguration[self._robot_name + "/root_joint"]
-        q_current[r : r + 4] = q_now[r : r + 4]  # Update base (planar) joints
-        # Update arm joints (assuming they are contiguous and start after the base joints)
-        arm_joint_names = [
-            j for j in self.robot.jointNames if j.startswith(f"{self._robot_name}/arm")
-        ]
-        for joint_name in arm_joint_names:
-            idx = self.robot.rankInConfiguration[joint_name]
-            q_current[idx] = q_now[idx]
-        self.robot.setCurrentConfig(q_current)
+    # ── Planning API ───────────────────────────────────────────────────────
 
-    # ---------------------------------------------------------------------- #
-    # Planning API
-    # ---------------------------------------------------------------------- #
-
-    def plan_grasp(
-        self,
-        gripper: str,
-        handle: str,
-        q_init: list,
-    ):
-        """Plan path from q_init to pregrasp configuration for *handle*."""
-        return self._path_planner.planPathtoBarHandling(
+    def plan_grasp(self, gripper: str, handle: str, q_init: list):
+        result = self._path_planner.planPathtoBarHandling(
             gripper, handle, q_init, self._v, self._logger
         )
+        traj = self.sample_trajectory(result)
+        if result is not None:
+            result.deleteThis()
+        last_q = list(traj[-1]) if traj else None
+        return traj, last_q
 
-    def plan_path_to_place(
-        self,
-        gripper: str,
-        handle: str,
-        q_init: list,
-        q_goal: list,
-        grasp_constraints: list[str],
-        q_guesses: list = [],
+    def plan_place(
+        self, gripper: str, handle: str, q_init: list, target_bar_pose: list
     ):
-        """Plan full pregrasp -> grasp -> preplace -> place path for *handle*."""
-        return self._path_planner.planPathToPlace(
-            gripper, handle, q_init, q_goal, grasp_constraints, q_guesses
+        result = self._path_planner.planPathtoBarPlacement(
+            gripper, handle, q_init, target_bar_pose, self._v, self._logger
         )
+        traj = self.sample_trajectory(result)
+        if result is not None:
+            result.deleteThis()
+        last_q = list(traj[-1]) if traj else None
+        return traj, last_q
