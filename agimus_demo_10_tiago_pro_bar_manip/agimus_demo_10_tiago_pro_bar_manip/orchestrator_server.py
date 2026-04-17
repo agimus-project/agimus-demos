@@ -182,6 +182,7 @@ class HPPActionServer(Node):
         self._bar_pose = self._lookup_pose("table_link", "bar_base_link")
         self._plate_pose = self._lookup_pose("table_link", "plate_base_link")
         self._odom = self._lookup_pose("table_link", "base_footprint")
+        self._bar_goal_pose = self._lookup_pose("table_link", "bar_goal_pose")
 
     # ── Action callbacks ───────────────────────────────────────────────────
 
@@ -282,7 +283,7 @@ class HPPActionServer(Node):
         r = self._hpp.robot.rankInConfiguration["tiago_pro/root_joint"]
         q_init_place[r] = 3.0
 
-        target_bar_pose = [1.2, 0.0, 0.67, 0.0, 0.0, 0.0, 1.0]
+        target_bar_pose = self._bar_goal_pose
 
         traj, _ = self._hpp.plan_place(
             gripper=gripper,
@@ -310,6 +311,7 @@ class HPPActionServer(Node):
                     self._odom,
                     self._bar_pose,
                     self._plate_pose,
+                    self._bar_goal_pose,
                 ]
             ):
                 return True
