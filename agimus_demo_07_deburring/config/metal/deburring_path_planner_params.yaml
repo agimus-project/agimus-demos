@@ -111,19 +111,19 @@ deburring_path_planner_node:
         linear_vel: 0.1
         linear_acc: 0.07
         linear_jerk: 1.0
-        tool_angular_vel: 2.6
-        tool_angular_acc: 10.0
+        tool_angular_vel: 2.0
+        tool_angular_acc: 5.0
         tool_angular_jerk: 5000.0
-        insert_joint_angle: -2.8
+        insert_joint_angle: -2.6
         retract_joint_angle: 0.0
       metal_deburring_generator:
         tool_angular_vel: 2.2
         tool_angular_acc: 10.0
         tool_angular_jerk: 5000.0
-        tool_joint_start_angle: -2.6
-        tool_joint_end_angle: 2.6
-        positioning_time: 2.0
-        positioning_force: 20.0
+        tool_joint_start_angle: -1.5
+        tool_joint_end_angle: 0.0
+        positioning_time: 0.5
+        positioning_force: 39.0
         deburring_force: 40.0
         force_rate_up: 80.0
         force_rate_down: 100.0
@@ -149,10 +149,10 @@ deburring_path_planner_node:
         w_desired_force: [0.0, 0.0, 0.0]
         w_collision_avoidance: 0.0
       deburring_motion:
-        w_robot_configuration: [0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.5]
+        w_robot_configuration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5]
         w_robot_velocity: [0.1, 0.01, 0.001, 0.001, 0.001, 0.001, 0.5]
-        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0005, 0.1, 0.2, 0.05]
+        w_robot_effort: [0.0001, 0.0001, 0.0001, 0.0004, 0.1, 0.2, 0.05]
         w_frame_rotation: [2.0, 2.0, 0.0]
         w_frame_translation: [0.0, 0.0, 0.0]
-        w_desired_force: [0.000015, 0.000015, 0.000015]
+        w_desired_force: [0.015, 0.015, 0.015]
         w_collision_avoidance: 0.0
