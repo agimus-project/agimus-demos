@@ -15,8 +15,9 @@ deburring_path_planner_node:
       marker_size: 0.01
       marker_color: [1.0, 0.0, 0.0, 0.5]
     # Velocities based on the datasheet. Values are eight of the maximum velocity
-    max_joint_velocity: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
-    # max_joint_velocity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    # max_joint_velocity: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    # max_joint_velocity: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+    max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
     ocp_dt: 0.002
     ocp_buffer_size: 100
     moving_joints:
@@ -32,6 +33,7 @@ deburring_path_planner_node:
       deburring_generator_type: metal
       use_precomputed_trajectories: $(var use_precomputed_trajectories)
       precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/metal
+      precomputed_replay_speed_scale: 2.0
       diffusion_generator:
         weights_path: $(find-pkg-share agimus_demo_07_deburring)/weights/weights.ckpt
         sequence_length: 50
@@ -52,6 +54,7 @@ deburring_path_planner_node:
         - fer_joint6
         - fer_joint7
         joint_shrink_range: 0.95
+        slowdown_factor: 4.0
       # trajectory_smoother is set at the launch file level
 
       # Those parameters are not related to the MPC controlling the robot directly
@@ -114,7 +117,7 @@ deburring_path_planner_node:
         tool_angular_vel: 2.6
         tool_angular_acc: 10.0
         tool_angular_jerk: 5000.0
-        insert_joint_angle: -2.8
+        insert_joint_angle: -2.6
         retract_joint_angle: 0.0
       metal_deburring_generator:
         tool_angular_vel: 2.2
@@ -122,10 +125,10 @@ deburring_path_planner_node:
         tool_angular_jerk: 5000.0
         tool_joint_start_angle: -2.6
         tool_joint_end_angle: 2.6
-        positioning_time: 2.0
-        positioning_force: 20.0
-        deburring_force: 40.0
-        force_rate_up: 80.0
+        positioning_time: 1.0
+        positioning_force: 30.0
+        deburring_force: 30.0
+        force_rate_up: 100.0
         force_rate_down: 100.0
         n_repeat: 1
     # Weights below are those used by MPC controlling the robot
@@ -154,5 +157,5 @@ deburring_path_planner_node:
         w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0005, 0.1, 0.2, 0.05]
         w_frame_rotation: [2.0, 2.0, 0.0]
         w_frame_translation: [0.0, 0.0, 0.0]
-        w_desired_force: [0.000015, 0.000015, 0.000015]
+        w_desired_force: [0.00005, 0.00005, 0.00005]
         w_collision_avoidance: 0.0

@@ -31,6 +31,7 @@ deburring_path_planner_node:
       deburring_generator_type: plastic
       use_precomputed_trajectories: $(var use_precomputed_trajectories)
       precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/plastic
+      precomputed_replay_speed_scale: 4.0
       diffusion_generator:
         weights_path: $(find-pkg-share agimus_demo_07_deburring)/weights/weights.ckpt
         sequence_length: 50
@@ -51,6 +52,7 @@ deburring_path_planner_node:
         - fer_joint6
         - fer_joint7
         joint_shrink_range: 0.95
+        slowdown_factor: 4.0
       # trajectory_smoother is set at the launch file level
 
       # Those parameters are not related to the MPC controlling the robot directly
