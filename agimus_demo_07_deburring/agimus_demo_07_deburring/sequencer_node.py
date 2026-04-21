@@ -11,7 +11,7 @@ from rclpy.exceptions import ParameterException
 from rclpy.parameter import Parameter
 
 from rcl_interfaces.srv import SetParametersAtomically
-from std_srvs.srv import Trigger
+from std_srvs.srv import SetBool, Trigger
 
 from action_msgs.msg import GoalStatus
 from agimus_msgs.action import DeburringPlanner
@@ -39,6 +39,10 @@ class SequencerNode(Node):
         self._set_param_cli = self.create_client(
             SetParametersAtomically,
             "/deburring_path_planner_node/set_parameters_atomically",
+        )
+        self._set_execution_paused_cli = self.create_client(
+            SetBool,
+            "/deburring_path_planner_node/set_execution_paused",
         )
 
         self._detect_pylone_pose_cli = None
@@ -138,20 +142,23 @@ class SequencerNode(Node):
         )
         self._call_service_client(self._set_param_cli, request)
 
-    def plan_to_handle(self, handle: str, do_plan: bool, do_insertion: bool) -> None:
-        """Triggers planning to a handle action and waits for it's execution.
+    def set_execution_paused(self, paused: bool) -> None:
+        request = SetBool.Request()
+        request.data = paused
+        result = self._call_service_client(self._set_execution_paused_cli, request)
+        if result is None or not result.success:
+            action = "pause" if paused else "resume"
+            error_msg = getattr(result, "message", "Unknown error")
+            raise RuntimeError(f"Failed to {action} trajectory execution: {error_msg}")
 
-        Args:
-            handle (str): Name of the handle to which robot has to move.
-            do_insertion (bool): Whether to plan the motion or skip to insertion.
-            do_insertion (bool): Whether to perform insertion and deburring motion
-                during asked movement.
+    def _close_progress_bar(self) -> None:
+        if self._progress_bar is not None:
+            self._progress_bar.close()
+            self._progress_bar = None
 
-        Raises:
-            RuntimeError: Failed to reach the action server.
-            RuntimeError: Action was rejected.
-            RuntimeError: Action execution failed.
-        """
+    def _send_goal(
+        self, handle: str, do_plan: bool, do_insertion: bool
+    ) -> tuple[Any, Any]:
         goal_msg = DeburringPlanner.Goal(
             handle_name=handle,
             do_plan=do_plan,
@@ -162,6 +169,7 @@ class SequencerNode(Node):
         self._is_planning = True
         self._last_handle_name = handle
         self._last_progress = 0.0
+        self._close_progress_bar()
         self._progress_bar = tqdm(
             total=1,
             desc=f"Planning to: {self._last_handle_name}",
@@ -184,19 +192,84 @@ class SequencerNode(Node):
             raise RuntimeError("Action call was rejected!")
 
         self.get_logger().debug("Target goal accepted.")
+        return goal_handle, goal_handle.get_result_async()
 
-        future = goal_handle.get_result_async()
+    def _wait_for_result(self, future: Any, accepted_statuses: set[int]) -> None:
         rclpy.spin_until_future_complete(self, future)
+        self._close_progress_bar()
 
-        if future.result().status != GoalStatus.STATUS_SUCCEEDED:
+        action_result = future.result()
+        if action_result.status not in accepted_statuses:
             msg = "Action failed!"
-            error_msg = future.result().result.error_msg
+            error_msg = action_result.result.error_msg
             if error_msg != "":
                 msg += f" Error message: '{error_msg}'."
             raise RuntimeError(msg)
 
-        self._progress_bar.close()
+    def plan_to_handle_with_confirmation(
+        self, handle: str, do_insertion: bool = True
+    ) -> None:
+        self.set_execution_paused(True)
+        try:
+            while rclpy.ok():
+                goal_handle, result_future = self._send_goal(
+                    handle, do_plan=True, do_insertion=do_insertion
+                )
 
+                while rclpy.ok() and self._is_planning and not result_future.done():
+                    rclpy.spin_once(self, timeout_sec=0.1)
+
+                # If action already ended (e.g. planning failure), forward status.
+                if result_future.done():
+                    self._wait_for_result(result_future, {GoalStatus.STATUS_SUCCEEDED})
+                    return
+
+                prompt = (
+                    f"Trajectory for '{handle}' is planned and shown in RViz. "
+                    "Do you want to execute it? (answering 'n' will replan)"
+                )
+                if not check_for_yes(prompt):
+                    cancel_future = goal_handle.cancel_goal_async()
+                    rclpy.spin_until_future_complete(self, cancel_future)
+                    self._wait_for_result(
+                        result_future,
+                        {GoalStatus.STATUS_CANCELED, GoalStatus.STATUS_SUCCEEDED},
+                    )
+                    self.get_logger().info(
+                        f"Execution declined for '{handle}'. Replanning..."
+                    )
+                    continue
+
+                self.set_execution_paused(False)
+                self._wait_for_result(result_future, {GoalStatus.STATUS_SUCCEEDED})
+                return
+
+            raise RuntimeError("Interrupted while waiting for replanning loop.")
+        finally:
+            try:
+                self.set_execution_paused(False)
+            except RuntimeError as err:
+                self.get_logger().warn(
+                    "Failed to resume trajectory execution after planning preview: "
+                    + str(err)
+                )
+
+    def plan_to_handle(self, handle: str, do_plan: bool, do_insertion: bool) -> None:
+        """Triggers planning to a handle action and waits for it's execution.
+
+        Args:
+            handle (str): Name of the handle to which robot has to move.
+            do_insertion (bool): Whether to plan the motion or skip to insertion.
+            do_insertion (bool): Whether to perform insertion and deburring motion
+                during asked movement.
+
+        Raises:
+            RuntimeError: Failed to reach the action server.
+            RuntimeError: Action was rejected.
+            RuntimeError: Action execution failed.
+        """
+        _, result_future = self._send_goal(handle, do_plan, do_insertion)
+        self._wait_for_result(result_future, {GoalStatus.STATUS_SUCCEEDED})
         self.get_logger().debug("Action succeed.")
 
     def _feedback_callback(self, feedback_msg: DeburringPlanner.Feedback) -> None:
@@ -207,6 +280,11 @@ class SequencerNode(Node):
             feedback_msg (DeburringPlanner.Feedback): Received action feedback.
         """
         currently_planning = feedback_msg.feedback.planing
+        if self._progress_bar is None:
+            self._is_planning = currently_planning
+            self._last_progress = feedback_msg.feedback.progress
+            return
+
         if not currently_planning:
             if self._is_planning != currently_planning:
                 self._progress_bar.close()
@@ -286,9 +364,7 @@ def main(args=None) -> int:
             sequencer_node.refine_pylone_pose()
 
         for weight, handle_name, refine in weighted_handles:
-            prompt = (
-                f"Next handle is '{handle_name}'. Do you want to execute this hole?"
-            )
+            prompt = f"Next handle is '{handle_name}'. Do you want to plan this hole?"
             if not check_for_yes(prompt):
                 continue
             try:
@@ -302,7 +378,9 @@ def main(args=None) -> int:
                             sequencer_node.refine_pylone_pose()
                     sequencer_node.plan_to_handle(handle_name, False, True)
                 else:
-                    sequencer_node.plan_to_handle(handle_name, True, True)
+                    sequencer_node.plan_to_handle_with_confirmation(
+                        handle_name, do_insertion=True
+                    )
             except RuntimeError as err:
                 print(f"Error. {str(err)}. Skipping the handle!")
 

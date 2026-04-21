@@ -79,24 +79,36 @@ class DiffusionPathGenerator(JointSpaceMotionGenerator):
                 configuration_size=self._nq,
             )
 
-        optimized = []
-        costs = []
-        for i, trajectory in enumerate(sampled_trajs):
-            trajectory, velocities, cost = self._trajectory_smoother(
-                trajectory.cpu().numpy(), T_final * self._hpp_handle_correction
+        trajectory = None
+        velocities = None
+        best_trajectory = None
+        best_velocities = None
+        best_cost = float("inf")
+
+        for sampled in sampled_trajs:
+            candidate_trajectory, candidate_velocities, cost = (
+                self._trajectory_smoother(
+                    sampled.cpu().numpy(), T_final * self._hpp_handle_correction
+                )
             )
-            optimized.append((trajectory, velocities))
-            costs.append(cost)
 
-            if i == len(sampled_trajs):
-                cost = min(costs)
-                idx = costs.index(cost)
-                trajectory, velocities = optimized[idx]
-                break
+            if candidate_trajectory is None:
+                continue
 
-            # If trajectory deos not violate constraints, use it
+            if cost < best_cost:
+                best_cost = cost
+                best_trajectory = candidate_trajectory
+                best_velocities = candidate_velocities
+
+            # If trajectory does not violate constraints significantly, use it.
             if cost < 0.5:
+                trajectory = candidate_trajectory
+                velocities = candidate_velocities
                 break
+
+        if trajectory is None:
+            trajectory = best_trajectory
+            velocities = best_velocities
 
         if trajectory is None:
             raise RuntimeError("Failed to optimize any of the trajectories!")

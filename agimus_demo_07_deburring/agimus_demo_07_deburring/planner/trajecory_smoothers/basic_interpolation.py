@@ -22,28 +22,40 @@ class BasicInterpolationSmoother(GenericTrajectorySmoother):
     def __call__(
         self, trajectory: npt.ArrayLike, T_final: pin.SE3
     ) -> tuple[npt.ArrayLike, npt.ArrayLike, float]:
-        # Compute highest joint velocities between trajectory points
-        trajectory_vel = np.gradient(trajectory, axis=0)
-        trajectory_vel_max = np.max(np.abs(trajectory_vel), axis=0)
-        # Get rescaling between computed velocities and maximum allowed values
-        joint_lim = np.asarray(self._max_joint_velocity)
-        velocity_scale = trajectory_vel_max / joint_lim
-        # Compute minimum number of interpolation steps to not violate joint
-        # velocity limits
-        n_interp = np.ceil(velocity_scale / self._ocp_dt * trajectory.shape[0])
-        # Choose minimum of already predicted steps for the interpolation
-        n_interp = int(np.max(np.append(n_interp, trajectory.shape[0])))
+        trajectory = np.asarray(trajectory, dtype=float)
+        if trajectory.ndim != 2 or trajectory.shape[1] != self._nq:
+            raise ValueError(
+                f"Expected a trajectory of shape (N, {self._nq}), "
+                + f"got {trajectory.shape}."
+            )
 
-        # Interpolate trajectories
-        old_times = np.linspace(0, 1, trajectory.shape[0])
-        new_times = np.linspace(0, 1, n_interp)
+        if trajectory.shape[0] <= 1:
+            velocities = np.zeros_like(trajectory)
+            return trajectory.copy(), velocities, 1.0
+
+        # Use a time parameterization driven by joint velocity limits so execution
+        # speed depends on geometric distance, not on incoming point spacing.
+        joint_lim = np.asarray(self._max_joint_velocity, dtype=float)
+        if np.any(joint_lim <= 0.0):
+            raise ValueError("Maximum joint velocities must be strictly positive.")
+
+        delta_q = np.diff(trajectory, axis=0)
+        segment_times = np.max(np.abs(delta_q) / joint_lim[np.newaxis, :], axis=1)
+        cumulative_times = np.concatenate(([0.0], np.cumsum(segment_times)))
+        total_time = cumulative_times[-1]
+
+        # Keep at least two points to avoid degenerate interpolation.
+        n_interp = max(int(np.ceil(total_time / self._ocp_dt)) + 1, 2)
+
+        # Interpolate trajectory with uniform controller-rate timing.
+        old_times = cumulative_times
+        new_times = np.linspace(0.0, total_time, n_interp)
         interpolated = np.zeros((n_interp, self._nq))
-
         for i in range(self._nq):
             interpolated[:, i] = np.interp(new_times, old_times, trajectory[:, i])
 
-        # Compute joint velocities from a trajectory using finite differences.
-        velocities = np.gradient(interpolated, axis=0) / self._ocp_dt
+        # Compute joint velocities from finite differences at controller timestep.
+        velocities = np.gradient(interpolated, self._ocp_dt, axis=0)
 
         # Return dummy cost value
         return interpolated, velocities, 1.0

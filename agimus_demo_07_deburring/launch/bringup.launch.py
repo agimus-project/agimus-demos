@@ -62,6 +62,9 @@ def launch_setup(
 
     smooth_with_ocp = LaunchConfiguration("smooth_with_ocp")
     smooth_with_ocp_bool = smooth_with_ocp.perform(context).lower() == "true"
+    precomputed_replay_speed_scale = LaunchConfiguration(
+        "precomputed_replay_speed_scale"
+    )
 
     if not smooth_with_ocp_bool:
         trajectory_smoother = "none" if motion_generator_str == "hpp" else "interpolate"
@@ -134,7 +137,12 @@ def launch_setup(
         parameters=[
             get_use_sim_time(),
             ParameterFile(param_file=deburring_path_planner_params, allow_substs=True),
-            {"generators_params.trajectory_smoother": trajectory_smoother},
+            {
+                "generators_params.trajectory_smoother": trajectory_smoother,
+                "generators_params.precomputed_replay_speed_scale": ParameterValue(
+                    precomputed_replay_speed_scale, value_type=float
+                ),
+            },
         ],
     )
 
@@ -199,6 +207,11 @@ def generate_launch_description():
             default_value="hpp",
             description="Motion generator type to use for free movement.",
             choices=["hpp", "diffusion"],
+        ),
+        DeclareLaunchArgument(
+            "precomputed_replay_speed_scale",
+            default_value="1.0",
+            description="Replay speed scale for precomputed trajectories. >1.0 is faster.",
         ),
     ]
 

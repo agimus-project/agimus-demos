@@ -120,6 +120,14 @@ deburring_path_planner:
       description: Path to a folder containing precomputed trajectories.
       default_value: ''
       read_only: true
+    precomputed_replay_speed_scale:
+      type: double
+      description: Replay speed scaling for loaded precomputed trajectories. Greater than
+        1.0 makes replay faster.
+      default_value: 2.0
+      read_only: true
+      validation:
+        gt<>: [0.0]
     diffusion_generator:
       weights_path:
         type: string
@@ -165,6 +173,14 @@ deburring_path_planner:
         validation:
           gt<>: [0.0]
           lt_eq<>: [1.0]
+      slowdown_factor:
+        type: double
+        description: Time scaling factor applied when sampling HPP trajectory. Higher values
+          produce slower motion.
+        default_value: 4.0
+        read_only: true
+        validation:
+          gt<>: [0.0]
       robot_name:
         type: string
         description: Name of the robot used by HPP.

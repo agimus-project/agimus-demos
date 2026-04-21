@@ -59,11 +59,15 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
         deburred_object_name: str,
         joints_to_shrink: list[str],
         joint_shrink_range: float,
+        slowdown_factor: float,
         trajectory_smoother: GenericTrajectorySmoother | None,
     ) -> None:
         self._ocp_dt = ocp_dt
         self._nq = robot_model.nq
         self._nv = robot_model.nv
+        if slowdown_factor <= 0:
+            raise ValueError("slowdown_factor must be positive")
+        self._slowdown_factor = slowdown_factor
 
         self._trajectory_smoother = trajectory_smoother
 
@@ -226,12 +230,10 @@ class HPPPathGenerator(JointSpaceMotionGenerator):
 
         length = p.length()
 
-        # Hardcoded value to slowdown the robot for safety
-        slowdown = 4
-        n_traj_points = int(np.ceil(length / self._ocp_dt)) * slowdown
+        n_traj_points = int(np.ceil(length / self._ocp_dt * self._slowdown_factor))
         trajectory = np.array(
             [
-                p.call(i * self._ocp_dt / slowdown)[0][: self._nq]
+                p.call(i * self._ocp_dt / self._slowdown_factor)[0][: self._nq]
                 for i in range(n_traj_points)
             ]
         )
