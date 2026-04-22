@@ -1,21 +1,46 @@
 ---
 repositories:
+  # vcs_franka/agimus-libfranka-common:
+  #   type: git
+  #   url: https://github.com/agimus-project/agimus-libfranka-common
+  #   version: main
+
+  # vcs_franka/agimus-libfranka:
+  #   type: git
+  #   url: https://github.com/agimus-project/agimus-libfranka
+  #   version: main
+
+  # vcs_franka/agimus-franka-ros2:
+  #   type: git
+  #   url: https://github.com/agimus-project/agimus-franka-ros2
+  #   version: main
+
+  # vcs_franka/agimus-franka-description:
+  #   type: git
+  #   url: https://github.com/agimus-project/agimus-franka-description
+  #   version: main
+
+  vcs_franka/libfranka-common:
+    type: git
+    url: https://github.com/agimus-project/agimus-libfranka-common
+    version: cacc912e12c9864ae644331d1a45bec4574bda6f
+
   vcs_franka/libfranka:
     type: git
-    url: https://github.com/agimus-project/libfranka
-    version: 786e93e98c323d36d57866cd3f25d1f2851eb2e9
+    url: https://github.com/agimus-project/agimus-libfranka
+    version: fc51f939681577484034194f29048da92915a243
 
   vcs_franka/franka_ros2:
     type: git
-    url: https://github.com/agimus-project/franka_ros2
-    version: b4450db350c8ea796eef77290e81b09654f766bb
+    url: https://github.com/agimus-project/agimus-franka-ros2
+    version: 64d972ea178f315bb1240fd4cda4f06900d5ef27
 
   vcs_franka/franka_description:
     type: git
-    url: https://github.com/agimus-project/franka_description
-    version: a729f1103985226d2e51ec9bcf289e6b1e545c52
+    url: https://github.com/agimus-project/agimus-franka-description
+    version: f4d3636588ace64bbdb40c26c9a95d6ba9474093
 
   vcs_franka/ros2_net_ft_driver:
     type: git
     url: https://github.com/gbartyzel/ros2_net_ft_driver
-    version: v0.0.0
+    version: rolling
