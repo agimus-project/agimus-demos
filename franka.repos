@@ -3,19 +3,19 @@ repositories:
   vcs_franka/libfranka:
     type: git
     url: https://github.com/agimus-project/libfranka
-    version: humble
+    version: 786e93e98c323d36d57866cd3f25d1f2851eb2e9
 
   vcs_franka/franka_ros2:
     type: git
     url: https://github.com/agimus-project/franka_ros2
-    version: humble
+    version: b4450db350c8ea796eef77290e81b09654f766bb
 
   vcs_franka/franka_description:
     type: git
     url: https://github.com/agimus-project/franka_description
-    version: humble-devel
+    version: a729f1103985226d2e51ec9bcf289e6b1e545c52
 
   vcs_franka/ros2_net_ft_driver:
     type: git
     url: https://github.com/gbartyzel/ros2_net_ft_driver
-    version: rolling
+    version: v0.0.0
