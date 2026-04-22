@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="obstacle">
+  <!-- Include table -->
+  <xacro:include filename="$(find agimus_demo_09_glue_spreading)/urdf/table.urdf.xacro"/>
+  <!-- Include camera -->
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro"/>
+
+  <!-- Load camera configuration -->
+  <xacro:property name="camera_file" value="${xacro.load_yaml('$(find agimus_demo_09_glue_spreading)/config/camera.yaml')}"/>
+
+  <link name="robot_attachment_link"/>
+  <xacro:table parent_link="robot_attachment_link">
+    <origin xyz="0 0 -0.68" rpy="0 0 0"/>
+  </xacro:table>
+
+  <link name="camera_calibrate_pose"/>
+  <joint name="calibrate_cam_joint" type="fixed">
+    <parent link="robot_attachment_link"/>
+    <child link="camera_calibrate_pose"/>
+    <origin
+      xyz="${camera_file['camera']['pose']['x']} ${camera_file['camera']['pose']['y']} ${camera_file['camera']['pose']['z']}"
+      rpy="${camera_file['camera']['pose']['roll']} ${camera_file['camera']['pose']['pitch']} ${camera_file['camera']['pose']['yaw']}"/>
+  </joint>
+
+  <!-- Sensor definition -->
+  <xacro:sensor_d435 parent="camera_calibrate_pose" name="${camera_file['camera']['name']}" use_nominal_extrinsics="true" use_mesh="true">
+    <origin xyz="0.0325 0.0125 -0.0106" rpy="${pi/2.0} ${-pi/2.0} 0"/>
+  </xacro:sensor_d435>
+
+</robot>

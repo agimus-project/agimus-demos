@@ -1,0 +1,10 @@
+---
+camera:
+  name: cam_1
+  pose: # camera lens pose
+    x: 1.898286
+    y: 0.016007
+    z: 0.564322
+    roll: -2.182
+    pitch: 0.021
+    yaw: 1.570
