@@ -17,7 +17,6 @@
 
   <exec_depend>agimus_demos_common</exec_depend>
   <exec_depend>ros2launch</exec_depend>
-  <exec_depend>agimus_demo_09_glue_spreading</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
