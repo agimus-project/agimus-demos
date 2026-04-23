@@ -11,14 +11,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
       <geometry>
-        <mesh filename="package://agimus_demo_09_glue_spreading/meshes/table.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://agimus_demo_04_dual_arm_tiago_pro/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
       <geometry>
-        <mesh filename="package://agimus_demo_09_glue_spreading/meshes/table.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://agimus_demo_04_dual_arm_tiago_pro/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
