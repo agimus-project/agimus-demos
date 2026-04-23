@@ -1,24 +1,24 @@
 ---
 repositories:
-  # vcs_franka/agimus-libfranka-common:
-  #   type: git
-  #   url: https://github.com/agimus-project/agimus-libfranka-common
-  #   version: main
+  vcs_franka/agimus-libfranka-common:
+    type: git
+    url: https://github.com/agimus-project/agimus-libfranka-common
+    version: main
 
-  # vcs_franka/agimus-libfranka:
-  #   type: git
-  #   url: https://github.com/agimus-project/agimus-libfranka
-  #   version: main
+  vcs_franka/agimus-libfranka:
+    type: git
+    url: https://github.com/agimus-project/agimus-libfranka
+    version: main
 
-  # vcs_franka/agimus-franka-ros2:
-  #   type: git
-  #   url: https://github.com/agimus-project/agimus-franka-ros2
-  #   version: main
+  vcs_franka/agimus-franka-ros2:
+    type: git
+    url: https://github.com/agimus-project/agimus-franka-ros2
+    version: main
 
-  # vcs_franka/agimus-franka-description:
-  #   type: git
-  #   url: https://github.com/agimus-project/agimus-franka-description
-  #   version: main
+  vcs_franka/agimus-franka-description:
+    type: git
+    url: https://github.com/agimus-project/agimus-franka-description
+    version: main
 
   vcs_franka/libfranka-common:
     type: git
