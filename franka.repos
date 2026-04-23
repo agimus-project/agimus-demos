@@ -20,11 +20,6 @@ repositories:
     url: https://github.com/agimus-project/agimus-franka-description
     version: main
 
-  vcs_franka/libfranka-common:
-    type: git
-    url: https://github.com/agimus-project/agimus-libfranka-common
-    version: cacc912e12c9864ae644331d1a45bec4574bda6f
-
   vcs_franka/libfranka:
     type: git
     url: https://github.com/agimus-project/agimus-libfranka
@@ -44,3 +39,8 @@ repositories:
     type: git
     url: https://github.com/gbartyzel/ros2_net_ft_driver
     version: rolling
+
+  vcs_franka/realsense-ros:
+    type: git
+    url: https://github.com/realsenseai/realsense-ros
+    version: ros2-master

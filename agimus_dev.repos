@@ -12,8 +12,8 @@ repositories:
 
   vcs_agimus/agimus_controller:
     type: git
-    url: https://github.com/agimus-project/agimus_controller
-    version: cf96c9312877477005888af86019fa6d1225b96e
+    url: https://github.com/MaximilienNaveau/agimus_controller
+    version: fix/mnaveau/setup-py
 
   vcs_agimus/agimus_msgs:
     type: git
