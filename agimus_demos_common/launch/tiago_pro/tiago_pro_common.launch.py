@@ -13,6 +13,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 import os
+import yaml
 
 from launch.substitutions import (
     Command,
@@ -29,16 +30,6 @@ from agimus_demos_common.launch_utils import (
     generate_default_tiago_pro_args,
     get_use_sim_time,
 )
-
-PASSTHROUGH_CONTROLLERS = [
-    "arm_right_1_joint_inertia_shaping_controller",
-    "arm_right_2_joint_inertia_shaping_controller",
-    "arm_right_3_joint_inertia_shaping_controller",
-    "arm_right_4_joint_inertia_shaping_controller",
-    "arm_right_5_joint_inertia_shaping_controller",
-    "arm_right_6_joint_inertia_shaping_controller",
-    "arm_right_7_joint_inertia_shaping_controller",
-]
 
 
 def launch_setup(
@@ -64,12 +55,15 @@ def launch_setup(
         lfc_yaml = context.perform_substitution(LaunchConfiguration("lfc_yaml"))
         jse_yaml = context.perform_substitution(LaunchConfiguration("jse_yaml"))
         pc_yaml = context.perform_substitution(LaunchConfiguration("pc_yaml"))
+        pc_yaml_path = os.path.join(lfc_pkg_share, pc_yaml)
+        with open(pc_yaml_path) as f:
+            passthrough_controllers = list(yaml.safe_load(f).keys())
         lfc_controllers_params = [
-            os.path.join(lfc_pkg_share, pc_yaml),
+            pc_yaml_path,
             os.path.join(lfc_pkg_share, jse_yaml),
             os.path.join(lfc_pkg_share, lfc_yaml),
         ]
-        lfc_controllers = PASSTHROUGH_CONTROLLERS + lfc_controllers
+        lfc_controllers = passthrough_controllers + lfc_controllers
     else:
         lfc_controllers_params = [
             "/tmp/joint_state_estimator_params.yaml",
@@ -162,7 +156,7 @@ def launch_setup(
                 "arm_right_controller",
                 "--activate",
             ]
-            + PASSTHROUGH_CONTROLLERS
+            + passthrough_controllers
             + ["linear_feedback_controller", "joint_state_estimator"],
             output="screen",
         )
@@ -174,7 +168,7 @@ def launch_setup(
             rviz_node,
             RegisterEventHandler(
                 OnProcessExit(
-                    target_action=spawn_lfc_controllers.entities[2],
+                    target_action=spawn_lfc_controllers.entities[-1],
                     on_exit=[activate_controllers],
                 )
             ),
