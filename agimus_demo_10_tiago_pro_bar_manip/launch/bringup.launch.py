@@ -1,7 +1,7 @@
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
@@ -10,21 +10,19 @@ from launch.substitutions import Command, FindExecutable
 from agimus_demos_common.launch_utils import (
     generate_default_tiago_pro_args,
     get_use_sim_time,
-    ament_prefix_to_ros_package,
 )
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
-from launch.actions import (
-    ExecuteProcess,
-)
 import numpy as np
 import pinocchio as pin
+from launch.actions import DeclareLaunchArgument
 
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    ref_frame = LaunchConfiguration("ref_frame").perform(context)
 
     rviz_config_path = PathJoinSubstitution(
         [
@@ -136,17 +134,17 @@ def launch_setup(
     )
 
     tf_node_plate = static_transform_publisher_node(
-        frame_id="world",
+        frame_id=f"{ref_frame}",
         child_frame_id="plate_base_link",
-        xyz=[2.3, 0, 0.66],
+        xyz=[2.3, 0, 0.56],
         rot_xyzw=["0", "0", "0", "1"],
     )
     quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([np.pi / 2, -0.6, 0])))
 
     tf_node_bar = static_transform_publisher_node(
-        frame_id="world",
+        frame_id=f"{ref_frame}",
         child_frame_id="bar_base_link",
-        xyz=["1.6", "0", "0.67"],
+        xyz=["1.6", "0", "0.57"],
         rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
     )
 
@@ -162,23 +160,10 @@ def launch_setup(
     quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, np.pi])))
 
     tf_node_table = static_transform_publisher_node(
-        frame_id="world",
+        frame_id=f"{ref_frame}",
         child_frame_id="table_link",
         xyz=["2.9", "0", "0."],
         rot_xyzw=quat_values.coeffs().tolist(),
-    )
-    hpp_corba_server = ExecuteProcess(
-        cmd=["hppcorbaserver"],
-        # Extra env variable for HPP to discover packages correctly
-        additional_env=ament_prefix_to_ros_package(context),
-        output="screen",
-    )
-
-    gepetto_gui = ExecuteProcess(
-        cmd=["gepetto-gui"],
-        # Extra env variable for HPP to discover packages correctly
-        additional_env=ament_prefix_to_ros_package(context),
-        output="screen",
     )
     # TODO we should get the srdf use by hpp from a topic directly
     # robot_srdf_description =  ParameterValue(
@@ -221,14 +206,18 @@ def launch_setup(
         tf_node_plate,
         tf_node_bar,
         tf_node_table,
-        hpp_corba_server,
-        gepetto_gui,
         orchestrator,
         tf_goal_bar,
     ]
 
 
 def generate_launch_description():
-    return LaunchDescription(
-        generate_default_tiago_pro_args() + [OpaqueFunction(function=launch_setup)]
+    args = generate_default_tiago_pro_args()
+    args.append(
+        DeclareLaunchArgument(
+            "ref_frame",
+            default_value="base_link",
+            description="Reference frame for the demo (world, map, odom...)",
+        )
     )
+    return LaunchDescription(args + [OpaqueFunction(function=launch_setup)])

@@ -51,25 +51,21 @@ class HPPActionServer(Node):
     def __init__(self):
         super().__init__("hpp_action_server")
 
-        # ── Sensor state ───────────────────────────────────────────────────
         self._joint_state = None
         self._odom = None
         self._bar_pose = None
         self._plate_pose = None
 
-        # ── Planning state ─────────────────────────────────────────────────
+        # == Planning state =================================================
         self._planning = False
         self._traj_pick = None
         self._traj_place = None
         self._q_after_grasp = None
 
         self._cb_group = ReentrantCallbackGroup()
-
-        # ── HPP init (deferred until /robot_description received) ──────────
         self._hpp: HPPPathGenerator | None = None
         self.get_logger().info("Waiting for /robot_description …")
 
-        # ── /robot_description — transient_local so we get the latched value
         qos_rd = QoSProfile(
             depth=1,
             reliability=QoSReliabilityPolicy.RELIABLE,
@@ -84,7 +80,7 @@ class HPPActionServer(Node):
             callback_group=self._cb_group,
         )
 
-        # ── /joint_states ──────────────────────────────────────────────────
+        # == /joint_states ==================================================
         from rclpy.qos import QoSReliabilityPolicy as Rel
 
         qos_js = QoSProfile(depth=10, reliability=Rel.BEST_EFFORT)
@@ -96,12 +92,11 @@ class HPPActionServer(Node):
             callback_group=self._cb_group,
         )
 
-        # ── TF2 ────────────────────────────────────────────────────────────
+        # == TF2 ============================================================
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread=True)
         self.create_timer(0.5, self._cb_object_pose, callback_group=self._cb_group)
 
-        # ── Action server ──────────────────────────────────────────────────
         self._action_server = ActionServer(
             self,
             PlanBarGrasp,
@@ -112,11 +107,11 @@ class HPPActionServer(Node):
             callback_group=self._cb_group,
         )
 
-    # ── /robot_description callback ────────────────────────────────────────
+    # == /robot_description callback ===========================================
 
     def _cb_robot_description(self, msg: String):
         if self._hpp is not None:
-            return  # already initialized
+            return
         self._urdf_str = msg.data
         self.get_logger().info("robot_description received — building HPP …")
         self._init_hpp()
@@ -124,11 +119,11 @@ class HPPActionServer(Node):
     def _init_hpp(self):
         urdf_str = self._urdf_str
 
-        # ── Pinocchio model from URDF string ────────────────────────────────
+        # Pinocchio model (still built from the raw URDF string)
         robot_model = pin.buildModelFromXML(urdf_str)
         self.get_logger().info(f"Pinocchio model built: {robot_model.nq} dof")
 
-        # ── SRDF string ─────────────────────────────────────────────────────
+        # == SRDF string =====================================================
         moveit_pkg = get_package_share_directory("tiago_pro_moveit_config")
         srdf_raw = os.path.join(moveit_pkg, "config", "srdf", "tiago_pro.srdf.xacro")
 
@@ -139,7 +134,7 @@ class HPPActionServer(Node):
         )
         srdf_str = _patch_srdf(srdf_string)
 
-        # ── Package paths for objects ───────────────────────────────────────
+        # == Package paths for objects =======================================
         pkg = get_package_share_directory("agimus_demo_10_tiago_pro_bar_manip")
 
         self._hpp = HPPPathGenerator(
@@ -173,7 +168,7 @@ class HPPActionServer(Node):
         )
         self.get_logger().info("HPPPathGenerator ready — action server active.")
 
-    # ── ROS callbacks ──────────────────────────────────────────────────────
+    # == ROS callbacks =========================================================
 
     def _cb_joints(self, msg):
         self._joint_state = msg
@@ -184,7 +179,7 @@ class HPPActionServer(Node):
         self._odom = self._lookup_pose("table_link", "base_footprint")
         self._bar_goal_pose = self._lookup_pose("table_link", "bar_goal_pose")
 
-    # ── Action callbacks ───────────────────────────────────────────────────
+    # == Action callbacks ======================================================
 
     def _goal_cb(self, goal_request):
         if self._hpp is None:
@@ -194,7 +189,6 @@ class HPPActionServer(Node):
         action_type = goal_request.action_type
         gripper = goal_request.gripper
         handle = goal_request.handle
-
         self.get_logger().info(
             f"Goal — action_type='{action_type}' gripper='{gripper}' handle='{handle}'"
         )
@@ -238,18 +232,17 @@ class HPPActionServer(Node):
 
         try:
             if action_type == "grasp":
-                success, message, path_id = self._plan_grasp(gripper_name, handle_name)
+                success, message = self._plan_grasp(gripper_name, handle_name)
             else:
-                success, message, path_id = self._plan_place(gripper_name, handle_name)
+                success, message = self._plan_place(gripper_name, handle_name)
         except Exception as e:
             import traceback
 
             self.get_logger().error(f"Planning exception:\n{traceback.format_exc()}")
-            success, message, path_id = False, str(e), -1
+            success, message = False, str(e)
 
         result_msg.success = success
         result_msg.message = message
-        result_msg.path_id = path_id
 
         if success:
             goal_handle.succeed()
@@ -259,7 +252,7 @@ class HPPActionServer(Node):
         self._planning = False
         return result_msg
 
-    # ── Planning helpers ───────────────────────────────────────────────────
+    # == Planning helpers ======================================================
 
     def _plan_grasp(self, gripper, handle):
         q_init = self._build_q_init()
@@ -274,16 +267,15 @@ class HPPActionServer(Node):
 
         self._traj_pick = traj
         self._q_after_grasp = q_end
-        path_id = self._hpp._ps.numberPaths() - 1
-        self.get_logger().info(f"Grasp planned (path_id={path_id})")
-        return True, "Grasp planned successfully.", path_id
+        self.get_logger().info("Grasp planned")
+        return True, "Grasp planned successfully."
 
     def _plan_place(self, gripper, handle):
-        q_init_place = list(self._q_after_grasp)  # copy
+        q_init_place = list(self._q_after_grasp)
         r = self._hpp.robot.rankInConfiguration["tiago_pro/root_joint"]
         q_init_place[r] = 3.0
 
-        target_bar_pose = self._bar_goal_pose
+        target_bar_pose = [1.2, 0.0, 0.67, 0.0, 0.0, 0.0, 1.0]
 
         traj, _ = self._hpp.plan_place(
             gripper=gripper,
@@ -295,11 +287,10 @@ class HPPActionServer(Node):
             return False, "Place planning failed.", -1
 
         self._traj_place = traj
-        path_id = self._hpp._ps.numberPaths() - 1
-        self.get_logger().info(f"Place planned (path_id={path_id})")
-        return True, "Place planned successfully.", path_id
+        self.get_logger().info("Place planned")
+        return True, "Place planned successfully"
 
-    # ── State helpers ──────────────────────────────────────────────────────
+    # == State helpers =========================================================
 
     def _wait_for_state(self, timeout=5.0):
         deadline = time.time() + timeout
@@ -349,13 +340,13 @@ class HPPActionServer(Node):
         ):
             return None
         robot = self._hpp.robot
-        q = robot.getCurrentConfig()
+        q = list(pin.neutral(robot.model()))
         for i, joint_name in enumerate(self._joint_state.name):
             full = f"tiago_pro/{joint_name}"
-            if full in robot.jointNames:
+            if full in robot.rankInConfiguration:
                 rank = robot.rankInConfiguration[full]
+                nq = robot.model().joints[robot.model().getJointId(full)].nq
                 value = self._joint_state.position[i]
-                nq = robot.getJointConfigSize(full)
                 if nq == 2:
                     q[rank] = np.cos(value)
                     q[rank + 1] = np.sin(value)
