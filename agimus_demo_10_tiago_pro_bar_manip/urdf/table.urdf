@@ -9,16 +9,16 @@
   </material>
   <link name="table_link">
     <visual>
-      <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
+      <origin rpy="0 0 0" xyz="0.6 0 0.485"/>
       <geometry>
-        <mesh filename="package://agimus_demo_09_glue_spreading/meshes/table.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
+      <origin rpy="0 0 0" xyz="0.6 0 0.485"/>
       <geometry>
-        <mesh filename="package://agimus_demo_09_glue_spreading/meshes/table.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
