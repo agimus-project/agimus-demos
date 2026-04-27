@@ -17,8 +17,8 @@ repositories:
 
   vcs_tiago_pro/pal_gazebo_worlds:
     type: git
-    url: https://github.com/pal-robotics/pal_gazebo_worlds.git
-    version: 4.14.1
+    url: https://github.com/clementPene/pal_gazebo_worlds.git
+    version: humble-devel
 
   vcs_tiago_pro/pal_urdf_utils:
     type: git
@@ -42,18 +42,18 @@ repositories:
 
   vcs_tiago_pro/pal_sea_arm:
     type: git
-    url: https://github.com/pal-robotics/pal_sea_arm.git
-    version: 2.1.1
+    url: https://github.com/clementPene/pal_sea_arm.git
+    version: humble-devel
 
   vcs_tiago_pro/tiago_pro_robot:
     type: git
-    url: https://github.com/pal-robotics/tiago_pro_robot.git
-    version: 2.2.4
+    url: https://github.com/clementPene/tiago_pro_robot.git
+    version: humble-devel
 
   vcs_tiago_pro/tiago_pro_simulation:
     type: git
-    url: https://github.com/pal-robotics/tiago_pro_simulation.git
-    version: 1.16.0
+    url: https://github.com/clementPene/tiago_pro_simulation.git
+    version: humble-devel
 
   vcs_tiago_pro/launch_pal:
     type: git
