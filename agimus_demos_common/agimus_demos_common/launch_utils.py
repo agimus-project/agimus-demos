@@ -402,6 +402,26 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             choices=["True", "False"],
             default_value="True",
         ),
+        DeclareLaunchArgument(
+            "lfc_pkg",
+            default_value="agimus_demos_common",
+            description="Package containing the LFC/JSE/passthrough config files for simulation.",
+        ),
+        DeclareLaunchArgument(
+            "lfc_yaml",
+            default_value="config/tiago_pro/linear_feedback_controller_simu_params.yaml",
+            description="Path relative to lfc_pkg share to the LFC params file (simulation).",
+        ),
+        DeclareLaunchArgument(
+            "jse_yaml",
+            default_value="config/tiago_pro/joint_state_estimator_simu_params.yaml",
+            description="Path relative to lfc_pkg share to the JSE params file (simulation).",
+        ),
+        DeclareLaunchArgument(
+            "pc_yaml",
+            default_value="config/tiago_pro/dummy_controllers.yaml",
+            description="Path relative to lfc_pkg share to the passthrough controllers params file (simulation).",
+        ),
     ]
 
 
