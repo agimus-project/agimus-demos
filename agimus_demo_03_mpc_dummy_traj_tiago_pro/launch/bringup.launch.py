@@ -4,7 +4,7 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
@@ -137,6 +137,7 @@ def launch_setup(
         executable="tuck_arm.py",
         parameters=[get_use_sim_time()],
         output="screen",
+        condition=UnlessCondition(use_gazebo),
     )
 
     #

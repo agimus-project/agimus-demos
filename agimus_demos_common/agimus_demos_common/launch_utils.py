@@ -379,9 +379,10 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             default_value="True",
         ),
         DeclareLaunchArgument(
-            "world_name",
-            description="Specify world name, will be converted to full path.",
-            default_value="empty",
+            "gazebo_version",
+            description="Version of Gazebo: 'gazebo' (Ignition) or 'classic'.",
+            choices=["gazebo", "classic"],
+            default_value="gazebo",
         ),
         DeclareLaunchArgument(
             "tuck_arm",
@@ -394,6 +395,12 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             description="Enable public simulation.",
             choices=["True", "False"],
             default_value="False",
+        ),
+        DeclareLaunchArgument(
+            "play_motion2",
+            description="Launch play_motion2.",
+            choices=["True", "False"],
+            default_value="True",
         ),
     ]
 
