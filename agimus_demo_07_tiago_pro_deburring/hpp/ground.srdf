@@ -1,0 +1,8 @@
+<robot name="ground">
+  <contact name="surface">
+    <link name="base_link"/>
+    <point> 3 -3 0  3 3 0  -3 3 0  -3 -3 0
+    </point>
+    <shape> 4 0 1 2 3</shape>
+  </contact>
+</robot>
