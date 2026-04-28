@@ -41,9 +41,70 @@ safety of people around.
 > [!NOTE]
 > Robot will start oscillating around it's starting point. When restarting the demo make sure robot was stopped with sufficient joint motion left, as during a re-run it might trigger joint limit safety!
 
-Launch the demo
+#### Install the linear-feedback-controller
 
+- Get an alum docker which is a mirror of the robot OS.
+- Create a workspace with the following 2 packages:
+  - https://github.com/loco-3d/linear-feedback-controller
+  - https://github.com/loco-3d/linear-feedback-controller-msgs
+- Use the pal deploy tooling to install this workspace onto the desired robot.
+  See the official PAL documentation.
+
+Further down the line this step will be useless as the linear-feedback-controller packages will be part of the debian packages available for install. Like `apt install pal-alum-linear-feedback-controller`.
+
+#### Setup the environment
+
+- In the docker install cyclonedds and mcap plugin for rosbags.
+  ```bash
+  sudo apt update
+  sudo apt install ros-humble-cyclonedds
+  sudo apt install ros-humble-rmw-cyclonedds-cpp
+  sudo apt install ros-humble-rosbag2-storage-mcap
+  ```
+- Install the tiago-pro packages:
+  ```bash
+  cd ros2_ws/src
+  git clone git@github.com/agimus-project/agimus-demos
+  vcs-import agimus-demos/tiago_pro.repos
+  ```
+- Change the network interface in the
+  `agimus-demos/agimus_demos_common/config/tiago_pro/cyclone_config.xml` with your own.
+- Copy the lfc + jse config in `/tmp` in the docker and on the robot:
+  ```bash
+  cp agimus-demos/agimus_demos_common/config/tiago_pro/* /tmp/
+  scp agimus-demos/agimus_demos_common/config/tiago_pro/* pal@tiago-pro:/tmp/
+  ```
+- Set the cyclone DDS config in bashrc in the docker.
+  The file got copied in the previous step in `/tmp/cyclone_config.xml`.
+  ```bash
+  echo "" >> ~/.bashrc
+  echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
+  echo "export CYCLONEDDS_URI=/tmp/cyclone_config.xml" >> ~/.bashrc
+  echo "export ROS_DOMAIN_ID=2 # for TIAGo-Pro" >> ~/.bashrc
+  ```
+- On the robot remove the laser from the urdf: `pal robot_info set laser_model no-laser`
+- Lastly setup and build all:
+  ```bash
+  cd ~/ros2_ws
+  ./setup.sh
+  ./build.sh
+  ```
+
+#### Start the demo on the robot
+
+Restart the controller on the robot:
 ```bash
-ros2 launch agimus_demo_02_simple_pd_plus bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
+pal module_manager restart
 ```
-Expected result: after starting the demo, a RViz 2 window should be appearing with the Franka robot. The robot's joints oscillating gently.
+
+Start the demo (with `ssh -X` in remote because a terminal window will appear to start the controllers):
+```bash
+ros2 launch agimus_demo_02_simple_pd_plus_tiago_pro bringup.launch.py robot_ip:=<robot-ip> use_rviz:=true
+```
+
+This procedure spawns:
+- A RViz window with the robot.
+- A xterm that asks for pressing enter to switch to torque control.
+
+Once the user is ready with an emergency stop at hand, press enter in the xterm.
+The robot will switch from position control to torque control and its joints will oscillate gently.
