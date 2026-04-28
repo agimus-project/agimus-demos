@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<robot name="table">
+  <contact name="top">
+    <link name="table_top_link"/>
+    <point> 0.3 -0.3 0.0125   0.3 0.3 0.0125  -0.3 0.3 0.0125  -0.3 -0.3 0.0125 </point>
+    <shape> 4 0 1 2 3 </shape>
+  </contact>
+</robot>
