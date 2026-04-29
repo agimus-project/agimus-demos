@@ -26,4 +26,8 @@
     </inertial>
   </link>
 
+  <gazebo>
+    <static>true</static>
+  </gazebo>
+
 </robot>

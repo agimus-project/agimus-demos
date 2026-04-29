@@ -32,7 +32,9 @@ from std_msgs.msg import String
 import yaml
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-PYLONE_SRDF = os.path.join(_SCRIPTS_DIR, "..", "hpp", "pylone.srdf")
+_PKG_DIR = os.path.join(_SCRIPTS_DIR, "..")
+PYLONE_SRDF = os.path.join(_PKG_DIR, "hpp", "pylone.srdf")
+DEFAULT_OUTPUT = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
 EE_LINK = "gripper_right_fingertip_left_link"
 GRAVITY_COMP_CONTROLLER = "arm_right_gravity_compensation_controller_torque"
@@ -131,8 +133,8 @@ def main():
         help=f"3 hole names from pylone SRDF (default: {DEFAULT_HOLES})"
     )
     parser.add_argument(
-        "--output", default=None,
-        help="Path to write result YAML (default: print only)"
+        "--output", default=DEFAULT_OUTPUT,
+        help=f"Path to write result YAML (default: {DEFAULT_OUTPUT})"
     )
     args = parser.parse_args()
 
@@ -186,25 +188,21 @@ def main():
     print(f"residuals (m):        {[round(r, 5) for r in residuals]}")
     print(f"mean residual (m):    {np.mean(residuals):.5f}")
 
+    q_list = [round(float(v), 6) for v in [quat.x, quat.y, quat.z, quat.w]]
     result = {
-        "scene": {
-            "pylone_x": round(float(t[0]), 4),
-            "pylone_y": round(float(t[1]), 4),
-            "pylone_z": round(float(t[2]), 4),
-        }
+        "pylone_x": round(float(t[0]), 4),
+        "pylone_y": round(float(t[1]), 4),
+        "pylone_z": round(float(t[2]), 4),
+        "pylone_quat": q_list,
     }
-    print("\nYAML snippet for hpp_orchestrator_params.yaml:")
-    print(yaml.dump(result, default_flow_style=False))
-
-    if args.output:
-        with open(args.output, "w") as f:
-            yaml.dump(result, f)
-        print(f"Result written to {args.output}")
+    with open(args.output, "w") as f:
+        yaml.dump(result, f, default_flow_style=False)
+    print(f"\nResult written to {args.output}")
 
     t_list = [round(float(v), 4) for v in t]
     print("To visualize in Viser, run in the HPP orchestrator IPython shell:")
     print(f"    o.init_viewer()  # if not already open")
-    print(f"    o.update_pylone_pose({t_list})")
+    print(f"    o.update_pylone_pose({t_list}, {q_list})")
 
     node.destroy_node()
     rclpy.shutdown()

@@ -32,7 +32,7 @@ banner = (
     "║   TIAGo Pro — HPP Deburring Orchestrator                 ║\n"
     "╠══════════════════════════════════════════════════════════╣\n"
     "║  o.sync_from_robot()         — sync q_init from robot state    ║\n"
-    "║  o.update_pylone_pose()      — update pylone + show in Viser   ║\n"
+    "║  o.reload_pylone_pose()      — reload pylone pose from config   ║\n"
     "║  o.activate_lfc()            — switch to torque control        ║\n"
     "║  o.plan()                    — run HPP planner                 ║\n"
     "║  o.execute()                 — publish trajectory to MPC       ║\n"
