@@ -37,19 +37,15 @@ from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 
 PKG = "agimus_demo_07_fixed_tiago_pro_deburring"
 
-_cfg_path = os.path.join(
-    os.path.dirname(__file__), "..", "config", "hpp_orchestrator_params.yaml"
+_pylone_pose_path = os.path.join(
+    os.path.dirname(__file__), "..", "config", "pylone_pose.yaml"
 )
-with open(_cfg_path) as _f:
-    _cfg = yaml.safe_load(_f)
+with open(_pylone_pose_path) as _f:
+    _pp = yaml.safe_load(_f)
 
-_s = _cfg["scene"]
-TABLE_X = _s["table_x"]
-TABLE_Y = _s["table_y"]
-TABLE_Z = _s["table_z"]
-PYLONE_X = TABLE_X
-PYLONE_Y = TABLE_Y
-PYLONE_Z = _s["pylone_z_offset"]
+PYLONE_X = _pp["pylone_x"]
+PYLONE_Y = _pp["pylone_y"]
+PYLONE_Z = _pp["pylone_z"]
 
 
 def launch_setup(
@@ -58,7 +54,11 @@ def launch_setup(
 
     tiago_robot_launch = generate_include_launch(
         "tiago_pro_common.launch.py",
-        extra_launch_arguments={"tuck_arm": "False"},
+        extra_launch_arguments={
+            "tuck_arm": "False",
+            "end_effector_right": "pal-pro-gripper",
+            "end_effector_left": "pal-pro-gripper",
+        },
     )
 
     wait_for_non_zero_joints_node = Node(
@@ -91,17 +91,6 @@ def launch_setup(
         ],
         remappings=[
             ("robot_description_semantic", "robot_srdf_description"),
-        ],
-        output="screen",
-    )
-
-    spawn_table_node = Node(
-        package="ros_gz_sim",
-        executable="create",
-        arguments=[
-            "-name", "table",
-            "-file", PathJoinSubstitution([FindPackageShare(PKG), "urdf", "table.urdf"]),
-            "-x", str(TABLE_X), "-y", str(TABLE_Y), "-z", str(TABLE_Z),
         ],
         output="screen",
     )
@@ -149,7 +138,6 @@ def launch_setup(
 
     return [
         tiago_robot_launch,
-        spawn_table_node,
         spawn_pylone_node,
         wait_for_non_zero_joints_node,
         environment_publisher_node,

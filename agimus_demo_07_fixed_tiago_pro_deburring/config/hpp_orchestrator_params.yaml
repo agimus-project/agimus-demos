@@ -9,13 +9,6 @@ trajectory:
   dt: 0.01          # sampling period (s) — must match agimus_controller rate
   time_scale: 2.0   # stretch HPP path time — increase to slow down execution
 
-# ── Scene geometry ────────────────────────────────────────────────────────────
-scene:
-  table_x: 1.5
-  table_y: 0.0
-  table_z: 0.0
-  pylone_z_offset: 1.03   # table surface (0.73) + pylone base height (0.30)
-
 # ── Handle (hole_tiago_25 on right face of pylone) ───────────────────────────
 handle:
   link: "pylone/pylone_link"

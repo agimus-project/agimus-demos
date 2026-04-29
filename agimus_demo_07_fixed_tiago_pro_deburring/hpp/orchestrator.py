@@ -49,8 +49,6 @@ _PKG_DIR    = os.path.join(_HPP_DIR, "..")
 ROBOT_SRDF  = os.path.join(_HPP_DIR, "tiago_pro.srdf")
 PYLONE_SRDF = os.path.join(_HPP_DIR, "pylone.srdf")
 PYLONE_URDF = os.path.join(_PKG_DIR, "urdf", "pylone.urdf")
-TABLE_SRDF  = os.path.join(_HPP_DIR, "table.srdf")
-TABLE_URDF  = os.path.join(_PKG_DIR, "urdf", "table.urdf")
 GROUND_SRDF = os.path.join(_HPP_DIR, "ground.srdf")
 GROUND_URDF = os.path.join(_PKG_DIR, "urdf", "ground.urdf")
 
@@ -61,13 +59,7 @@ with open(_CFG_FILE) as _f:
 DT         = _cfg["trajectory"]["dt"]
 TIME_SCALE = _cfg["trajectory"]["time_scale"]
 
-_s        = _cfg["scene"]
-TABLE_X   = _s["table_x"]
-TABLE_Y   = _s["table_y"]
-TABLE_Z   = _s["table_z"]
-PYLONE_X  = TABLE_X
-PYLONE_Y  = TABLE_Y
-PYLONE_Z  = _s["pylone_z_offset"]
+_PYLONE_POSE_FILE = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
 _h           = _cfg["handle"]
 HANDLE_LINK  = _h["link"]
@@ -187,12 +179,6 @@ class Orchestrator:
             pin.SE3.Identity(),
         )
         urdf.loadModel(
-            robot, 0, "table", "anchor",
-            TABLE_URDF,
-            TABLE_SRDF,
-            pin.SE3(np.eye(3), np.array([TABLE_X, TABLE_Y, TABLE_Z])),
-        )
-        urdf.loadModel(
             robot, 0, "pylone", "freeflyer",
             PYLONE_URDF,
             PYLONE_SRDF,
@@ -210,15 +196,14 @@ class Orchestrator:
         self._right_arm_idx = _idx("tiago_pro/arm_right_1_joint")
         self._pylone_idx    = _idx("pylone/root_joint")
 
-        robot.setJointBounds("pylone/root_joint", [
-            PYLONE_X - 0.01, PYLONE_X + 0.01,
-            PYLONE_Y - 0.01, PYLONE_Y + 0.01,
-            PYLONE_Z - 0.01, PYLONE_Z + 0.01,
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-        ])
+        with open(_PYLONE_POSE_FILE) as _pf:
+            _pc = yaml.safe_load(_pf)
+        _px = _pc["pylone_x"]
+        _py = _pc["pylone_y"]
+        _pz = _pc["pylone_z"]
+        _pq = _pc.get("pylone_quat", [0.0, 0.0, 0.0, 1.0])
+
+        self._set_pylone_bounds(_px, _py, _pz)
 
         # Add handle: Rx(-90°) so handle Z = world +Y (into the hole)
         _R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
@@ -238,7 +223,20 @@ class Orchestrator:
         self._left_arm_lock_values = list(LEFT_ARM_TUCK)
         self.q_init[li:li+7] = LEFT_ARM_TUCK
         self.q_init[ri:ri+7] = RIGHT_ARM_TUCK
-        self.q_init[pi:pi+7] = [PYLONE_X, PYLONE_Y, PYLONE_Z, 0., 0., 0., 1.]
+        self.q_init[pi:pi+3] = [_px, _py, _pz]
+        self.q_init[pi+3:pi+7] = _pq
+
+    def _set_pylone_bounds(self, x, y, z, margin: float = 0.001):
+        """Lock pylone position with tight bounds so HPP cannot move it."""
+        self.robot.setJointBounds("pylone/root_joint", [
+            x - margin, x + margin,
+            y - margin, y + margin,
+            z - margin, z + margin,
+            -float("Inf"), float("Inf"),
+            -float("Inf"), float("Inf"),
+            -float("Inf"), float("Inf"),
+            -float("Inf"), float("Inf"),
+        ])
 
     # ── Constraint graph setup ─────────────────────────────────────────────────
 
@@ -300,7 +298,6 @@ class Orchestrator:
 
         sm = SecurityMargins(problem, factory, ["tiago_pro", "pylone"], robot)
         sm.setSecurityMarginBetween("tiago_pro", "pylone", 0.05)
-        sm.setSecurityMarginBetween("tiago_pro", "table", 0.05)
         sm.apply()
 
         for jname in model.names:
@@ -614,15 +611,33 @@ class Orchestrator:
 
     # ── Pylone pose update ────────────────────────────────────────────────────
 
-    def update_pylone_pose(self, t: list) -> None:
-        """Update pylone position in q_init and display in Viser if open."""
+    def reload_pylone_pose(self) -> None:
+        """Read pylone pose from config/pylone_pose.yaml and update q_init."""
+        if not os.path.exists(_PYLONE_POSE_FILE):
+            print(f"No pylone pose file found at {_PYLONE_POSE_FILE}.")
+            print("Run scripts/localize_pylone.py first.")
+            return
+        with open(_PYLONE_POSE_FILE) as f:
+            cfg = yaml.safe_load(f)
+        t = [cfg["pylone_x"], cfg["pylone_y"], cfg["pylone_z"]]
+        q = cfg.get("pylone_quat", [0.0, 0.0, 0.0, 1.0])
+        self.update_pylone_pose(t, q)
+
+    def update_pylone_pose(self, t: list, q: list = None) -> None:
+        """Update pylone pose in q_init and display in Viser if open.
+
+        t: [x, y, z] in base_link frame
+        q: [qx, qy, qz, qw] orientation (default: identity)
+        """
         t = np.array(t)
+        q = np.array(q) if q is not None else np.array([0., 0., 0., 1.])
+        self._set_pylone_bounds(t[0], t[1], t[2])
         pi = self._pylone_idx
         self.q_init[pi:pi+3] = t
-        self.q_init[pi+3:pi+7] = [0., 0., 0., 1.]
+        self.q_init[pi+3:pi+7] = q
         if hasattr(self, "_viewer"):
             self._viewer(self.q_init)
-        print(f"Pylone position updated to {np.round(t, 4).tolist()}.")
+        print(f"Pylone pose updated: t={np.round(t, 4).tolist()}, q={np.round(q, 4).tolist()}.")
         if not hasattr(self, "_viewer"):
             print("Call o.init_viewer() to visualize.")
 
