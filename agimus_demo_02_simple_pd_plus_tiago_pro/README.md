@@ -17,6 +17,11 @@ This demo requires source built of dependencies found in:
 > [!NOTE]
 > Gazebo simulation of tiago-pro robots require very high frequency of the simulated environment, hence users might experience high CPU utilization or even errors in cases where older and less powerful computers are used.
 
+Make sure `ROS_DOMAIN_ID` is set to avoid interference with other ROS 2 nodes on the network:
+```bash
+export ROS_DOMAIN_ID=<your_id>
+```
+
 To launch the demo run:
 
 ```bash
