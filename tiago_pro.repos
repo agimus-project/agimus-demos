@@ -17,8 +17,8 @@ repositories:
 
   vcs_tiago_pro/pal_gazebo_worlds:
     type: git
-    url: https://github.com/clementPene/pal_gazebo_worlds.git
-    version: humble-devel
+    url: https://github.com/pal-robotics/pal_gazebo_worlds.git
+    version: 4.14.1
 
   vcs_tiago_pro/pal_urdf_utils:
     type: git
