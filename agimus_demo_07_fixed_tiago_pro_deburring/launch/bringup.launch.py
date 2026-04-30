@@ -107,6 +107,7 @@ def launch_setup(
             "-x", str(PYLONE_X), "-y", str(PYLONE_Y), "-z", str(PYLONE_Z),
         ],
         output="screen",
+        condition=IfCondition(LaunchConfiguration("use_gazebo")),
     )
 
     mpc_debugger = mpc_debugger_node(
