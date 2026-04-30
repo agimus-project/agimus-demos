@@ -7,13 +7,18 @@ repositories:
 
   vcs_tiago_pro/pal_sea_arm_moveit_config:
     type: git
-    url: https://github.com/pal-robotics/pal_sea_arm_moveit_config.git
-    version: 1.0.5
+    url: https://github.com/clementPene/pal_sea_arm_moveit_config.git
+    version: humble-devel
 
   vcs_tiago_pro/tiago_pro_moveit_config:
     type: git
-    url: https://github.com/pal-robotics/tiago_pro_moveit_config.git
-    version: 1.5.0
+    url: https://github.com/clementPene/tiago_pro_moveit_config.git
+    version: humble-devel
+
+  vcs_tiago_pro/pal_atc:
+    type: git
+    url: https://github.com/clementPene/pal_atc.git
+    version: humble-devel
 
   vcs_tiago_pro/pal_gazebo_worlds:
     type: git
