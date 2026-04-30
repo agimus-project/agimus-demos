@@ -17,10 +17,10 @@ agimus_controller_node:
       max_qp_iter: 50
       max_iter: 5
       activate_callback: false
-      effector_frame_name: gripper_right_fingertip_left_link
+      effector_frame_name: gripper_right_tool_holder
       definition_yaml_file: package://agimus_demo_07_fixed_tiago_pro_deburring/config/ocp_definition_file.yaml
     robot_attachment_frame: universe
     collision_pairs_names: [cp_1]
     cp_1:
-      first: arm_right_7_link_0
-      second: arm_left_7_link_0
+      first: gripper_right_pal_atc_base_link_0
+      second: gripper_left_base_finger_left_link_0

@@ -36,7 +36,7 @@ _PKG_DIR = os.path.join(_SCRIPTS_DIR, "..")
 PYLONE_SRDF = os.path.join(_PKG_DIR, "hpp", "pylone.srdf")
 DEFAULT_OUTPUT = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
-EE_LINK = "gripper_right_fingertip_left_link"
+EE_LINK = "gripper_right_tool_holder"
 GRAVITY_COMP_CONTROLLER = "arm_right_gravity_compensation_controller_torque"
 ARM_POSITION_CONTROLLER = "arm_right_controller"
 

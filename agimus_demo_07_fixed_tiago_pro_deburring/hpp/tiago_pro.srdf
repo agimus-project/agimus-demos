@@ -89,27 +89,19 @@
       <link name="arm_left_tool_link"/>
   </gripper>
   <group name="gripper_right">
-    <link name="gripper_right_base_link"/>
-    <link name="gripper_right_inner_finger_left_link"/>
-    <link name="gripper_right_inner_finger_right_link"/>
-    <link name="gripper_right_outer_finger_left_link"/>
-    <link name="gripper_right_outer_finger_right_link"/>
-    <link name="gripper_right_fingertip_left_link"/>
-    <link name="gripper_right_fingertip_right_link"/>
-    <joint name="gripper_right_finger_joint"/>
+    <link name="gripper_right_pal_atc_base_link"/>
+    <link name="gripper_right_tool_mount"/>
+    <link name="gripper_right_tool_holder"/>
+    <joint name="gripper_right_tool_mount_joint"/>
   </group>
   <!--PASSIVE JOINT: Purpose: this element is used to mark joints that are not actuated-->
-  <passive_joint name="gripper_right_inner_finger_left_joint"/>
-  <passive_joint name="gripper_right_inner_finger_right_joint"/>
-  <passive_joint name="gripper_right_outer_finger_right_joint"/>
-  <passive_joint name="gripper_right_fingertip_left_joint"/>
-  <passive_joint name="gripper_right_fingertip_right_joint"/>
+  <passive_joint name="gripper_right_pal_atc_base_joint"/>
   <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
   <end_effector group="gripper_right" name="gripper_right" parent_group="arm_right" parent_link="arm_right_tool_link"/>
-  <!-- gripper right: TCP frame attached to arm_right_tool_link -->
+  <!-- gripper right: TCP frame at gripper_right_tool_holder (0.142m from arm_right_tool_link) -->
   <gripper name="gripper" clearance="0.05">
-    <position xyz="0 0 0.15" wxyz="1 0 0 0" />
-    <link name="arm_right_tool_link"/>
+    <position xyz="0 0 0.0" wxyz="1 0 0 0" />
+    <link name="gripper_right_tool_holder"/>
   </gripper>
   <disable_collisions link1="base_antenna_left_link" link2="base_antenna_right_link" reason="Never"/>
   <disable_collisions link1="base_antenna_left_link" link2="base_dock_link" reason="Never"/>
