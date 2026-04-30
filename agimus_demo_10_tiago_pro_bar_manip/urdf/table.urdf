@@ -9,14 +9,14 @@
   </material>
   <link name="table_link">
     <visual>
-      <origin rpy="0 0 0" xyz="0.6 0 0.485"/>
+      <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
       <geometry>
         <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0.6 0 0.485"/>
+      <origin rpy="0 0 0" xyz="0.6 0 0.585"/>
       <geometry>
         <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl" scale="0.001 0.001 0.001"/>
       </geometry>
