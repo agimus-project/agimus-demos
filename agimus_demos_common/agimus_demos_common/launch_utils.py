@@ -291,13 +291,13 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
         DeclareLaunchArgument(
             "end_effector_right",
             description="End effector model right arm.",
-            choices=["pal-pro-gripper", "custom", "no-end-effector"],
+            choices=["pal-pro-gripper", "pal-atc", "custom", "no-end-effector"],
             default_value="no-end-effector",
         ),
         DeclareLaunchArgument(
             "end_effector_left",
             description="End effector model left arm.",
-            choices=["pal-pro-gripper", "custom", "no-end-effector"],
+            choices=["pal-pro-gripper", "pal-atc", "custom", "no-end-effector"],
             default_value="no-end-effector",
         ),
         DeclareLaunchArgument(
