@@ -284,12 +284,7 @@ class Orchestrator:
                      "gripper_left_inner_finger_right_joint",
                      "gripper_left_fingertip_right_joint",
                      "gripper_left_outer_finger_right_joint",
-                     "gripper_right_finger_joint",
-                     "gripper_right_inner_finger_left_joint",
-                     "gripper_right_fingertip_left_joint",
-                     "gripper_right_inner_finger_right_joint",
-                     "gripper_right_fingertip_right_joint",
-                     "gripper_right_outer_finger_right_joint"]:
+                     "gripper_right_tool_mount_joint"]:
             locked.append(_lock(f"tiago_pro/{name}", 0.0))
         locked.append(_lock("tiago_pro/head_1_joint", 0.0))
         locked.append(_lock("tiago_pro/head_2_joint", 0.0))

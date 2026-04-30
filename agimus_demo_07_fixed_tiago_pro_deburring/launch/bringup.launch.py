@@ -56,7 +56,7 @@ def launch_setup(
         "tiago_pro_common.launch.py",
         extra_launch_arguments={
             "tuck_arm": "False",
-            "end_effector_right": "pal-pro-gripper",
+            "end_effector_right": "pal-atc",
             "end_effector_left": "pal-pro-gripper",
         },
     )
@@ -110,7 +110,7 @@ def launch_setup(
     )
 
     mpc_debugger = mpc_debugger_node(
-        "gripper_right_fingertip_left_link",
+        "gripper_right_tool_holder",
         parent_frame="base_link",
         cost_plot=True,
         node_kwargs=dict(
