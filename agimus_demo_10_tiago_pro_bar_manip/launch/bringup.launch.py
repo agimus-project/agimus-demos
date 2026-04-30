@@ -136,7 +136,7 @@ def launch_setup(
     tf_node_plate = static_transform_publisher_node(
         frame_id=f"{ref_frame}",
         child_frame_id="plate_base_link",
-        xyz=[2.3, 0, 0.56],
+        xyz=[2.3, 0, 0.66],
         rot_xyzw=["0", "0", "0", "1"],
     )
     quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([np.pi / 2, -0.6, 0])))
@@ -144,7 +144,7 @@ def launch_setup(
     tf_node_bar = static_transform_publisher_node(
         frame_id=f"{ref_frame}",
         child_frame_id="bar_base_link",
-        xyz=["1.6", "0", "0.57"],
+        xyz=["1.6", "0", "0.67"],
         rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
     )
 

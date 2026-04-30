@@ -7,7 +7,6 @@ import yaml
 
 from pyhpp.manipulation import Device, Graph, Problem
 from pyhpp.manipulation import urdf
-from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory
 from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint
 
 from agimus_demo_10_tiago_pro_bar_manip.planner.path_planner import PathPlanner
@@ -52,7 +51,7 @@ class HPPPathGenerator:
         for gname, config in self._handle_config_file.get("grippers", {}).items():
             self._handles_config[gname] = config.get("handles", [])
 
-        # ── HPP Device ────────────────────────────────────────────────────────
+        # == HPP Device ========================================================
         robot = Device(f"{robot_name}-manip")
         urdf.loadModelFromString(
             robot,
@@ -77,7 +76,7 @@ class HPPPathGenerator:
         self.robot = robot
         self._pin_model = robot.model()
 
-        # ── Joint bounds ──────────────────────────────────────────────────────
+        # == Joint bounds ======================================================
         self.robot.setJointBounds(
             f"{handle_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0.0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
@@ -91,15 +90,16 @@ class HPPPathGenerator:
             [-5.0, 5.0, -5.0, 5.0, -1, 1, -1, 1],
         )
 
-        # ── Problem & Graph ───────────────────────────────────────────────────
+        # == Problem & Graph ===================================================
+        # ORDER IS CRITICAL — see comments in _generate_constraint_graph
         self._problem = Problem(self.robot)
         self.graph = Graph("robot", self.robot, self._problem)
         self._problem.constraintGraph(self.graph)
 
         self.graph.errorThreshold(1e-2)
-        self.graph.maxIterations(40)
+        self.graph.maxIterations(500)
 
-        # ── Locked joints ─────────────────────────────────────────────────────
+        # == Locked joints =====================================================
         self._locked_grippers = self._create_locked_grippers(robot_name)
         self._locked_head = self._create_locked_head(robot_name)
         self._locked_wheels = self._create_locked_wheels(robot_name)
@@ -108,8 +108,9 @@ class HPPPathGenerator:
         self._locked_arms, self._locked_torso = self._create_locked_arms_and_torso(
             robot_name
         )
+        self._locked_handle = self._locked_handle()
 
-        # ── Grippers & handles ────────────────────────────────────────────────
+        # == Grippers & handles ================================================
         c = sqrt(2) / 2
         pose_gripper = pin.XYZQUATToSE3(
             np.array([0, 0, 0.19, 0, -c, 0, c], dtype=float)
@@ -145,17 +146,16 @@ class HPPPathGenerator:
             pose_hd_right,
         )
 
-        # ── Build constraint graph & call graph.initialize() ─────────────────
+        # == Build constraint graph (ends with graph.initialize()) =============
         self._generate_constraint_graph()
-        # graph.initialize() is the last call inside _generate_constraint_graph()
 
         self._logger.info("Constraint graph built and initialized.")
 
+        self.init_viewer()
+        # PathPlanner MUST come after graph.initialize()
         self._path_planner = PathPlanner(self._problem, self.graph, self.robot)
 
-        self.init_viewer()
-
-    # ── Locked joint helpers ──────────────────────────────────────────────────
+    # == Locked joint helpers ==================================================
 
     def _make_cts(self, n: int) -> ComparisonTypes:
         cts = ComparisonTypes()
@@ -211,7 +211,7 @@ class HPPPathGenerator:
             f"{robot_name}/wheel_rear_left_joint",
             f"{robot_name}/wheel_rear_right_joint",
         ]:
-            lj = self._lock(joint, [1.0, 0.0])  # SO2: [cos(0), sin(0)]
+            lj = self._lock(joint, [1.0, 0.0])
             self._problem.setConstantRightHandSide(lj, True)
             locked.append(lj)
         return locked
@@ -252,102 +252,256 @@ class HPPPathGenerator:
         self._problem.setConstantRightHandSide(lj_torso, False)
         return locked_arms, [lj_torso]
 
-    # ── Constraint graph ──────────────────────────────────────────────────────
+    def _locked_handle(self):
+        lj = self._lock(
+            f"{self._handle_object.name}/root_joint",
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        )
+        self._problem.setConstantRightHandSide(lj, False)
+        return lj
+
+    def _locked_handle_orientation(self):
+        lj = self._lock(
+            f"{self._handle_object.name}/root_joint",
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        )
+        self._problem.setConstantRightHandSide(lj, False)
+        return lj
+
+    # == Constraint graph (manual — no factory) ================================
 
     def _generate_constraint_graph(self) -> None:
-        handle_object_name = self._handle_object.name
+        """
+        Build the constraint graph manually, replicating exactly what
+        ConstraintGraphFactory.generate() would produce
+        -------------------
+        Structure generated
+        -------------------
+        States (+ waypoint states):
+            free       : place on manifold,  place/complement on foliation
+            grasp      : grasp on manifold,  grasp/complement on foliation
+            _pregrasp  : place + pregrasp    (waypoint)
+            _intersec  : place + grasp       (waypoint)
+            _preplace  : preplace + grasp    (waypoint)
+
+        Loop transitions:
+            "Loop | f"   : free→free,   foliation=place/complement
+            "Loop | 0-0" : grasp→grasp, foliation=grasp/complement
+
+        Waypoint transitions (3 waypoints → 4 sub-transitions each):
+            "g > h | f"   forward:  free→pregrasp→intersec→preplace→grasp
+            "g < h | 0-0" backward: grasp→preplace→intersec→pregrasp→free
+
+        Sub-transition foliations:
+            _01, _12 → place/complement  (_12 also gets grasp/complement)
+            _23, _34 → grasp/complement
+
+        Exposed constraint references (for RHS control from path_planner):
+            self._place_c       : place constraint (bar on surface)
+            self._place_comp_c  : place/complement — fix its RHS from TF to
+                                  prevent HPP from projecting the bar pose
+            self._grasp_c       : grasp constraint
+            self._grasp_comp_c  : grasp/complement
+        """
+        obj_name = self._handle_object.name
+        table_name = self._table_object.name
+        plate_name = self._plate_object.name
+
         gripper_names = list(self._handles_config.keys())
         primary_gripper = gripper_names[0]
         primary_handle = self._handles_config[primary_gripper][0]["name"]
 
-        bar_placement = self.graph.createPlacementConstraint(
-            f"place_{handle_object_name}",
-            [f"{handle_object_name}/bottom"],
+        prefix_fwd = f"{primary_gripper} > {primary_handle} | f"
+        prefix_bwd = f"{primary_gripper} < {primary_handle} | 0-0"
+        grasp_name = f"{primary_gripper} grasps {primary_handle}"
+
+        # == 1. Grasp constraints ==============================================
+        # createGraspConstraint → (grasp, grasp/complement, grasp/hold)
+        grasp_c, grasp_comp_c, grasp_hold_c = self.graph.createGraspConstraint(
+            grasp_name, primary_gripper, primary_handle
+        )
+        pregrasp_c = self.graph.createPreGraspConstraint(
+            f"{primary_gripper} pregrasps {primary_handle}",
+            primary_gripper,
+            primary_handle,
+        )
+
+        # == 2. Placement constraints ==========================================
+        # createPlacementConstraint → (place, place/complement, place/hold)
+        # place/complement RHS is what HPP modifies when projecting onto the
+        # placement manifold. Expose it so callers can fix it from TF poses.
+        place_c, place_comp_c, place_hold_c = self.graph.createPlacementConstraint(
+            f"place_{obj_name}",
+            [f"{obj_name}/bottom"],
             [
-                f"{self._table_object.name}/reinforcment_bar_support",
-                f"{self._plate_object.name}/top",
+                f"{table_name}/reinforcment_bar_support",
+                f"{plate_name}/top",
             ],
         )
-        place_complement_obj = bar_placement[1]
-
-        factory = ConstraintGraphFactory(self.graph)
-        factory.setGrippers([primary_gripper])
-        factory.environmentContacts(
+        preplace_c = self.graph.createPrePlacementConstraint(
+            f"preplace_{obj_name}",
+            [f"{obj_name}/bottom"],
             [
-                f"{self._table_object.name}/reinforcment_bar_support",
-                f"{self._plate_object.name}/top",
-            ]
+                f"{table_name}/reinforcment_bar_support",
+                f"{plate_name}/top",
+            ],
+            0.05,  # width (approach distance)
         )
-        factory.setObjects(
-            [handle_object_name],
-            [[primary_handle]],
-            [[f"{handle_object_name}/bottom"]],
-        )
-        factory.generate()
 
-        # ── Bimanual secondary gripper ────────────────────────────────────────
+        # Keep references for external RHS manipulation in path_planner
+        self._place_c = place_c
+        self._place_comp_c = place_comp_c
+        self._grasp_c = grasp_c
+        self._grasp_comp_c = grasp_comp_c
+
+        # == 3. States =========================================================
+        s_free = self.graph.createState("free", False, 0)
+        s_grasp = self.graph.createState(grasp_name, False, 1)
+        s_pregrasp = self.graph.createState(prefix_fwd + "_pregrasp", True, 0)
+        s_intersec = self.graph.createState(prefix_fwd + "_intersec", True, 0)
+        s_preplace = self.graph.createState(prefix_fwd + "_preplace", True, 0)
+
+        # Manifold constraints on states
+        # self.graph.addNumericalConstraintsToState(s_free,     [self._locked_handle])
+        self.graph.addNumericalConstraintsToState(s_grasp, [grasp_c])
+        self.graph.addNumericalConstraintsToState(s_pregrasp, [pregrasp_c])
+        self.graph.addNumericalConstraintsToState(s_intersec, [grasp_c])
+        self.graph.addNumericalConstraintsToState(s_preplace, [preplace_c, grasp_c])
+
+        # == 4. Loop transitions ===============================================
+        loop_f = self.graph.createTransition(s_free, s_free, "Loop | f", 0, s_free)
+        loop_g = self.graph.createTransition(s_grasp, s_grasp, "Loop | 0-0", 0, s_grasp)
+        self.graph.addNumericalConstraintsToTransition(loop_f, [self._locked_handle])
+        self.graph.addNumericalConstraintsToTransition(loop_g, [grasp_comp_c])
+
+        # == 5. Waypoint transitions ===========================================
+        # 3 waypoints → nbWaypoints=3, automaticBuilder=False (we wire manually)
+        fwd_edge = self.graph.createWaypointTransition(
+            s_free, s_grasp, prefix_fwd, 3, 1, s_free, False
+        )
+        bwd_edge = self.graph.createWaypointTransition(
+            s_grasp, s_free, prefix_bwd, 3, 1, s_free, False
+        )
+
+        # == 6. Sub-transitions ================================================
+        # Forward path: free(0) → pregrasp(1) → intersec(2) → preplace(3) → grasp(4)
+        # Backward:     grasp(4) → preplace(3) → intersec(2) → pregrasp(1) → free(0)
+        # Sub-transition names: fwd _01…_34, bwd _43…_10
+        fwd_states = [s_free, s_pregrasp, s_intersec, s_preplace, s_grasp]
+
+        fwd_subs = []
+        bwd_subs = []
+        for i in range(4):
+            nf = f"{prefix_fwd}_{i}{i + 1}"
+            nb = f"{prefix_bwd}_{i + 1}{i}"
+            # All sub-transitions initially use the containing state of
+            # their source — corrected below per factory logic.
+            tf = self.graph.createTransition(
+                fwd_states[i], fwd_states[i + 1], nf, -1, fwd_states[i]
+            )
+            tb = self.graph.createTransition(
+                fwd_states[i + 1], fwd_states[i], nb, -1, fwd_states[i]
+            )
+            fwd_subs.append(tf)
+            bwd_subs.append(tb)
+            self.graph.setWaypoint(fwd_edge, i, tf, fwd_states[i + 1])
+            self.graph.setWaypoint(bwd_edge, 3 - i, tb, fwd_states[i])
+
+        # Mark short edges (constrained direct paths, not explored by RRT)
+        # Factory marks all but the first forward and last backward as short.
+        for i in range(1, 4):
+            self.graph.setShort(fwd_subs[i], True)
+        for i in range(0, 3):
+            self.graph.setShort(bwd_subs[i], True)
+
+        # Containing states:
+        # M = 1 (pregrasp) + 1 = 2  →  first 2 sub-trans belong to free,
+        #                               last 2 belong to grasp.
+        for tf, tb in [(fwd_subs[0], bwd_subs[0]), (fwd_subs[1], bwd_subs[1])]:
+            self.graph.setContainingNode(tf, s_free)
+            self.graph.setContainingNode(tb, s_free)
+        for tf, tb in [(fwd_subs[2], bwd_subs[2]), (fwd_subs[3], bwd_subs[3])]:
+            self.graph.setContainingNode(tf, s_grasp)
+            self.graph.setContainingNode(tb, s_grasp)
+
+        # Foliations on sub-transitions (parametric complements):
+        #   _01        → place/complement
+        #   _12        → place/complement + grasp/complement
+        #   _23, _34   → grasp/complement
+        self.graph.addNumericalConstraintsToTransition(
+            fwd_subs[0], [self._locked_handle]
+        )
+        self.graph.addNumericalConstraintsToTransition(bwd_subs[0], [place_comp_c])
+
+        self.graph.addNumericalConstraintsToTransition(
+            fwd_subs[1], [self._locked_handle, grasp_comp_c]
+        )
+        self.graph.addNumericalConstraintsToTransition(
+            bwd_subs[1], [place_comp_c, grasp_comp_c]
+        )
+
+        self.graph.addNumericalConstraintsToTransition(fwd_subs[2], [grasp_comp_c])
+        self.graph.addNumericalConstraintsToTransition(bwd_subs[2], [grasp_comp_c])
+
+        self.graph.addNumericalConstraintsToTransition(fwd_subs[3], [grasp_comp_c])
+        self.graph.addNumericalConstraintsToTransition(bwd_subs[3], [grasp_comp_c])
+
+        # == 7. Bimanual secondary gripper =========================
         if len(gripper_names) == 2:
             secondary_gripper = gripper_names[1]
             secondary_handle = self._handles_config[secondary_gripper][0]["name"]
-            # createGraspConstraint → [0]=grasp, [1]=complement, [2]=both
             sec_grasp_list = self.graph.createGraspConstraint(
                 f"{secondary_gripper} grasps {secondary_handle}",
                 secondary_gripper,
                 secondary_handle,
             )
-            sec_grasp_obj = sec_grasp_list[0]  # grasp constraint only
+            sec_grasp_obj = sec_grasp_list[0]
             sec_pregrasp_obj = self.graph.createPreGraspConstraint(
                 f"{secondary_gripper} pregrasps {secondary_handle}",
                 secondary_gripper,
                 secondary_handle,
             )
             for node_name, c_obj in [
-                (
-                    f"{primary_gripper} > {primary_handle} | f_pregrasp",
-                    sec_pregrasp_obj,
-                ),
-                (f"{primary_gripper} > {primary_handle} | f_intersec", sec_grasp_obj),
-                (f"{primary_gripper} > {primary_handle} | f_preplace", sec_grasp_obj),
-                (f"{primary_gripper} grasps {primary_handle}", sec_grasp_obj),
+                (prefix_fwd + "_pregrasp", sec_pregrasp_obj),
+                (prefix_fwd + "_intersec", sec_grasp_obj),
+                (prefix_fwd + "_preplace", sec_grasp_obj),
+                (grasp_name, sec_grasp_obj),
             ]:
                 self.graph.addNumericalConstraintsToState(
                     self.graph.getState(node_name), [c_obj]
                 )
 
-        # ── Global constraints ────────────────────────────────────────────────
+        # == 8. Global locked joints ===========================================
         self.graph.addNumericalConstraintsToGraph(
             self._locked_grippers + self._locked_head + self._locked_wheels
         )
 
-        # ── States & transitions ──────────────────────────────────────────────
+        # == 9. Custom planning transitions ====================================
         state_unconstrained = self.graph.createState("unconstrained", False, 0)
-        state_free = self.graph.getState("free")
         self.graph.createTransition(
-            state_unconstrained, state_free, "project-on-free", 1, state_unconstrained
+            state_unconstrained, s_free, "project-on-free", 1, state_unconstrained
         )
 
-        node_grasp = f"{primary_gripper} grasps {primary_handle}"
-        state_grasp = self.graph.getState(node_grasp)
-
         t_transit_free = self.graph.createTransition(
-            state_free, state_free, "transit_free", 1, state_free
+            s_free, s_free, "transit_free", 1, s_free
         )
         self.graph.addNumericalConstraintsToTransition(
             t_transit_free,
-            self._locked_arms + self._locked_torso + [place_complement_obj],
+            self._locked_arms + [self._locked_handle],
         )
 
         t_transit_grasp = self.graph.createTransition(
-            state_grasp, state_grasp, "transit_grasp", 1, state_grasp
+            s_grasp, s_grasp, "transit_grasp", 1, s_grasp
         )
         self.graph.addNumericalConstraintsToTransition(
-            t_transit_grasp, self._locked_arms + self._locked_torso
+            t_transit_grasp, self._locked_arms
         )
 
+        # locked_base_mobility on grasp/approach sub-transitions and loops
         for edge_name in [
-            f"{primary_gripper} > {primary_handle} | f_01",
-            f"{primary_gripper} > {primary_handle} | f_12",
-            f"{primary_gripper} > {primary_handle} | f_23",
+            f"{prefix_fwd}_01",
+            f"{prefix_fwd}_12",
+            f"{prefix_fwd}_23",
             "Loop | f",
             "Loop | 0-0",
         ]:
@@ -358,14 +512,16 @@ class HPPPathGenerator:
         self.graph.setWeight(self.graph.getTransition("Loop | f"), 1)
         self.graph.setWeight(self.graph.getTransition("Loop | 0-0"), 1)
 
+        # locked_plate on every transition
         for e_name in self.graph.getTransitionNames():
             self.graph.addNumericalConstraintsToTransition(
                 self.graph.getTransition(e_name), self._locked_plate
             )
 
+        # MUST be the last call — PathPlanner requires an initialized graph.
         self.graph.initialize()
 
-    # ── Public helpers ────────────────────────────────────────────────────────
+    # == Public helpers ========================================================
 
     def define_gripper(
         self,
@@ -399,19 +555,18 @@ class HPPPathGenerator:
         q = np.asarray(q_init, dtype=np.float64)
         self.view(q)
         result = self._path_planner.planPathtoBarHandling(
-            gripper, handle, q, self._logger
+            gripper, handle, q, self._logger, self._viewer
         )
         if result is not None:
             self._logger.info("Path to bar grasping planned successfully.")
             if hasattr(self, "_viewer"):
                 self._viewer.loadPath(result)
-                self._logger.info("Trajectoire chargée dans le viewer.")
-            traj = self.sample_trajectory(result)
-            last_q = list(traj[-1]) if traj else None
-            return traj, last_q
         else:
-            self._logger.error("Path to bar grasping planning failed.")
+            self._logger.warn("Path to bar grasping planning failed.")
             return None, None
+        traj = self.sample_trajectory(result)
+        last_q = list(traj[-1]) if traj else None
+        return traj, last_q
 
     def plan_place(
         self, gripper: str, handle: str, q_init: list, target_bar_pose: list
@@ -425,15 +580,14 @@ class HPPPathGenerator:
             self._logger.info("Path to bar placement planned successfully.")
             if hasattr(self, "_viewer"):
                 self._viewer.loadPath(result)
-                self._logger.info("Trajectoire chargée dans le viewer.")
-            traj = self.sample_trajectory(result)
-            last_q = list(traj[-1]) if traj else None
-            return traj, last_q
         else:
-            self._logger.error("Path to bar placement planning failed.")
+            self._logger.warn("Path to bar placement planning failed.")
             return None, None
+        traj = self.sample_trajectory(result)
+        last_q = list(traj[-1]) if traj else None
+        return traj, last_q
 
-    # ── Visualisation ─────────────────────────────────────────────────────────
+    # == Visualisation =========================================================
 
     def init_viewer(self, open: bool = False):
         from pyhpp_viser import Viewer
@@ -447,10 +601,9 @@ class HPPPathGenerator:
     def view(self, q=None):
         if not hasattr(self, "_viewer"):
             self.init_viewer()
-        self._viewer(q if q is not None else self.q_init)
+        self._viewer(q if q is not None else pin.neutral(self._pin_model))
 
     def play(self, path, n=100, dt=0.05):
-        """Play a path in Viser by sampling n configurations."""
         import time as _time
 
         if not hasattr(self, "_viewer"):
@@ -463,6 +616,5 @@ class HPPPathGenerator:
         tf = path.timeRange().second
         for i in range(n):
             t = t0 + i * (tf - t0) / (n - 1)
-            q = path.eval(t)[0]
-            self._viewer(q)
+            self._viewer(path.eval(t)[0])
             _time.sleep(dt)

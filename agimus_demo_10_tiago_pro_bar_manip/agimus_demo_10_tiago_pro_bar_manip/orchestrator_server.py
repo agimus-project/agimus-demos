@@ -232,19 +232,25 @@ class HPPActionServer(Node):
 
         try:
             if action_type == "grasp":
-                success, message = self._plan_grasp(gripper_name, handle_name)
+                result_msg.success, result_msg.message = self._plan_grasp(
+                    gripper_name, handle_name
+                )
             else:
-                success, message = self._plan_place(gripper_name, handle_name)
+                result_msg.success, result_msg.message = self._plan_place(
+                    gripper_name, handle_name
+                )
+        except RuntimeError as e:
+            self.get_logger().warn(f"Plan failed: {str(e)}")
+            result_msg.success = False
+            result_msg.message = str(e)
         except Exception as e:
             import traceback
 
-            self.get_logger().error(f"Planning exception:\n{traceback.format_exc()}")
-            success, message = False, str(e)
+            self.get_logger().error(f"CRITICAL BUG:\n{traceback.format_exc()}")
+            result_msg.success = False
+            result_msg.message = f"Internal Software Error: {str(e)}"
 
-        result_msg.success = success
-        result_msg.message = message
-
-        if success:
+        if result_msg.success:
             goal_handle.succeed()
         else:
             goal_handle.abort()
@@ -257,13 +263,13 @@ class HPPActionServer(Node):
     def _plan_grasp(self, gripper, handle):
         q_init = self._build_q_init()
         if q_init is None:
-            return False, "Failed to build q_init.", -1
+            return False, "Failed to build q_init."
 
         traj, q_end = self._hpp.plan_grasp(
             gripper=gripper, handle=handle, q_init=q_init
         )
         if traj is None:
-            return False, "Grasp planning failed.", -1
+            return False, "Grasp planning failed."
 
         self._traj_pick = traj
         self._q_after_grasp = q_end
@@ -284,7 +290,7 @@ class HPPActionServer(Node):
             target_bar_pose=target_bar_pose,
         )
         if traj is None:
-            return False, "Place planning failed.", -1
+            return False, "Place planning failed."
 
         self._traj_place = traj
         self.get_logger().info("Place planned")
