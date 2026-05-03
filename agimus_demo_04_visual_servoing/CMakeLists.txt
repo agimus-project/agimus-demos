@@ -15,15 +15,16 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
-                             lib/${PROJECT_NAME})
+                             lib/${PROJECT_NAME}
+)
 
 #
 # Unit tests
 #
 include(CTest)
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_auto_find_test_dependencies()
+    find_package(ament_lint_auto REQUIRED)
+    ament_auto_find_test_dependencies()
 endif()
 
 #

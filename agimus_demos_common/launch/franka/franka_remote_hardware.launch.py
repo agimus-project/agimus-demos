@@ -74,7 +74,9 @@ def launch_setup(
     aux_computer_ip = LaunchConfiguration("aux_computer_ip")
     aux_computer_user = LaunchConfiguration("aux_computer_user")
     external_controllers_params = LaunchConfiguration("external_controllers_params")
-    agimus_franka_controllers_params = LaunchConfiguration("agimus_franka_controllers_params")
+    agimus_franka_controllers_params = LaunchConfiguration(
+        "agimus_franka_controllers_params"
+    )
 
     aux_computer_ip_str = context.perform_substitution(aux_computer_ip)
     aux_computer_user_str = context.perform_substitution(aux_computer_user)

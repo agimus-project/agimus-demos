@@ -23,7 +23,9 @@ def launch_setup(
     robot_ip = LaunchConfiguration("robot_ip")
     disable_collision_safety = LaunchConfiguration("disable_collision_safety")
     use_ft_sensor = LaunchConfiguration("use_ft_sensor")
-    agimus_franka_controllers_params = LaunchConfiguration("agimus_franka_controllers_params")
+    agimus_franka_controllers_params = LaunchConfiguration(
+        "agimus_franka_controllers_params"
+    )
 
     disable_collision_safety_bool = (
         context.perform_substitution(disable_collision_safety).lower() == "true"
