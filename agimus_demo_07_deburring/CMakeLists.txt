@@ -17,20 +17,22 @@ ament_auto_find_build_dependencies()
 
 generate_parameter_module(
   deburring_path_planner_parameters
-  agimus_demo_07_deburring/planner/deburring_path_planner_parameters.yaml)
+  agimus_demo_07_deburring/planner/deburring_path_planner_parameters.yaml
+)
 
 ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION
-                             lib/${PROJECT_NAME})
+                             lib/${PROJECT_NAME}
+)
 
 #
 # Unit tests
 #
 include(CTest)
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_auto_find_test_dependencies()
-  # Integration test of the roscontrol controller with simulation on Talos.
-  # add_rostest(tests/test_integration.py)
+    find_package(ament_lint_auto REQUIRED)
+    ament_auto_find_test_dependencies()
+    # Integration test of the roscontrol controller with simulation on Talos.
+    # add_rostest(tests/test_integration.py)
 endif()
 
 #
@@ -44,4 +46,5 @@ ament_auto_package(
   plotjuggler
   precomputed_trajectories
   urdf
-  environment)
+  environment
+)

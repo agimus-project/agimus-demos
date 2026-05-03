@@ -15,18 +15,20 @@ ament_auto_find_build_dependencies()
 # Build Python package.
 #
 ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS scripts/regrasp_node scripts/image_saver
-        DESTINATION lib/${PROJECT_NAME})
+install(
+    PROGRAMS scripts/regrasp_node scripts/image_saver
+    DESTINATION lib/${PROJECT_NAME}
+)
 
 #
 # Unit tests
 #
 include(CTest)
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_auto_find_test_dependencies()
-  # Integration test of the roscontrol controller with simulation on Talos.
-  # add_rostest(tests/test_integration.py)
+    find_package(ament_lint_auto REQUIRED)
+    ament_auto_find_test_dependencies()
+    # Integration test of the roscontrol controller with simulation on Talos.
+    # add_rostest(tests/test_integration.py)
 endif()
 
 #
