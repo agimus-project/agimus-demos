@@ -20,7 +20,7 @@ from tf2_ros import (
     TransformListener,
 )
 
-from test_agimus_type.action import PlanBarGrasp
+from test_agimus_type.action import PlanBarPick
 from agimus_demo_10_tiago_pro_bar_manip.traj.hpp_traj import (
     BaseObject,
     HPPPathGenerator,
@@ -99,7 +99,7 @@ class HPPActionServer(Node):
 
         self._action_server = ActionServer(
             self,
-            PlanBarGrasp,
+            PlanBarPick,
             "/orchestrator/plan_bar_handling",
             execute_callback=self._execute_cb,
             goal_callback=self._goal_cb,
@@ -196,7 +196,7 @@ class HPPActionServer(Node):
         if not action_type or not gripper or not handle:
             self.get_logger().error("REJECTED: empty field")
             return GoalResponse.REJECT
-        if action_type not in ("grasp", "place"):
+        if action_type not in ("pick", "place"):
             self.get_logger().error(f"REJECTED: unknown action_type '{action_type}'")
             return GoalResponse.REJECT
         if action_type == "place" and self._q_after_grasp is None:
@@ -214,7 +214,7 @@ class HPPActionServer(Node):
 
     def _execute_cb(self, goal_handle):
         self._planning = True
-        result_msg = PlanBarGrasp.Result()
+        result_msg = PlanBarPick.Result()
         action_type = goal_handle.request.action_type
         gripper_name = goal_handle.request.gripper
         handle_name = goal_handle.request.handle
@@ -269,12 +269,12 @@ class HPPActionServer(Node):
             gripper=gripper, handle=handle, q_init=q_init
         )
         if traj is None:
-            return False, "Grasp planning failed."
+            return False, "Pick planning failed."
 
         self._traj_pick = traj
         self._q_after_grasp = q_end
-        self.get_logger().info("Grasp planned")
-        return True, "Grasp planned successfully."
+        self.get_logger().info("Pick planned")
+        return True, "Pick planned successfully."
 
     def _plan_place(self, gripper, handle):
         q_init_place = list(self._q_after_grasp)
