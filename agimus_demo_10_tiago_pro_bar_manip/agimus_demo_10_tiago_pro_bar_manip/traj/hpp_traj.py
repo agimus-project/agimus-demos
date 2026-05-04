@@ -285,16 +285,16 @@ class HPPPathGenerator:
             _preplace  : preplace + grasp    (waypoint)
 
         Loop transitions:
-            "Loop | f"   : free→free,   foliation=place/complement
-            "Loop | 0-0" : grasp→grasp, foliation=grasp/complement
+            "Loop | f"   : free->free,   foliation=place/complement
+            "Loop | 0-0" : grasp->grasp, foliation=grasp/complement
 
-        Waypoint transitions (3 waypoints → 4 sub-transitions each):
-            "g > h | f"   forward:  free→pregrasp→intersec→preplace→grasp
-            "g < h | 0-0" backward: grasp→preplace→intersec→pregrasp→free
+        Waypoint transitions (3 waypoints -> 4 sub-transitions each):
+            "g > h | f"   forward:  free->pregrasp->intersec->preplace->grasp
+            "g < h | 0-0" backward: grasp->preplace->intersec->pregrasp->free
 
         Sub-transition foliations:
-            _01, _12 → place/complement  (_12 also gets grasp/complement)
-            _23, _34 → grasp/complement
+            _01, _12 -> place/complement  (_12 also gets grasp/complement)
+            _23, _34 -> grasp/complement
 
         Exposed constraint references (for RHS control from path_planner):
             self._place_c       : place constraint (bar on surface)
@@ -316,7 +316,7 @@ class HPPPathGenerator:
         grasp_name = f"{primary_gripper} grasps {primary_handle}"
 
         # == 1. Grasp constraints ==============================================
-        # createGraspConstraint → (grasp, grasp/complement, grasp/hold)
+        # createGraspConstraint -> (grasp, grasp/complement, grasp/hold)
         grasp_c, grasp_comp_c, grasp_hold_c = self.graph.createGraspConstraint(
             grasp_name, primary_gripper, primary_handle
         )
@@ -327,7 +327,7 @@ class HPPPathGenerator:
         )
 
         # == 2. Placement constraints ==========================================
-        # createPlacementConstraint → (place, place/complement, place/hold)
+        # createPlacementConstraint -> (place, place/complement, place/hold)
         # place/complement RHS is what HPP modifies when projecting onto the
         # placement manifold. Expose it so callers can fix it from TF poses.
         place_c, place_comp_c, place_hold_c = self.graph.createPlacementConstraint(
@@ -375,7 +375,7 @@ class HPPPathGenerator:
         self.graph.addNumericalConstraintsToTransition(loop_g, [grasp_comp_c])
 
         # == 5. Waypoint transitions ===========================================
-        # 3 waypoints → nbWaypoints=3, automaticBuilder=False (we wire manually)
+        # 3 waypoints -> nbWaypoints=3, automaticBuilder=False (we wire manually)
         fwd_edge = self.graph.createWaypointTransition(
             s_free, s_grasp, prefix_fwd, 3, 1, s_free, False
         )
@@ -384,8 +384,8 @@ class HPPPathGenerator:
         )
 
         # == 6. Sub-transitions ================================================
-        # Forward path: free(0) → pregrasp(1) → intersec(2) → preplace(3) → grasp(4)
-        # Backward:     grasp(4) → preplace(3) → intersec(2) → pregrasp(1) → free(0)
+        # Forward path: free(0) -> pregrasp(1) -> intersec(2) -> preplace(3) -> grasp(4)
+        # Backward:     grasp(4) -> preplace(3) -> intersec(2) -> pregrasp(1) -> free(0)
         # Sub-transition names: fwd _01…_34, bwd _43…_10
         fwd_states = [s_free, s_pregrasp, s_intersec, s_preplace, s_grasp]
 
@@ -415,7 +415,7 @@ class HPPPathGenerator:
             self.graph.setShort(bwd_subs[i], True)
 
         # Containing states:
-        # M = 1 (pregrasp) + 1 = 2  →  first 2 sub-trans belong to free,
+        # M = 1 (pregrasp) + 1 = 2  ->  first 2 sub-trans belong to free,
         #                               last 2 belong to grasp.
         for tf, tb in [(fwd_subs[0], bwd_subs[0]), (fwd_subs[1], bwd_subs[1])]:
             self.graph.setContainingNode(tf, s_free)
@@ -425,9 +425,9 @@ class HPPPathGenerator:
             self.graph.setContainingNode(tb, s_grasp)
 
         # Foliations on sub-transitions (parametric complements):
-        #   _01        → place/complement
-        #   _12        → place/complement + grasp/complement
-        #   _23, _34   → grasp/complement
+        #   _01        -> place/complement
+        #   _12        -> place/complement + grasp/complement
+        #   _23, _34   -> grasp/complement
         self.graph.addNumericalConstraintsToTransition(
             fwd_subs[0], [self._locked_handle]
         )
