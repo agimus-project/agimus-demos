@@ -137,11 +137,11 @@ def launch_setup(
         parameters=[
             get_use_sim_time(),
             ParameterFile(param_file=deburring_path_planner_params, allow_substs=True),
-            {"generators_params.trajectory_smoother": trajectory_smoother},
             {
+                "generators_params.trajectory_smoother": trajectory_smoother,
                 "generators_params.precomputed_replay_speed_scale": ParameterValue(
                     precomputed_replay_speed_scale, value_type=float
-                )
+                ),
             },
         ],
     )

@@ -15,8 +15,11 @@ deburring_path_planner_node:
       marker_size: 0.01
       marker_color: [1.0, 0.0, 0.0, 0.5]
     # Velocities based on the datasheet. Values are eight of the maximum velocity
+<<<<<<< deburring_and_polishing
     # max_joint_velocity: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
     # max_joint_velocity: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+=======
+>>>>>>> feature/add-new-diffusion
     max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
     ocp_dt: 0.002
     ocp_buffer_size: 100
@@ -114,8 +117,8 @@ deburring_path_planner_node:
         linear_vel: 0.1
         linear_acc: 0.07
         linear_jerk: 1.0
-        tool_angular_vel: 2.6
-        tool_angular_acc: 10.0
+        tool_angular_vel: 2.0
+        tool_angular_acc: 5.0
         tool_angular_jerk: 5000.0
         insert_joint_angle: -2.6
         retract_joint_angle: 0.0
@@ -126,8 +129,13 @@ deburring_path_planner_node:
         tool_joint_start_angle: -2.6
         tool_joint_end_angle: 2.6
         positioning_time: 1.0
+<<<<<<< deburring_and_polishing
         positioning_force: 30.0
         deburring_force: 30.0
+=======
+        positioning_force: 40.0
+        deburring_force: 40.0
+>>>>>>> feature/add-new-diffusion
         force_rate_up: 100.0
         force_rate_down: 100.0
         n_repeat: 1
@@ -152,10 +160,14 @@ deburring_path_planner_node:
         w_desired_force: [0.0, 0.0, 0.0]
         w_collision_avoidance: 0.0
       deburring_motion:
-        w_robot_configuration: [0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.5]
+        w_robot_configuration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5]
         w_robot_velocity: [0.1, 0.01, 0.001, 0.001, 0.001, 0.001, 0.5]
-        w_robot_effort: [0.0003, 0.0003, 0.0003, 0.0005, 0.1, 0.2, 0.05]
+        w_robot_effort: [0.0001, 0.0001, 0.0001, 0.0004, 0.1, 0.2, 0.05]
         w_frame_rotation: [2.0, 2.0, 0.0]
         w_frame_translation: [0.0, 0.0, 0.0]
+<<<<<<< deburring_and_polishing
         w_desired_force: [0.00005, 0.00005, 0.00005]
+=======
+        w_desired_force: [0.015, 0.015, 0.015]
+>>>>>>> feature/add-new-diffusion
         w_collision_avoidance: 0.0
