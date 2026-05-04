@@ -1,5 +1,12 @@
+"""
+Bringup launchfile of demo n°10 : TIAGoPro bar bi-manipulation
+
+Usage:
+  ros2 launch agimus_demo_10_tiago_pro_bar_manip bringup.launch.py use_gazebo:=true use_sim_time:=True
+"""
+
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import OpaqueFunction, ExecuteProcess
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
@@ -9,6 +16,7 @@ from launch.substitutions import Command, FindExecutable
 
 from agimus_demos_common.launch_utils import (
     generate_default_tiago_pro_args,
+    generate_include_launch,
     get_use_sim_time,
 )
 from agimus_demos_common.static_transform_publisher_node import (
@@ -18,31 +26,70 @@ import numpy as np
 import pinocchio as pin
 from launch.actions import DeclareLaunchArgument
 
+PKG_NAME = "agimus_demo_10_tiago_pro_bar_manip"
+
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     ref_frame = LaunchConfiguration("ref_frame").perform(context)
+    # ==========================================================================
+    # Tiago pro simulation
+    # ==========================================================================
+    tiago_robot_launch = generate_include_launch("tiago_pro_common.launch.py")
 
-    rviz_config_path = PathJoinSubstitution(
-        [
-            FindPackageShare("agimus_demo_10_tiago_pro_bar_manip"),
-            "rviz",
-            "config.rviz",
-        ]
-    )
+    # ==========================================================================
+    # Orchestrator weights and executable
+    # ! Launched by hand for now
+    # ==========================================================================
+
+    # weights_config_path = PathJoinSubstitution(
+    #     [
+    #         FindPackageShare(PKG_NAME),
+    #         "config",
+    #         "agimus_controller",
+    #         "traj_weights.yaml",
+    #     ]
+    # )
+
+    # joints_config_path = PathJoinSubstitution(
+    #     [
+    #         FindPackageShare(PKG_NAME),
+    #         "config",
+    #         "robot",
+    #         "tiago_pro_joints.yaml",
+    #     ]
+    # )
+
+    # orchestrator = Node(
+    #     package=PKG_NAME,
+    #     executable="orchestrator_node",
+    #     parameters=[
+    #         {"weights_config": weights_config_path, "joints_config": joints_config_path}
+    #     ],
+    #     name="orchestrator",
+    #     output="screen",
+    # )
+
+    # Used to signal the publishing of valid joint values
     wait_for_non_zero_joints_node = Node(
         package="agimus_demos_common",
         executable="wait_for_non_zero_joints_node",
         parameters=[get_use_sim_time()],
         output="screen",
     )
-    orchestrator = Node(
-        package="agimus_demo_10_tiago_pro_bar_manip",
-        executable="orchestrator_node",
-        name="orchestrator",
-        output="screen",
+    # ==========================================================================
+    # Rviz config and executable
+    # ==========================================================================
+
+    rviz_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare(PKG_NAME),
+            "rviz",
+            "config.rviz",
+        ]
     )
+
     rviz = Node(
         package="rviz2",
         executable="rviz2",
@@ -52,6 +99,10 @@ def launch_setup(
         arguments=["-d", rviz_config_path.perform(context)],
     )
 
+    # ==========================================================================
+    # HPP
+    # ==========================================================================
+
     plate_description = ParameterValue(
         Command(
             [
@@ -59,7 +110,7 @@ def launch_setup(
                 " ",
                 PathJoinSubstitution(
                     [
-                        FindPackageShare("agimus_demo_10_tiago_pro_bar_manip"),
+                        FindPackageShare(PKG_NAME),
                         "urdf",
                         "plate.urdf",
                     ]
@@ -83,7 +134,7 @@ def launch_setup(
                 " ",
                 PathJoinSubstitution(
                     [
-                        FindPackageShare("agimus_demo_10_tiago_pro_bar_manip"),
+                        FindPackageShare(PKG_NAME),
                         "urdf",
                         "reinforcement_bar.urdf",
                     ]
@@ -108,7 +159,7 @@ def launch_setup(
                 " ",
                 PathJoinSubstitution(
                     [
-                        FindPackageShare("agimus_demo_10_tiago_pro_bar_manip"),
+                        FindPackageShare(PKG_NAME),
                         "urdf",
                         "table.urdf",
                     ]
@@ -127,7 +178,7 @@ def launch_setup(
     )
 
     tf_odom = Node(
-        package="agimus_demo_10_tiago_pro_bar_manip",
+        package=PKG_NAME,
         executable="tf_base_publisher",
         name="tf_base_publisher",
         output="screen",
@@ -165,38 +216,115 @@ def launch_setup(
         xyz=["2.9", "0", "0."],
         rot_xyzw=quat_values.coeffs().tolist(),
     )
-    # TODO we should get the srdf use by hpp from a topic directly
-    # robot_srdf_description =  ParameterValue(
-    #     Command(
-    #         [
-    #             PathJoinSubstitution([FindExecutable(name="xacro")]),
-    #             " ",
-    #             PathJoinSubstitution(
-    #                 [
-    #                     FindPackageShare("tiago_pro_moveit_config"),
-    #                     "config/srdf",
-    #                     "tiago_pro.srdf.xacro",
-    #                 ]
-    #             ),
-    #             " ",
-    #             "end_effector_left:=pal-pro-gripper",
-    #             " ",
-    #             "end_effector_right:=pal-pro-gripper",
-    #             " ",
-    #         ]
-    #     ),
-    #     value_type=str,
-    # )
-    # robot_collision_publisher = Node(
-    #     package="robot_state_publisher",
-    #     executable="robot_state_publisher",
-    #     name="robot_collision_publisher",
-    #     output="screen",
-    #     parameters=[get_use_sim_time(), {"robot_description": robot_srdf_description}],
-    #     remappings=[("robot_description", "robot_description_collision")],
-    # )
+
+    # ==========================================================================
+    # Agimus-controller (MPC)
+    # ==========================================================================
+    # The agimus controller is waiting to receive an environment description
+    empty_env_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare(PKG_NAME),
+                        "urdf",
+                        "environment.urdf",
+                    ]
+                ),
+            ]
+        ),
+        value_type=str,
+    )
+
+    env_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="table_publisher",
+        output="screen",
+        parameters=[get_use_sim_time(), {"robot_description": empty_env_description}],
+        remappings=[("robot_description", "environment_description")],
+    )
+    agimus_controller_node = Node(
+        package="agimus_controller_ros",
+        executable="agimus_controller_node",
+        parameters=[
+            get_use_sim_time(),
+            PathJoinSubstitution(
+                [
+                    FindPackageShare(PKG_NAME),
+                    "config",
+                    "agimus_controller",
+                    "agimus_controller_params.yaml",
+                ]
+            ),
+        ],
+        output="screen",
+    )
+
+    robot_srdf_publisher_node = Node(
+        package="agimus_demos_common",
+        executable="string_publisher",
+        name="robot_srdf_description_publisher",
+        output="screen",
+        parameters=[
+            {
+                "topic_name": "robot_srdf_description",
+                "string_value": ParameterValue(
+                    Command(
+                        [
+                            PathJoinSubstitution([FindExecutable(name="xacro")]),
+                            " ",
+                            PathJoinSubstitution(
+                                [
+                                    FindPackageShare("agimus_demos_common"),
+                                    "config",
+                                    "tiago_pro",
+                                    "tiago_pro_dummy.srdf.xacro",
+                                ]
+                            ),
+                        ]
+                    ),
+                    value_type=str,
+                ),
+            }
+        ],
+    )
+    # ==========================================================================
+    # Linear Feedback Controller
+    # ==========================================================================
+    activate_controllers = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "control",
+            "switch_controllers",
+            "--deactivate",
+            "arm_right_controller",
+            "arm_left_controller",
+            "--activate",
+            "arm_left_1_joint_inertia_shaping_controller",
+            "arm_left_2_joint_inertia_shaping_controller",
+            "arm_left_3_joint_inertia_shaping_controller",
+            "arm_left_4_joint_inertia_shaping_controller",
+            "arm_left_5_joint_inertia_shaping_controller",
+            "arm_left_6_joint_inertia_shaping_controller",
+            "arm_left_7_joint_inertia_shaping_controller",
+            "arm_right_1_joint_inertia_shaping_controller",
+            "arm_right_2_joint_inertia_shaping_controller",
+            "arm_right_3_joint_inertia_shaping_controller",
+            "arm_right_4_joint_inertia_shaping_controller",
+            "arm_right_5_joint_inertia_shaping_controller",
+            "arm_right_6_joint_inertia_shaping_controller",
+            "arm_right_7_joint_inertia_shaping_controller",
+            "linear_feedback_controller",
+            "joint_state_estimator",
+        ],
+        output="screen",
+    )
 
     return [
+        tiago_robot_launch,
         rviz,
         wait_for_non_zero_joints_node,
         plate_publisher_node,
@@ -206,8 +334,12 @@ def launch_setup(
         tf_node_plate,
         tf_node_bar,
         tf_node_table,
-        orchestrator,
+        # orchestrator,
         tf_goal_bar,
+        robot_srdf_publisher_node,
+        agimus_controller_node,
+        activate_controllers,
+        env_publisher,
     ]
 
 

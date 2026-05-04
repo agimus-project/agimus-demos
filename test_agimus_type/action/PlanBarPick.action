@@ -1,5 +1,5 @@
 # Goal
-string action_type
+string task
 string gripper
 string handle
 ---
@@ -8,5 +8,5 @@ bool success
 string message
 ---
 # Feedback
-string status
-float32 elapsed_time
+string current_action
+string message

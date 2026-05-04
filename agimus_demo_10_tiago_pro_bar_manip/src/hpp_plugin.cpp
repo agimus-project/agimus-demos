@@ -20,9 +20,9 @@ OrchestratorPannel::~OrchestratorPannel() {}
 OrchestratorPannel::OrchestratorPannel(QWidget* parent)
     : rviz_common::Panel(parent) {
   // == Action type =========================================================
-  action_type_combo_ = new QComboBox(this);
-  action_type_combo_->addItem("pick");
-  action_type_combo_->addItem("place");
+  task_combo_ = new QComboBox(this);
+  task_combo_->addItem("pick");
+  task_combo_->addItem("place");
 
   // == Buttons =============================================================
   send_btn_ = new QPushButton("▶  Send Goal", this);
@@ -55,12 +55,12 @@ OrchestratorPannel::OrchestratorPannel(QWidget* parent)
 
   // == Form group ==========================================================
   QGroupBox* form_box =
-      new QGroupBox("PlanBarGrasp — /orchestrator/plan_bar_handling");
+      new QGroupBox("PlanBarPick — /orchestrator/plan_bar_handling");
   form_box->setStyleSheet("QGroupBox { font-weight: bold; }");
 
   QVBoxLayout* form_layout = new QVBoxLayout;
   form_layout->addWidget(new QLabel("Action type:"));
-  form_layout->addWidget(action_type_combo_);  // ← ajouté
+  form_layout->addWidget(task_combo_);  // ← ajouté
   form_layout->addLayout(btn_layout);
   form_box->setLayout(form_layout);
 
@@ -83,7 +83,7 @@ OrchestratorPannel::OrchestratorPannel(QWidget* parent)
 void OrchestratorPannel::onInitialize() {
   node_ = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
 
-  action_client_ = rclcpp_action::create_client<PlanBarGrasp>(
+  action_client_ = rclcpp_action::create_client<PlanBarPick>(
       node_, "/orchestrator/plan_bar_handling");
 
   log("Plugin initialized. Action client created.", "#8bc34a");
@@ -98,16 +98,14 @@ void OrchestratorPannel::sendGoal() {
     return;
   }
 
-  PlanBarGrasp::Goal goal;
-  goal.action_type = action_type_combo_->currentText().toStdString();
+  PlanBarPick::Goal goal;
+  goal.task = task_combo_->currentText().toStdString();
   goal.gripper = "tiago_pro/left";
   goal.handle = "reinforcement_bar/left";
 
-  log(QString("▶ Sending: action_type=%1")
-          .arg(action_type_combo_->currentText()),
-      "#29b6f6");
+  log(QString("▶ Sending: task=%1").arg(task_combo_->currentText()), "#29b6f6");
 
-  auto opts = rclcpp_action::Client<PlanBarGrasp>::SendGoalOptions();
+  auto opts = rclcpp_action::Client<PlanBarPick>::SendGoalOptions();
 
   opts.goal_response_callback = [this](GoalHandlePBG::SharedPtr handle) {
     goalResponseCallback(handle);
@@ -115,7 +113,7 @@ void OrchestratorPannel::sendGoal() {
 
   opts.feedback_callback =
       [this](GoalHandlePBG::SharedPtr h,
-             std::shared_ptr<const PlanBarGrasp::Feedback> fb) {
+             std::shared_ptr<const PlanBarPick::Feedback> fb) {
         feedbackCallback(h, fb);
       };
 
@@ -160,11 +158,10 @@ void OrchestratorPannel::goalResponseCallback(GoalHandlePBG::SharedPtr handle) {
 
 void OrchestratorPannel::feedbackCallback(
     GoalHandlePBG::SharedPtr,
-    std::shared_ptr<const PlanBarGrasp::Feedback> feedback) {
-  QString msg =
-      QString("↻ status: %1  |  elapsed: %2 s")
-          .arg(QString::fromStdString(feedback->status))
-          .arg(static_cast<double>(feedback->elapsed_time), 0, 'f', 2);
+    std::shared_ptr<const PlanBarPick::Feedback> feedback) {
+  QString msg = QString("↻ status: %1  |  elapsed: %2 s")
+                    .arg(QString::fromStdString(feedback->current_action))
+                    .arg(QString::fromStdString(feedback->message));
 
   QMetaObject::invokeMethod(
       this, [this, msg]() { log(msg, "#ce93d8"); }, Qt::QueuedConnection);
@@ -225,7 +222,7 @@ void OrchestratorPannel::log(const QString& msg, const QString& color) {
 void OrchestratorPannel::setUiBusy(bool busy) {
   send_btn_->setEnabled(!busy);
   cancel_btn_->setEnabled(busy);
-  action_type_combo_->setEnabled(!busy);
+  task_combo_->setEnabled(!busy);
 }
 
 }  // namespace hpp_plugin
