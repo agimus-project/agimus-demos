@@ -92,7 +92,7 @@ class PathPlanner:
     def generateGraspingConfigurations(
         self, gripper, handle, q_init, testCollision=True, logger=None, viewer=None
     ):
-        ctx = f"[grasp {gripper} → {handle}]"
+        ctx = f"[grasp {gripper} -> {handle}]"
         prefix = f"{gripper} > {handle} | f"
 
         handle_idx = self._get_idx_q("reinforcement_bar/root_joint")
@@ -109,7 +109,6 @@ class PathPlanner:
         theta_nom = np.arctan2(q_base_nom[1] - hy, q_base_nom[0] - hx)
 
         def _seed_pg_g(q_ref, attempt):
-            """_01 and _12 : bar locked → noise only arms and torso"""
             q_s = q_ref.copy()
             if attempt > 0:
                 q_s[torso_idx] = float(np.random.uniform(_TORSO_MIN, _TORSO_MAX))
@@ -122,7 +121,6 @@ class PathPlanner:
             return q_s
 
         def _seed_pp(q_ref, attempt):
-            """_23 : bar free → Noise pose bar + arms"""
             q_s = q_ref.copy()
             if attempt > 0:
                 q_s[torso_idx] = float(np.random.uniform(_TORSO_MIN, _TORSO_MAX))
@@ -189,7 +187,7 @@ class PathPlanner:
                     if viewer:
                         viewer(qg)
 
-                    # ++ PREPLACE CONFIG ==
+                    # == PREPLACE CONFIG ==
                     for attempt_pp in range(MAX_LOCAL_RETRIES):
                         q_seed = _seed_pp(qg, attempt_pp)
                         viewer(q_seed)
@@ -224,88 +222,143 @@ class PathPlanner:
         target_bar_pose,
         testCollision=True,
         logger=None,
+        viewer=None,
     ):
-        """Generate placing configurations (approach, preplacement, release, post-realese) for a given gripper and handle.
-
-        Args:
-            gripper (str): The name of the gripper (e.g., "tiago_pro/left").
-            handle (str): The name of the handle (e.g., "reinforcement_bar/left").
-            q_init (list): The initial configuration of the robot.
-            target_bar_pose (list): The desired final configuration of the bar
-            testCollision (bool): Whether to test for collision when generating configurations.
-            logger: Optional logger for logging messages.
-        Returns:
-            tuple: A tuple containing the pregrasp configuration, grasp configuration, and preplace configuration. If no valid configurations are found, returns (None, None, None).
-        """
+        ctx = f"[place {gripper} -> {handle}]"
         prefix = f"{gripper} < {handle} | 0-0"
 
         handle_idx = self._get_idx_q("reinforcement_bar/root_joint")
         base_idx = self._get_idx_q("tiago_pro/root_joint")
+        torso_idx = self._get_idx_q("tiago_pro/torso_lift_joint")
+        left_arm_idx = self._get_idx_q("tiago_pro/arm_left_1_joint")
+        right_arm_idx = self._get_idx_q("tiago_pro/arm_right_1_joint")
 
         q_init = self._asq(q_init)
-        q_goal = q_init.copy()
-        q_goal[handle_idx : handle_idx + 7] = target_bar_pose
+        hx, hy, hz = target_bar_pose[0], target_bar_pose[1], target_bar_pose[2]
 
         base_pose = q_init[base_idx : base_idx + 4]
-        q_base_place = self.compute_base_pose_from_handle(target_bar_pose, base_pose)
-
-        qap, qpp, qp, qrel = None, None, None, None
-
-        # == APPROACH CONFIGURATION ==
-        # Generate a configuration that satisfies the "transit_grasp" constraints, with the base positioned in front of the target placement pose.
-        q = q_init.copy()
-        q[base_idx : base_idx + 4] = q_base_place
-        _, q, _ = self.graph.applyStateConstraints(
-            self.graph.getState(f"{gripper} grasps {handle}"), self._asq(q)
+        q_base_nom = self.compute_base_pose_from_handle(
+            target_bar_pose, base_pose, distance=0.9
         )
-        transition = self.graph.getTransition("transit_grasp")
-        res, qap, err = self.graph.generateTargetConfig(transition, q_init, q)
-        if not res:
-            self._log(logger, "WARN", f"qap generation failed — {err}")
-            return None, None, None, None
-        if testCollision:
-            pv = transition.pathValidation()
-            res, msg = pv.validateConfiguration(qap)
+        theta_nom = np.arctan2(q_base_nom[1] - hy, q_base_nom[0] - hx)
+
+        def _seed_arms(q_ref, attempt):
+            q_s = q_ref.copy()
+            if attempt > 0:
+                q_s[torso_idx] = float(np.random.uniform(_TORSO_MIN, _TORSO_MAX))
+                q_s[left_arm_idx : left_arm_idx + 7] += np.random.normal(
+                    0, _ARM_NOISE, 7
+                )
+                q_s[right_arm_idx : right_arm_idx + 7] += np.random.normal(
+                    0, _ARM_NOISE, 7
+                )
+            return q_s
+
+        def _seed_pp(q_ref, attempt, prefix):
+            q_s = q_ref.copy()
+            if attempt > 0:
+                q_s[handle_idx : handle_idx + 3] = [hx, hy, hz + 0.05]
+                q_s[torso_idx] = float(np.random.uniform(_TORSO_MIN, _TORSO_MAX))
+                q_s[left_arm_idx : left_arm_idx + 7] += np.random.normal(
+                    0, _ARM_NOISE, 7
+                )
+                q_s[right_arm_idx : right_arm_idx + 7] += np.random.normal(
+                    0, _ARM_NOISE, 7
+                )
+                res, q_proj, _ = self.graph.applyStateConstraints(
+                    self.graph.getState(
+                        "tiago_pro/left > reinforcement_bar/left | f_preplace"
+                    ),
+                    q_s,
+                )
+                if res:
+                    return q_proj
+            return q_s
+
+        MAX_BASE_ATTEMPTS = 50
+        MAX_LOCAL_RETRIES = 10
+
+        for attempt_base in range(MAX_BASE_ATTEMPTS):
+            # == APPROACH CONFIGURATION ==
+            q = q_init.copy()
+            if attempt_base == 0:
+                q[base_idx : base_idx + 4] = q_base_nom
+            else:
+                theta = theta_nom + np.random.uniform(-_ANGLE_SPREAD, _ANGLE_SPREAD)
+                dist = np.random.uniform(_DIST_MIN, _DIST_MAX)
+                q[base_idx] = hx + dist * np.cos(theta)
+                q[base_idx + 1] = hy + dist * np.sin(theta)
+                q[base_idx + 2] = np.cos(theta + np.pi)
+                q[base_idx + 3] = np.sin(theta + np.pi)
+
+            _, q, _ = self.graph.applyStateConstraints(
+                self.graph.getState(f"{gripper} grasps {handle}"), q
+            )
+
+            res, qap, _ = self.graph.generateTargetConfig(
+                self.graph.getTransition("transit_grasp"), q_init, q
+            )
             if not res:
-                self._log(logger, "WARN", f"qap fail — {msg}")
-                return None, None, None, None
-        # == PREPLACE CONFIGURATION ==
-        transition = self.graph.getTransition(prefix + "_32")
-        res, qpp, err = self.graph.generateTargetConfig(transition, qap, qap)
-        if not res:
-            self._log(logger, "WARN", f"qpp generation failed — {err}")
-            return qap, None, None, None
-        if testCollision:
-            pv = transition.pathValidation()
-            res, msg = pv.validateConfiguration(qpp)
-            if not res:
-                self._log(logger, "WARN", f"qpp fail — {msg}")
-                return qap, None, None, None
-        # == PLACE CONFIGURATION ==
-        transition = self.graph.getTransition(prefix + "_21")
-        res, qp, err = self.graph.generateTargetConfig(transition, qpp, qpp)
-        if not res:
-            self._log(logger, "WARN", f"qp generation failed — {err}")
-            return qap, qpp, None, None
-        if testCollision:
-            pv = transition.pathValidation()
-            res, msg = pv.validateConfiguration(qp)
-            if not res:
-                self._log(logger, "WARN", f"qp fail — {msg}")
-                return qap, qpp, None, None
-        # == RELEASE CONFIGURATION ==
-        transition = self.graph.getTransition(prefix + "_10")
-        res, qrel, err = self.graph.generateTargetConfig(transition, qp, qp)
-        if not res:
-            self._log(logger, "WARN", f"qrel generation failed — {err}")
-            return qap, qpp, qp, None
-        if testCollision:
-            pv = transition.pathValidation()
-            res, msg = pv.validateConfiguration(qrel)
-            if not res:
-                self._log(logger, "WARN", f"qrel fail — {msg}")
-                return qap, qpp, qp, None
-        return qap, qpp, qp, qrel
+                continue
+            if testCollision and not self.checkConfigurationValid(qap):
+                continue
+            if viewer:
+                viewer(qap)
+
+            # == PREPLACEMENT CONFIGURATION ==
+            for attempt_pp in range(MAX_LOCAL_RETRIES):
+                res, qpp, _ = self.graph.generateTargetConfig(
+                    self.graph.getTransition(prefix + "_32"),
+                    qap,
+                    _seed_pp(qap, attempt_pp, prefix),
+                )
+                if not res:
+                    continue
+                if testCollision and not self.checkConfigurationValid(qpp):
+                    continue
+                if viewer:
+                    viewer(qpp)
+
+                # == PLACEMENT CONFIGURATION ==
+                for attempt_p in range(MAX_LOCAL_RETRIES):
+                    q_seed = _seed_arms(qpp, attempt_p)
+                    q_seed[handle_idx : handle_idx + 7] = target_bar_pose
+                    res, qp, _ = self.graph.generateTargetConfig(
+                        self.graph.getTransition(prefix + "_21"), qpp, q_seed
+                    )
+                    if not res:
+                        continue
+                    if testCollision and not self.checkConfigurationValid(qp):
+                        continue
+                    if viewer:
+                        viewer(q_seed)
+
+                    # == RELEASE CONFIGURATION ==
+                    for attempt_rel in range(MAX_LOCAL_RETRIES):
+                        res, qrel, _ = self.graph.generateTargetConfig(
+                            self.graph.getTransition(prefix + "_10"),
+                            qp,
+                            _seed_arms(qp, attempt_rel),
+                        )
+                        if not res:
+                            continue
+                        if testCollision and not self.checkConfigurationValid(qrel):
+                            continue
+                        if viewer:
+                            viewer(qrel)
+
+                        self._log(
+                            logger,
+                            "INFO",
+                            f"{ctx} found — base={attempt_base + 1}/{MAX_BASE_ATTEMPTS} "
+                            f"pp={attempt_pp + 1} p={attempt_p + 1} rel={attempt_rel + 1}",
+                        )
+                        return qap, qpp, qp, qrel
+
+        self._log(
+            logger, "WARN", f"{ctx} failed after {MAX_BASE_ATTEMPTS} base attempts"
+        )
+        return None, None, None, None
 
     def _log(self, logger, level, msg):
         """
@@ -403,7 +456,7 @@ class PathPlanner:
         prefix = f"{gripper} > {handle} | f"
 
         # ==================================================================
-        # Segment 0: free → approach (direct, transit_free)
+        # Segment 0: free -> approach (direct, transit_free)
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_free"))
         res, p0, msg = self.transitionPlanner.directPath(q_init, qap, True)
@@ -423,7 +476,7 @@ class PathPlanner:
         # p1 = self.optimizePath(p1, logger=logger)
 
         # ==================================================================
-        # Segment 2: pregrasp → grasp (constrained direct, prefix + "_12")
+        # Segment 2: pregrasp -> grasp (constrained direct, prefix + "_12")
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_12"))
         res, p2, msg = self.transitionPlanner.directPath(qpg, qg, True)
@@ -436,7 +489,7 @@ class PathPlanner:
         # p2 = self.optimizePath(p2_vector, logger=logger)
 
         # ==================================================================
-        # Segment 3: grasp → preplace (constrained direct, prefix + "_23")
+        # Segment 3: grasp -> preplace (constrained direct, prefix + "_23")
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_23"))
         res, p3, msg = self.transitionPlanner.directPath(qg, qpp, True)
@@ -451,7 +504,9 @@ class PathPlanner:
         self._log(logger, "INFO", "Grasping path planned successfully.")
         return concatenatePaths([p0, p1, p2, p3], logger=logger)
 
-    def planPathtoBarPlacement(self, gripper, handle, q_init, target_bar_pose, logger):
+    def planPathtoBarPlacement(
+        self, gripper, handle, q_init, target_bar_pose, logger, viewer
+    ):
         self._set_transition_planner()
         """
         Plan a path from the grasping configuration to the placement configuration for the specified gripper and handle.
@@ -468,14 +523,21 @@ class PathPlanner:
         res, q_init, _ = self.graph.applyStateConstraints(
             self.graph.getState(f"{gripper} grasps {handle}"), q_init
         )
+        viewer(q_init)
         if not res:
             self._log(logger, "WARN", "applyStateConstraints for grasp state failed")
 
         qap, qpp, qp, qrel = self.generatePlacementConfigurations(
-            gripper, handle, q_init, target_bar_pose, testCollision=True, logger=logger
+            gripper,
+            handle,
+            q_init,
+            target_bar_pose,
+            testCollision=True,
+            logger=logger,
+            viewer=viewer,
         )
         if qap is None or qpp is None or qp is None or qrel is None:
-            self._log(logger, "ERROR", "Failed to generate placement configurations")
+            self._log(logger, "WARN", "Failed to generate placement configurations")
             return None
         self._log(logger, "INFO", "Placement configurations generated")
 
@@ -486,39 +548,39 @@ class PathPlanner:
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_grasp"))
         res, p0, msg = self.transitionPlanner.directPath(q_init, qap, True)
         if not res:
-            self._log(logger, "ERROR", f"Segment 0 FAILED — {msg}")
+            self._log(logger, "WARN", f"Segment 0 FAILED — {msg}")
             return None
 
         # ==================================================================
-        # Segment 1: approach → preplacement (RRT, prefix + "_32")
+        # Segment 1: approach -> preplacement (RRT, prefix + "_32")
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_32"))
         p1 = self.transitionPlanner.planPath(qap, self._goals_matrix(qpp), True)
         if not p1:
-            self._log(logger, "ERROR", "Segment 1 FAILED")
+            self._log(logger, "WARN", "Segment 1 FAILED")
             return None
 
         # p1 = self.transitionPlanner.optimizePath(p1)
         # p1 = self.optimizePath(p1, logger=logger)
 
         # ==================================================================
-        # Segment 2: preplacement → placement (constrained direct, prefix + "_21")
+        # Segment 2: preplacement -> placement (constrained direct, prefix + "_21")
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_21"))
         res, p2, msg = self.transitionPlanner.directPath(qpp, qp, True)
         if not res:
-            self._log(logger, "ERROR", f"Segment 2 FAILED — {msg}")
+            self._log(logger, "WARN", f"Segment 2 FAILED — {msg}")
             return None
         # p2 = self.transitionPlanner.timeParameterization(p2)
         # p2 = self.optimizePath(p2, logger=logger)
 
         # ==================================================================
-        # Segment 3: placement → release (constrained direct, prefix + "_10")
+        # Segment 3: placement -> release (constrained direct, prefix + "_10")
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_10"))
         res, p3, msg = self.transitionPlanner.directPath(qp, qrel, True)
         if not res:
-            self._log(logger, "ERROR", f"Segment 3 FAILED — {msg}")
+            self._log(logger, "WARN", f"Segment 3 FAILED — {msg}")
             return None
         # p3 = self.transitionPlanner.timeParameterization(p3)
         # p3 = self.optimizePath(p3, logger=logger)

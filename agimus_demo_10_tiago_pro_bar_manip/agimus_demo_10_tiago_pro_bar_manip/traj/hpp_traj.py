@@ -335,7 +335,7 @@ class HPPPathGenerator:
             [f"{obj_name}/bottom"],
             [
                 f"{table_name}/reinforcment_bar_support",
-                f"{plate_name}/top",
+                f"{plate_name}/bottom",
             ],
         )
         preplace_c = self.graph.createPrePlacementConstraint(
@@ -345,7 +345,7 @@ class HPPPathGenerator:
                 f"{table_name}/reinforcment_bar_support",
                 f"{plate_name}/top",
             ],
-            0.05,  # width (approach distance)
+            0.1,  # width (approach distance)
         )
 
         # Keep references for external RHS manipulation in path_planner
@@ -502,6 +502,9 @@ class HPPPathGenerator:
             f"{prefix_fwd}_01",
             f"{prefix_fwd}_12",
             f"{prefix_fwd}_23",
+            f"{prefix_bwd}_32",
+            f"{prefix_bwd}_21",
+            f"{prefix_bwd}_10",
             "Loop | f",
             "Loop | 0-0",
         ]:
@@ -518,7 +521,6 @@ class HPPPathGenerator:
                 self.graph.getTransition(e_name), self._locked_plate
             )
 
-        # MUST be the last call — PathPlanner requires an initialized graph.
         self.graph.initialize()
 
     # == Public helpers ========================================================
@@ -574,7 +576,7 @@ class HPPPathGenerator:
         q = np.asarray(q_init, dtype=np.float64)
         self.view(q)
         result = self._path_planner.planPathtoBarPlacement(
-            gripper, handle, q, target_bar_pose, self._logger
+            gripper, handle, q, target_bar_pose, self._logger, self._viewer
         )
         if result is not None:
             self._logger.info("Path to bar placement planned successfully.")
