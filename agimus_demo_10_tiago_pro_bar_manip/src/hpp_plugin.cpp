@@ -21,7 +21,7 @@ OrchestratorPannel::OrchestratorPannel(QWidget* parent)
     : rviz_common::Panel(parent) {
   // == Action type =========================================================
   action_type_combo_ = new QComboBox(this);
-  action_type_combo_->addItem("grasp");
+  action_type_combo_->addItem("pick");
   action_type_combo_->addItem("place");
 
   // == Buttons =============================================================
