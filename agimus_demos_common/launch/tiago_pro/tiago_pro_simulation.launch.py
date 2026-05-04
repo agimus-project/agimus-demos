@@ -2,9 +2,9 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     ExecuteProcess,
     IncludeLaunchDescription,
-    LogInfo,
     OpaqueFunction,
     RegisterEventHandler,
+    SetLaunchConfiguration,
 )
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
@@ -36,7 +36,7 @@ def launch_setup(
                 FindPackageShare("agimus_demos_common"),
                 "config",
                 "tiago_pro",
-                "linear_feedback_controller_params.yaml",
+                "linear_feedback_controller_simu_params.yaml",
             ]
         ),
         PathJoinSubstitution(
@@ -87,9 +87,16 @@ def launch_setup(
                 arg.name: LaunchConfiguration(arg.name)
                 for arg in generate_default_tiago_pro_args()
             },
+            "tuck_arm": "False",
+            "is_public_sim": "True",
+            "moveit": "False",
+            "play_motion2": "False",
         }.items(),
     )
 
+    # Activate all at once: ros2_control sets chained mode atomically
+    # when preceding (LFC) and following (PassthroughControllers) are
+    # activated in the same switch_controllers transaction.
     activate_controllers = ExecuteProcess(
         cmd=[
             "ros2",
@@ -111,47 +118,13 @@ def launch_setup(
         output="screen",
     )
 
-    # Track whether all events have been received.
-    tuck_arm_done = False
-    controllers_done = False
-
-    def activate_controllers_on_exit(context):
-        """Check if both tuck_arm and controller spawners have finished before activating controllers."""
-        if tuck_arm_done and controllers_done:
-            return [
-                LogInfo(msg="All conditions met. Activating controllers."),
-                activate_controllers,
-            ]
-        return []
-
-    def on_tuck_arm_exit_callback(event, context):
-        """Callback when tuck_arm.py exits."""
-        nonlocal tuck_arm_done
-        if "tuck_arm.py" in event.process_name and event.returncode == 0:
-            tuck_arm_done = True
-            return [
-                LogInfo(msg="tuck_arm.py completed. Waiting for controllers..."),
-                OpaqueFunction(function=activate_controllers_on_exit),
-            ]
-        return [LogInfo(msg="tuck_arm.py failed. Not starting controllers.")]
-
-    def on_controllers_spawned_callback(event, context):
-        """Callback when controller spawners finish."""
-        nonlocal controllers_done
-        controllers_done = True
-        return [
-            LogInfo(msg="Controllers spawned. Waiting for tuck_arm.py..."),
-            OpaqueFunction(function=activate_controllers_on_exit),
-        ]
-
     return [
         spawn_controllers,
         tiago_simulation_launch,
-        RegisterEventHandler(OnProcessExit(on_exit=on_tuck_arm_exit_callback)),
         RegisterEventHandler(
             OnProcessExit(
                 target_action=spawn_controllers.entities[2],
-                on_exit=on_controllers_spawned_callback,
+                on_exit=[activate_controllers],
             )
         ),
     ]
@@ -159,5 +132,7 @@ def launch_setup(
 
 def generate_launch_description():
     return LaunchDescription(
-        generate_default_tiago_pro_args() + [OpaqueFunction(function=launch_setup)]
+        [SetLaunchConfiguration("use_sim_time", "True")]
+        + generate_default_tiago_pro_args()
+        + [OpaqueFunction(function=launch_setup)]
     )

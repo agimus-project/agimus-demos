@@ -291,13 +291,13 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
         DeclareLaunchArgument(
             "end_effector_right",
             description="End effector model right arm.",
-            choices=["pal-pro-gripper", "custom", "no-end-effector"],
+            choices=["pal-pro-gripper", "custom", "no-end-effector", "pal-atc"],
             default_value="no-end-effector",
         ),
         DeclareLaunchArgument(
             "end_effector_left",
             description="End effector model left arm.",
-            choices=["pal-pro-gripper", "custom", "no-end-effector"],
+            choices=["pal-pro-gripper", "custom", "no-end-effector", "pal-atc"],
             default_value="no-end-effector",
         ),
         DeclareLaunchArgument(
@@ -379,9 +379,10 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             default_value="True",
         ),
         DeclareLaunchArgument(
-            "world_name",
-            description="Specify world name, will be converted to full path.",
-            default_value="empty",
+            "gazebo_version",
+            description="Version of Gazebo: 'gazebo' (Ignition) or 'classic'.",
+            choices=["gazebo", "classic"],
+            default_value="gazebo",
         ),
         DeclareLaunchArgument(
             "tuck_arm",
@@ -394,6 +395,32 @@ def generate_default_tiago_pro_args() -> list[DeclareLaunchArgument]:
             description="Enable public simulation.",
             choices=["True", "False"],
             default_value="False",
+        ),
+        DeclareLaunchArgument(
+            "play_motion2",
+            description="Launch play_motion2.",
+            choices=["True", "False"],
+            default_value="True",
+        ),
+        DeclareLaunchArgument(
+            "lfc_pkg",
+            default_value="agimus_demos_common",
+            description="Package containing the LFC/JSE/passthrough config files for simulation.",
+        ),
+        DeclareLaunchArgument(
+            "lfc_yaml",
+            default_value="config/tiago_pro/linear_feedback_controller_simu_params.yaml",
+            description="Path relative to lfc_pkg share to the LFC params file (simulation).",
+        ),
+        DeclareLaunchArgument(
+            "jse_yaml",
+            default_value="config/tiago_pro/joint_state_estimator_simu_params.yaml",
+            description="Path relative to lfc_pkg share to the JSE params file (simulation).",
+        ),
+        DeclareLaunchArgument(
+            "pc_yaml",
+            default_value="config/tiago_pro/dummy_controllers.yaml",
+            description="Path relative to lfc_pkg share to the passthrough controllers params file (simulation).",
         ),
     ]
 
