@@ -3,7 +3,7 @@ running_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [6000, 6000, 6000]
+    Kp: [8000, 8000, 8000]
     Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]
@@ -49,7 +49,7 @@ terminal_model:
   class: IAMSoftContactAugmented
   differential:
     class: DAMSoftContactAugmentedFwdDynamics
-    Kp: [6000, 6000, 6000]
+    Kp: [8000, 8000, 8000]
     Kv: [100, 100, 100]
     frame_id: ati_mini45_measurement_reference
     oPc: [0.0, 0.0, -0.073915]

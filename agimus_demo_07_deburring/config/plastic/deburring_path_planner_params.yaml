@@ -52,6 +52,7 @@ deburring_path_planner_node:
         - fer_joint6
         - fer_joint7
         joint_shrink_range: 0.95
+        slowdown_factor: 4.0
       # trajectory_smoother is set at the launch file level
 
       # Those parameters are not related to the MPC controlling the robot directly

@@ -1,0 +1,505 @@
+---
+polishing_path_planner:
+  handles_srdf_path:
+    type: string
+    description: Path to definition of handles used by HPP to define all possible end configurations
+      for the robot.
+    read_only: true
+  device:
+    type: string
+    description: Device to which the models will be loaded.
+    default_value: cpu
+    read_only: true
+  rate:
+    type: double
+    description: Frequency [Hz] at which inference will be rerun.
+    default_value: 2.0
+    read_only: true
+    validation:
+      gt<>: [0.0]
+  hpp_handle_to_ee_rot:
+    type: double_array
+    description: Rotation [rad] used to translate HPP handles to robot EE frame.
+    default_value: [0.0, 0.0, 0.0]
+    read_only: true
+    validation:
+      fixed_size<>: [3]
+      element_bounds<>: [-3.141592655, 3.141592655]
+  tool_frame_id:
+    type: string
+    description: Name of the frame associated with the tool.
+    read_only: true
+  measurement_frame_id:
+    type: string
+    description: Name of the frame associated with force measurement.
+    read_only: true
+  world_frame_id:
+    type: string
+    description: Name of the frame used axs a world reference.
+    read_only: true
+  polished_object_frame_id:
+    type: string
+    description: Name of the frame associated to the polished object.
+    read_only: true
+
+  path_mode:
+    type: string
+    description: Select `circle` for the original planar pattern or `sphere` for a circle
+      constrained to a spherical surface.
+    validation:
+      one_of<>: [[circle, sphere, mesh]]
+
+  mesh_path:
+    ply_file:
+      type: string
+      description: Absolute path to the PLY file.
+      default_value: ''
+    ply_center_xy:
+      type: double_array
+      description: Center [x,y] on the mesh surface.
+      default_value: [0.0, 0.0]
+      validation:
+        fixed_size<>: [2]
+    robot_center_xyz:
+      type: double_array
+      description: Center [x,y,z] in robot frame where trajectory is executed.
+      default_value: [0.0, 0.0, 0.0]
+      validation:
+        fixed_size<>: [3]
+    mesh_translation_xyz:
+      type: double_array
+      description: Additional mesh translation [x,y,z] in world frame.
+      default_value: [0.0, 0.0, 0.0]
+      validation:
+        fixed_size<>: [3]
+    mesh_position_shift_xyz:
+      type: double_array
+      description: World-frame shift [x,y,z] applied to mesh position; [0,0,0] keeps baseline
+        mesh placement.
+      default_value: [0.0, 0.0, 0.0]
+      validation:
+        fixed_size<>: [3]
+    mesh_shift_xyz:
+      type: double_array
+      description: World-frame shift [x,y,z] applied to the polishing circle center on the
+        mesh; [0,0,0] keeps baseline circle position.
+      default_value: [0.0, 0.0, 0.0]
+      validation:
+        fixed_size<>: [3]
+    mesh_refine_enabled:
+      type: bool
+      description: If true, apply mesh preprocessing before trajectory generation.
+      default_value: true
+    mesh_upsample_enabled:
+      type: bool
+      description: If true and mesh_refine_enabled is true, run one mesh upsampling pass.
+      default_value: true
+    mesh_refine_iterations:
+      type: int
+      description: Number of mesh smoothing iterations when mesh_refine_enabled is true.
+      default_value: 5
+      validation:
+        gt_eq<>: [0]
+    mesh_refine_lambda:
+      type: double
+      description: Mesh smoothing factor used when mesh_refine_enabled is true.
+      default_value: 0.5
+      validation:
+        gt_eq<>: [0.0]
+        lt_eq<>: [1.0]
+    trajectory_mode:
+      type: string
+      description: Mesh polishing trajectory mode.
+      default_value: circle
+      validation:
+        one_of<>: [[circle, line, sequence]]
+    line_axis:
+      type: string
+      description: Signed world axis used by mesh line mode, starting at initial point and
+        moving only in that direction.
+      default_value: x
+      validation:
+        one_of<>: [[x, -x, y, -y]]
+    line_length:
+      type: double
+      description: Length of the polishing line on mesh [m] when trajectory_mode is line.
+      default_value: 0.1
+      validation:
+        gt<>: [0.0]
+    line_speed:
+      type: double
+      description: Peak linear speed [m/s] when trajectory_mode is line or sequence.
+      default_value: 0.01
+      validation:
+        gt<>: [0.0]
+    line_speed_mode:
+      type: string
+      description: Speed profile for mesh line or sequence mode.
+      default_value: triangular
+      validation:
+        one_of<>: [[triangular, constant]]
+    sequence_axes:
+      type: string_array
+      description: Ordered signed world axes for sequence mode segments. Supported values
+        are x, +x, -x, y, +y, -y.
+      default_value: [x]
+    sequence_lengths:
+      type: double_array
+      description: Ordered segment lengths [m] for sequence mode. Must match sequence_axes
+        size.
+      default_value: [0.1]
+      validation:
+        lower_element_bounds<>: [0.0]
+    circle_point_downsample_factor:
+      type: int
+      description: Reduce geometric circle discretization on mesh by factor N while keeping
+        motion timing from frequency/ocp_dt unchanged.
+      default_value: 1
+      validation:
+        gt_eq<>: [1]
+    mesh_rotation_z:
+      type: double
+      description: Additional mesh rotation around world Z [rad].
+      default_value: 0.0
+    outward_normal:
+      type: bool
+      description: If true, orient mesh path normals to the opposite side.
+      default_value: false
+    circle_radius:
+      type: double
+      description: Radius of the polishing circle [m].
+      default_value: 0.01
+      validation:
+        gt<>: [0.0]
+
+  sphere_path:
+    center_xyz:
+      type: double_array
+      description: Center [x,y,z] of the spherical surface in world frame.
+      validation:
+        fixed_size<>: [3]
+    radius:
+      type: double
+      description: Radius of the spherical surface [m].
+      validation:
+        gt<>: [0.0]
+    circle_center_xy:
+      type: double_array
+      description: Center [x,y] of XY-projected polishing circle in world frame.
+      validation:
+        fixed_size<>: [2]
+    circle_radius:
+      type: double
+      description: Radius of XY-projected polishing circle [m].
+      validation:
+        gt<>: [0.0]
+    samples:
+      type: int
+      description: Number of samples along the spherical circle.
+      validation:
+        gt<>: [1]
+    upper_hemisphere:
+      type: bool
+      description: If true, use hemisphere with z >= center_z; else z <= center_z.
+    outward_normal:
+      type: bool
+      description: If true, EE +z points outward from sphere center, else inward.
+
+  sphere_path_velocity:
+    type: double
+    description: Desired arc-length velocity along the spherical polishing circle [m/s].
+    validation:
+      gt<>: [0.0]
+
+  sphere_entry_velocity:
+    type: double
+    description: Maximum linear velocity when approaching the spherical path entry pose [m/s].
+    validation:
+      gt<>: [0.0]
+
+  sphere_path_loops:
+    type: int
+    description: Number of full circles to draw while following the spherical surface.
+    validation:
+      gt<>: [0]
+
+  ocp_buffer_size:
+    type: int
+    default_value: 50
+    description: Size of the trajectory buffer to be kept for the OCP.
+    read_only: true
+    validation:
+      gt<>: 1
+  moving_joints:
+    type: string_array
+    description: Names of the joints that are moving.
+    read_only: true
+  visualization:
+    publish_path:
+      type: bool
+      description: Whether to publish the path.
+      default_value: true
+      read_only: true
+    marker_size:
+      type: double
+      description: Size of the marker [m].
+      default_value: 0.05
+      read_only: true
+    marker_color:
+      type: double_array
+      description: RGBA color of the markers.
+      default_value: [0.0, 0.0, 1.0, 0.5]
+      read_only: true
+      validation:
+        fixed_size<>: [4]
+        element_bounds<>: [0.0, 1.0]
+  max_joint_velocity:
+    type: double_array
+    description: Maximum angular velocity [rad/s] for each joint of the robot.
+    read_only: true
+    validation:
+      lower_element_bounds<>: [0.0]
+  ocp_dt:
+    type: double
+    description: Time step used by OCP.
+    default_value: 0.01
+    validation:
+      gt<>: [0.0]
+  desired_force:
+    type: double
+    description: Desired force [N] applied by `frame_of_interest` in the direction of the
+      handle.
+    validation:
+      gt_eq<>: [0.0]
+  force_ramp:
+    type: double
+    description: Time [s] to ramp up and down forces.
+    validation:
+      gt_eq<>: [0.0]
+  generators_params:
+    main_generator:
+      type: string
+      description: Which trajectory generator to use.
+      read_only: true
+      validation:
+        one_of<>: [[diffusion, hpp]]
+    diffusion_generator:
+      weights_path:
+        type: string
+        description: Path to the weights used by diffusion model.
+        default_value: ''
+        read_only: true
+      sequence_length:
+        type: int
+        description: Output path length for diffusion model.
+        default_value: 49
+        read_only: true
+    hpp_generator:
+      handle_configs_path:
+        type: string
+        description: Path to precomputed final configurations of the robot used for planning.
+        default_value: ''
+        read_only: true
+      robot_self_collision_config:
+        type: string
+        description: Path to srdf file with robot self collisions.
+        default_value: ''
+        read_only: true
+      demo_config:
+        type: string
+        description: Path to srdf file describing the demo.
+        default_value: ''
+        read_only: true
+      joints_to_shrink:
+        type: string_array
+        description: List of joints of which ranges should be shrunk.
+        default_value: ['']
+        read_only: true
+      joint_shrink_range:
+        type: double
+        description: Range to which ranges of joints should be reduced.
+        default_value: 1.0
+        read_only: true
+        validation:
+          gt<>: [0.0]
+          lt_eq<>: [1.0]
+      robot_name:
+        type: string
+        description: Name of the robot used by HPP.
+        default_value: ''
+        read_only: true
+      gripper_name:
+        type: string
+        description: Name of the gripper used by the demo.
+        default_value: ''
+        read_only: true
+      polished_object_name:
+        type: string
+        description: Name of the object to which handles will be attached.
+        default_value: ''
+        read_only: true
+
+    grasp_generator:
+      max_linear_vel:
+        type: double
+        description: Maximum linear velocity when performing a grasp.
+        read_only: true
+    polishing_generator:
+      angle:
+        type: double
+        description: Angle at which the circle is generated.
+        default_value: 5.0
+        validation:
+          gt_eq<>: [0.0]
+      frequency:
+        type: double
+        description: Frequency at which circle is performed.
+        default_value: 0.1
+        validation:
+          gt_eq<>: [0.0]
+      slope_circles:
+        type: int
+        description: Number of circle to slope up with the polishing angle.
+        default_value: 1
+        validation:
+          gt_eq<>: [1]
+      n_circles:
+        type: int
+        description: Number of circles to draw.
+        default_value: 2
+        validation:
+          gt_eq<>: [2]
+  weights:
+    schedule:
+      interpolation_time:
+        type: double
+        description: Time to interpolate between weights.
+        default_value: 1.0
+        validation:
+          gt_eq<>: [0.0]
+    follow_joint_trajectory:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]
+    insert_retract_tool:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]
+    polishing_motion:
+      w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around desired robot velocity.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_desired_force:
+        type: double_array
+        description: Weights associated to force applied by `frame_of_interest`.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      w_collision_avoidance:
+        type: double
+        description: Weight os soft collision cost.
+        validation:
+          gt_eq<>: [0.0]

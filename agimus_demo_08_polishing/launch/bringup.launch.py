@@ -1,0 +1,128 @@
+from agimus_demos_common.launch_utils import (
+    generate_default_franka_args,
+    generate_include_launch,
+    get_use_sim_time,
+)
+from agimus_demos_common.static_transform_publisher_node import (
+    static_transform_publisher_node,
+)
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
+from launch_ros.substitutions import FindPackageShare
+
+from launch import LaunchContext, LaunchDescription
+from launch.actions import OpaqueFunction
+from launch.launch_description_entity import LaunchDescriptionEntity
+from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+
+
+def create_env_publisher(with_sc: bool) -> Node:
+    environment_description = ParameterValue(
+        Command(
+            [
+                PathJoinSubstitution([FindExecutable(name="xacro")]),
+                " ",
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("agimus_demo_08_polishing"),
+                        "urdf",
+                        "environment.urdf.xacro",
+                    ]
+                ),
+                " ",
+                f"with_sc:={str(with_sc).lower()}",
+            ]
+        ),
+        value_type=str,
+    )
+    postfix = "_with_collision" if with_sc else "_without_collision"
+    return Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="environment_publisher" + postfix,
+        output="screen",
+        remappings=[("robot_description", "environment_description" + postfix)],
+        parameters=[{"robot_description": environment_description}],
+    )
+
+
+def launch_setup(
+    context: LaunchContext, *args, **kwargs
+) -> list[LaunchDescriptionEntity]:
+    rviz_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare("agimus_demo_08_polishing"),
+            "rviz",
+            "config.rviz",
+        ]
+    )
+
+    pytroller_params = (
+        PathJoinSubstitution(
+            [
+                FindPackageShare("agimus_demo_08_polishing"),
+                "config",
+                "pytroller_params.yaml",
+            ]
+        ),
+    )
+
+    agimus_pytroller_names = ["agimus_pytroller", "ft_calibration_filter"]
+
+    franka_robot_launch = generate_include_launch(
+        "franka_common.launch.py",
+        extra_launch_arguments={
+            "external_controllers_names": str(agimus_pytroller_names),
+            "external_controllers_params": pytroller_params,
+            "rviz_config_path": rviz_config_path,
+            "use_ft_sensor": "true",
+            "use_camera": "false",
+            "ee_id": "ati_mini45_no_camera",
+        },
+    )
+
+    environment_publisher_node_with_sc = create_env_publisher(True)
+    environment_publisher_node_without_sc = create_env_publisher(False)
+
+    polishing_path_planner_params = (
+        PathJoinSubstitution(
+            [
+                FindPackageShare("agimus_demo_08_polishing"),
+                "config",
+                "polishing_path_planner_params.yaml",
+            ]
+        ),
+    )
+
+    polishing_path_planner = Node(
+        package="agimus_demo_08_polishing",
+        executable="polishing_path_planner",
+        name="polishing_path_planner_node",
+        output="both",
+        parameters=[
+            get_use_sim_time(),
+            ParameterFile(param_file=polishing_path_planner_params, allow_substs=True),
+        ],
+    )
+
+    # TODO remove once vision module is working
+    tf_node_pylone_link = static_transform_publisher_node(
+        frame_id="fer_link0",
+        child_frame_id="pylone_link",
+        xyz=["0.45", "-0.116", "0.739"],
+        rot_xyzw=["0.0, 0.0, 0.0, 1.0"],
+    )
+
+    return [
+        franka_robot_launch,
+        environment_publisher_node_with_sc,
+        environment_publisher_node_without_sc,
+        polishing_path_planner,
+        tf_node_pylone_link,
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
+    )
