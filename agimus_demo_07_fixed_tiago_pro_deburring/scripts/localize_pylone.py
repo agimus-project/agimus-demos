@@ -41,6 +41,7 @@ GRAVITY_COMP_CONTROLLER = "arm_right_gravity_compensation_controller_torque"
 ARM_POSITION_CONTROLLER = "arm_right_controller"
 
 DEFAULT_HOLES = ["hole_right_00", "hole_right_25", "hole_right_49"]
+DEFAULT_TOOL_OFFSET = 0.016  # meters, along Z axis of gripper_right_tool_holder
 
 
 def parse_pylone_holes(srdf_path: str) -> dict:
@@ -97,7 +98,7 @@ def get_joint_state(node: Node, timeout: float = 5.0):
     return result[0]
 
 
-def fk_ee(urdf_str: str, joint_state: JointState) -> np.ndarray:
+def fk_ee(urdf_str: str, joint_state: JointState, tool_offset: float = DEFAULT_TOOL_OFFSET) -> np.ndarray:
     model = pin.buildModelFromXML(urdf_str)
     data = model.createData()
     q = pin.neutral(model)
@@ -112,7 +113,8 @@ def fk_ee(urdf_str: str, joint_state: JointState) -> np.ndarray:
     frame_id = model.getFrameId(EE_LINK)
     if frame_id == model.nframes:
         raise RuntimeError(f"Frame '{EE_LINK}' not found in model")
-    return data.oMf[frame_id].translation.copy()
+    T_ee = data.oMf[frame_id]
+    return (T_ee.translation + T_ee.rotation @ np.array([0.0, 0.0, tool_offset])).copy()
 
 
 def estimate_pose_svd(p_base: np.ndarray, p_pylone: np.ndarray):
@@ -135,6 +137,10 @@ def main():
     parser.add_argument(
         "--output", default=DEFAULT_OUTPUT,
         help=f"Path to write result YAML (default: {DEFAULT_OUTPUT})"
+    )
+    parser.add_argument(
+        "--tool-offset", type=float, default=DEFAULT_TOOL_OFFSET,
+        help=f"Tool length along Z of {EE_LINK} (default: {DEFAULT_TOOL_OFFSET} m)"
     )
     args = parser.parse_args()
 
@@ -168,7 +174,7 @@ def main():
             js = get_joint_state(node)
             if js is None:
                 raise RuntimeError("Could not read /joint_states")
-            p_base[i] = fk_ee(urdf_str, js)
+            p_base[i] = fk_ee(urdf_str, js, args.tool_offset)
             print(f"      Measured position: {np.round(p_base[i], 4).tolist()}\n")
     finally:
         print("Switching back to position control …")
