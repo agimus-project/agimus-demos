@@ -10,21 +10,13 @@
 ## 1. Install the linear-feedback-controller on the robot
 
 - Get an alum docker which is a mirror of the robot OS.
-- Create a workspace with the following 2 packages:
-  - https://github.com/loco-3d/linear-feedback-controller
-  - https://github.com/loco-3d/linear-feedback-controller-msgs
+- run sudo apt install pal-alum-linear-feedback-controller
 - Use the pal deploy tooling to install this workspace onto the robot.
   See the official PAL documentation.
 
 ---
 
 ## 2. Setup the environment (in the dev container)
-
-Install cyclonedds and mcap plugin:
-```bash
-sudo apt update
-sudo apt install ros-humble-cyclonedds ros-humble-rmw-cyclonedds-cpp ros-humble-rosbag2-storage-mcap
-```
 
 Clone and build the workspace:
 ```bash
