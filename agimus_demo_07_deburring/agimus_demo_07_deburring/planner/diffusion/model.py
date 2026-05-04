@@ -1,21 +1,15 @@
-# BSD 3-Clause License
-#
-# Copyright (C) 2025, Arthur Haffemayer.
-# Copyright note valid unless otherwise stated in individual files.
-# All rights reserved.
-
-from agimus_demo_07_deburring.planner.diffusion.conditioning_encoder import (
-    ConditioningEncoder,
-)
 from agimus_demo_07_deburring.planner.diffusion.diffusion_motion import (
     DiffusionMotion,
 )
 from agimus_demo_07_deburring.planner.diffusion.transformer_encoder_decoder import (
     TransformerDiffusionEncoderDecoder,
 )
+from agimus_demo_07_deburring.planner.diffusion.conditioning import (
+    ConditioningEncoder,
+)
 
 
-class DiffusionModel(DiffusionMotion):
+class Model(DiffusionMotion):
     def __init__(self) -> None:
         """
         Model that uses transformer inside diffusion.

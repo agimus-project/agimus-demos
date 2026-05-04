@@ -15,7 +15,7 @@ deburring_path_planner_node:
       marker_size: 0.01
       marker_color: [1.0, 0.0, 0.0, 0.5]
     # Velocities based on the datasheet. Values are eight of the maximum velocity
-    max_joint_velocity: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    max_joint_velocity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     ocp_dt: 0.002
     ocp_buffer_size: 100
     moving_joints:
@@ -27,14 +27,15 @@ deburring_path_planner_node:
     - fer_joint6
     - fer_joint7
     generators_params:
-      main_generator_type: hpp
+      main_generator_type: $(var motion_generator)
       deburring_generator_type: plastic
       use_precomputed_trajectories: $(var use_precomputed_trajectories)
       precomputed_trajectories_path: $(find-pkg-share agimus_demo_07_deburring)/precomputed_trajectories/plastic
-      # TODO implement when diffusion is finalized
+      precomputed_replay_speed_scale: 4.0
       diffusion_generator:
-        weights_path: ''
-        sequence_length: 49
+        weights_path: $(find-pkg-share agimus_demo_07_deburring)/weights/weights.ckpt
+        sequence_length: 50
+        n_samples: 10
       hpp_generator:
         handle_configs_path: $(find-pkg-share agimus_demo_07_deburring)/config/hpp_handle_configs.yaml
         robot_self_collision_config: $(find-pkg-share agimus_demo_07_deburring)/environment/panda.srdf
@@ -51,6 +52,61 @@ deburring_path_planner_node:
         - fer_joint6
         - fer_joint7
         joint_shrink_range: 0.95
+      # trajectory_smoother is set at the launch file level
+
+      # Those parameters are not related to the MPC controlling the robot directly
+      # Those are used by an OCP refining the trajectory to smooth it out before execution
+      # They are independent from the OCP inside of the MPC controlling the robot
+      ocp_smoother:
+        optimizer_ocp_dt: 0.5
+        optimizer_ocp_horizon: 100
+        running_costs:
+        - '{"class": "ResidualModelState"}'
+        - '{"class": "ResidualModelControlGrav"}'
+        terminal_costs:
+        - '{"class": "ResidualModelState"}'
+        # Uses `tool_frame_id` for those costs
+        - '{"class": "ResidualModelFrameTranslation", "id": 0}'
+        - '{"class": "ResidualModelFrameRotation", "id": 0}'
+        robot_collision_links:
+        - fer_ati_mini45_with_compact_camera_tool_capsule_0
+        - fer_ati_mini45_with_compact_camera_sc_capsule_0
+        - fer_link7_sc_capsule_0
+        - fer_link7_sc_capsule_1
+        - fer_link6_sc_capsule_0
+        - fer_link5_sc_capsule_1
+        - fer_ref_camera_link_capsule_0
+        environment_links:
+        - pylone_link_1
+        - pylone_sc_link_18
+        - pylone_sc_link_19
+        - pylone_sc_link_20
+        - pylone_sc_link_21
+        - pylone_sc_link_22
+        - pylone_sc_link_23
+        - pylone_sc_link_capsule_0
+        - pylone_sc_link_capsule_1
+        - pylone_sc_link_capsule_2
+        - pylone_sc_link_capsule_3
+        - pylone_sc_link_capsule_4
+        - pylone_sc_link_capsule_5
+        - base_box_link_0
+        - table_link_0
+        collision_distance: 0.02
+        joint_shrink_range: 0.95
+        n_threads: 16
+        solver_iters: 25
+        qp_iters: 25
+        use_line_search: true
+        callbacks: true
+        w_robot_effort: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
+        w_robot_velocity: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        running_w_robot_configuration: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+        running_w_frame_rotation: [0.0, 0.0, 0.0]
+        running_w_frame_translation: [0.0, 0.0, 0.0]
+        terminal_w_robot_configuration: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+        terminal_w_frame_rotation: [4000000.0, 4000000.0, 4000000.0]
+        terminal_w_frame_translation: [10.0, 10.0, 10.0]
       grasp_generator:
         linear_vel: 0.1
         linear_acc: 0.07
@@ -67,6 +123,7 @@ deburring_path_planner_node:
         n_circles: 2
         desired_force: 25.0
         force_ramp: 2.0
+    # Weights below are those used by MPC controlling the robot
     weights:
       schedule:
         interpolation_time: 2.0

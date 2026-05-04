@@ -44,4 +44,5 @@ ament_auto_package(
   plotjuggler
   precomputed_trajectories
   urdf
+  weights
   environment)

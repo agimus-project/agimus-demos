@@ -24,6 +24,12 @@ Expected behaviors:
 
 Follow the instructions from the main [README.md](../README.md) file.
 
+## Install python dependencies.
+Install [pytorch](https://pytorch.org/) version 2.11 and then following dependencies:
+```bash
+pip install pytorch-lightning==2.6.1 diffusers==0.37.1
+```
+
 ## Start the demo in simulation using the Panda robot.
 ```bash
 # Terminal 1
