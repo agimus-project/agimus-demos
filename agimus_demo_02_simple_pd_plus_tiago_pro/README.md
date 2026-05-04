@@ -49,9 +49,7 @@ safety of people around.
 #### Install the linear-feedback-controller
 
 - Get an alum docker which is a mirror of the robot OS.
-- Create a workspace with the following 2 packages:
-  - https://github.com/loco-3d/linear-feedback-controller
-  - https://github.com/loco-3d/linear-feedback-controller-msgs
+- run sudo apt install pal-alum-linear-feedback-controller
 - Use the pal deploy tooling to install this workspace onto the desired robot.
   See the official PAL documentation.
 
@@ -59,13 +57,6 @@ Further down the line this step will be useless as the linear-feedback-controlle
 
 #### Setup the environment
 
-- In the docker install cyclonedds and mcap plugin for rosbags.
-  ```bash
-  sudo apt update
-  sudo apt install ros-humble-cyclonedds
-  sudo apt install ros-humble-rmw-cyclonedds-cpp
-  sudo apt install ros-humble-rosbag2-storage-mcap
-  ```
 - Install the tiago-pro packages:
   ```bash
   cd ros2_ws/src
