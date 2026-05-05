@@ -2,12 +2,9 @@
 """
 Pylone localization via manual pointing.
 
-Switches the right arm to gravity compensation, asks the operator to point
-the gripper tip at 3 known holes of the pylone, then estimates the pylone
-pose using FK + SVD registration.
-
-Run this script BEFORE launching the LFC bringup, while arm_right_controller
-is still active.
+Asks the operator to enable gravity compensation via the PAL configuration
+panel, then point the gripper tip at 3 known holes of the pylone, and
+estimates the pylone pose using FK + SVD registration.
 
 Usage:
     python3 localize_pylone.py
@@ -17,7 +14,6 @@ Usage:
 
 import argparse
 import os
-import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -37,8 +33,6 @@ PYLONE_SRDF = os.path.join(_PKG_DIR, "hpp", "pylone.srdf")
 DEFAULT_OUTPUT = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
 EE_LINK = "gripper_right_tool_holder"
-GRAVITY_COMP_CONTROLLER = "arm_right_gravity_compensation_controller_torque"
-ARM_POSITION_CONTROLLER = "arm_right_controller"
 
 DEFAULT_HOLES = ["hole_right_00", "hole_right_25", "hole_right_49"]
 DEFAULT_TOOL_OFFSET = 0.016  # meters, along Z axis of gripper_right_tool_holder
@@ -54,15 +48,6 @@ def parse_pylone_holes(srdf_path: str) -> dict:
             xyz = list(map(float, pos_elem.get("xyz").split()))
             holes[name] = np.array(xyz)
     return holes
-
-
-def switch_controllers(deactivate: list, activate: list) -> None:
-    cmd = ["ros2", "control", "switch_controllers"]
-    if deactivate:
-        cmd += ["--deactivate"] + deactivate
-    if activate:
-        cmd += ["--activate"] + activate
-    subprocess.run(cmd, check=True)
 
 
 def get_urdf(node: Node, timeout: float = 10.0) -> str:
@@ -158,30 +143,21 @@ def main():
     print("Fetching robot URDF …")
     urdf_str = get_urdf(node)
 
-    print(f"\nSwitching to gravity compensation …")
-    switch_controllers(
-        deactivate=[ARM_POSITION_CONTROLLER],
-        activate=[GRAVITY_COMP_CONTROLLER],
+    input(
+        "\nEnable gravity compensation on the right arm via the PAL configuration panel,"
+        "\nthen press Enter to start pointing …\n"
     )
-    print("Arm is in gravity compensation mode. You can move it freely.\n")
 
     p_base = np.zeros((3, 3))
-    try:
-        for i, hole_name in enumerate(args.holes):
-            xyz = all_holes[hole_name]
-            print(f"[{i+1}/3] Point gripper at hole '{hole_name}'  (pylone frame: {np.round(xyz, 3).tolist()})")
-            input("      → Press Enter when ready …")
-            js = get_joint_state(node)
-            if js is None:
-                raise RuntimeError("Could not read /joint_states")
-            p_base[i] = fk_ee(urdf_str, js, args.tool_offset)
-            print(f"      Measured position: {np.round(p_base[i], 4).tolist()}\n")
-    finally:
-        print("Switching back to position control …")
-        switch_controllers(
-            deactivate=[GRAVITY_COMP_CONTROLLER],
-            activate=[ARM_POSITION_CONTROLLER],
-        )
+    for i, hole_name in enumerate(args.holes):
+        xyz = all_holes[hole_name]
+        print(f"[{i+1}/3] Point gripper at hole '{hole_name}'  (pylone frame: {np.round(xyz, 3).tolist()})")
+        input("      → Press Enter when ready …")
+        js = get_joint_state(node)
+        if js is None:
+            raise RuntimeError("Could not read /joint_states")
+        p_base[i] = fk_ee(urdf_str, js, args.tool_offset)
+        print(f"      Measured position: {np.round(p_base[i], 4).tolist()}\n")
 
     R, t = estimate_pose_svd(p_base, p_pylone)
 
