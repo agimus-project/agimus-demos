@@ -1,20 +1,21 @@
 import numpy as np
+import numpy.typing as npt
 
 
 class SCurveGenerator:
     def __init__(
         self,
-        max_vel,
-        max_acc,
-        max_jerk,
-        ocp_dt,
+        max_vel: float,
+        max_acc: float,
+        max_jerk: float,
+        ocp_dt: float,
     ):
         self._max_vel = max_vel
         self._max_acc = max_acc
         self._max_jerk = max_jerk
         self._ocp_dt = ocp_dt
 
-    def compute_params(self, dist: float):
+    def compute_params(self, dist: float) -> tuple[float, float, float, float]:
         vel_max = self._max_vel
         acc_max = self._max_acc
         jerk_max = self._max_jerk
@@ -28,7 +29,9 @@ class SCurveGenerator:
         time_total = 2 * time_acc + time_cruise
         return time_total, time_cruise, time_acc, time_jerk, dist_cruise
 
-    def compute_position_s_curve(self, start: float, end: float):
+    def compute_position_s_curve(
+        self, start: float, end: float
+    ) -> tuple[npt.ArrayLike, npt.ArrayLike]:
         dist = end - start
         dir = np.sign(dist)
         dist = np.abs(dist)

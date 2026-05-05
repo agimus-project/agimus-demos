@@ -97,6 +97,12 @@ deburring_path_planner:
       read_only: true
       validation:
         one_of<>: [[diffusion, hpp]]
+    trajectory_smoother:
+      type: string
+      description: Which trajectory smoother to use.
+      read_only: true
+      validation:
+        one_of<>: [[none, interpolate, ocp]]
     deburring_generator_type:
       type: string
       description: Which deburring motion generator to use.
@@ -114,6 +120,14 @@ deburring_path_planner:
       description: Path to a folder containing precomputed trajectories.
       default_value: ''
       read_only: true
+    precomputed_replay_speed_scale:
+      type: double
+      description: Replay speed scaling for loaded precomputed trajectories. Greater than
+        1.0 makes replay faster.
+      default_value: 2.0
+      read_only: true
+      validation:
+        gt<>: [0.0]
     diffusion_generator:
       weights_path:
         type: string
@@ -123,7 +137,12 @@ deburring_path_planner:
       sequence_length:
         type: int
         description: Output path length for diffusion model.
-        default_value: 49
+        default_value: 50
+        read_only: true
+      n_samples:
+        type: int
+        description: Number of trajectories to sample with diffusion model.
+        default_value: 1
         read_only: true
     hpp_generator:
       handle_configs_path:
@@ -154,6 +173,14 @@ deburring_path_planner:
         validation:
           gt<>: [0.0]
           lt_eq<>: [1.0]
+      slowdown_factor:
+        type: double
+        description: Time scaling factor applied when sampling HPP trajectory. Higher values
+          produce slower motion.
+        default_value: 4.0
+        read_only: true
+        validation:
+          gt<>: [0.0]
       robot_name:
         type: string
         description: Name of the robot used by HPP.
@@ -168,6 +195,160 @@ deburring_path_planner:
         type: string
         description: Name of the object to which handles will be attached.
         default_value: ''
+        read_only: true
+
+    ocp_smoother:
+      optimizer_ocp_dt:
+        type: double
+        description: Time step used by optimizer OCP
+        default_value: 0.1
+        read_only: true
+        validation:
+          gt_eq<>: [0.0]
+      optimizer_ocp_horizon:
+        type: int
+        description: Number of nodes in the optimizer OCP.
+        default_value: 49
+        read_only: true
+        validation:
+          gt<>: [0]
+      running_costs:
+        type: string_array
+        description: Block of target YAML file that is part of `residual` block inserted to
+          running cost section. Requires `class` field and it's params. Formatted in JSON
+          to stand out in ROS YAML config.
+        default_value: ['']
+        read_only: true
+      terminal_costs:
+        type: string_array
+        description: Block of target YAML file that is part of `residual` block inserted to
+          terminal cost section. Requires `class` field and it's params. Formatted in JSON
+          to stand out in ROS YAML config.
+        default_value: ['']
+        read_only: true
+      robot_collision_links:
+        type: string_array
+        description: List of robot links used to generate dense collision matrix with the
+          environment.
+        default_value: ['']
+        read_only: true
+      environment_links:
+        type: string_array
+        description: List of environment links used to generate dense collision matrix with
+          the robot.
+        default_value: ['']
+        read_only: true
+      collision_distance:
+        type: double
+        description: Collision distance used in OCP config.
+        default_value: 0.02
+        read_only: true
+        validation:
+          gt_eq<>: [0.0]
+      joint_shrink_range:
+        type: double
+        description: Range to which ranges of joints should be reduced.
+        default_value: 1.0
+        read_only: true
+        validation:
+          gt<>: [0.0]
+          lt_eq<>: [1.0]
+      n_threads:
+        type: int
+        description: Number of threads used by OCP.
+        default_value: 1
+        read_only: true
+        validation:
+          gt<>: [0]
+      solver_iters:
+        type: int
+        description: Number of solver iterations of OCP.
+        default_value: 50
+        read_only: true
+        validation:
+          gt<>: [0]
+      qp_iters:
+        type: int
+        description: Number of QP iterations of OCP.
+        default_value: 10000
+        read_only: true
+        validation:
+          gt<>: [0]
+      use_line_search:
+        type: bool
+        description: Whether to use line search in OCP.
+        default_value: true
+        read_only: true
+      callbacks:
+        type: bool
+        description: Whether to use callbacks in OCP.
+        default_value: true
+        read_only: true
+      w_robot_effort:
+        type: double_array
+        description: Weights associated to regularization around gravity compensation torque
+          of trajectory OCP.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      w_robot_velocity:
+        type: double_array
+        description: Weights associated to regularization around zero velocity of trajectory
+          OCP.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      running_w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration
+          of trajectory OCP used by running nodes.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      running_w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest` of trajectory
+          OCP used by running nodes.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      running_w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest` of trajectory OCP
+          used by running nodes.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      terminal_w_robot_configuration:
+        type: double_array
+        description: Weights associated to regularization around desired robot configuration
+          of trajectory OCP used by terminal nodes.
+        validation:
+          not_empty<>: []
+          lower_element_bounds<>: [0.0]
+      terminal_w_frame_rotation:
+        type: double_array
+        description: Weights associated to rotation of the `frame_of_interest` of trajectory
+          OCP used by terminal nodes.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      terminal_w_frame_translation:
+        type: double_array
+        description: Weights associated to pose of the `frame_of_interest` of trajectory OCP
+          used by terminal nodes.
+        validation:
+          fixed_size<>: [3]
+          lower_element_bounds<>: [0.0]
+      moving_joints:
+        type: string_array
+        description: List of moving joints optimized by the trajectory OCP.
+        default_value: ['']
+        read_only: true
+      collision_frames_id:
+        type: string_array
+        description: List of collision frames of which position has to be updated.
+        default_value: ['']
         read_only: true
 
     grasp_generator:

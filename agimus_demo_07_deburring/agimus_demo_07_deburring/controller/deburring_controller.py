@@ -111,7 +111,7 @@ class ControllerImpl(ControllerImplBase):
         self._in_pd_mode = True
         self._p_gains = cfg["p_gains"]
         self._d_gains = cfg["d_gains"]
-        self._q_init = None
+        self._q_init = cfg["initial_configuration"]
 
         self._publish_debug_data = cfg["ocp_params"]["use_debug_data"]
 
@@ -223,7 +223,6 @@ class ControllerImpl(ControllerImplBase):
 
         # On first call, initialize warmstart and return zero control
         if self._first_call:
-            self._q_init = self._last_q.copy()
             pin.computeJointJacobians(rmodel, self._robot_data, self._last_q)
             frame_of_interest_id = rmodel.getFrameId(self.mpc._ocp.frame_id)
             oMc = self._robot_data.oMf[frame_of_interest_id]
@@ -270,9 +269,11 @@ class ControllerImpl(ControllerImplBase):
             self._ocp_res_is_none = True
             if self._in_pd_mode:
                 # Compute safety PD control
-                return (
-                    self._q_init - self._last_q
-                ) * self._p_gains - dq * self._d_gains
+                return np.clip(
+                    (self._q_init - self._last_q) * self._p_gains - dq * self._d_gains,
+                    -2.0,
+                    2.0,
+                )
             return self._u_zeros
         self._ocp_res_is_none = False
         self._in_pd_mode = False

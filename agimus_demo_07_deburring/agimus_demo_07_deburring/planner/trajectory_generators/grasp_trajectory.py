@@ -72,23 +72,31 @@ class GraspPathGenerator(GenericTrajectoryGenerator):
         traj, _ = self._linear_s_curve_generator.compute_position_s_curve(0.0, dist)
         # Rescale s-curve based trajectory to become a blending proportion between
         # initial and final frames for the interpolation.
-        time_spacing = traj / traj[-1]
+        if np.isclose(traj[-1], 0.0):
+            time_spacing = np.zeros_like(traj)
+        else:
+            time_spacing = traj / traj[-1]
 
         # Move first joint to the limit
         j_traj, j_vel = self._joint_s_curve_generator.compute_position_s_curve(
             q0[-1], self._target_j
         )
 
-        if len(j_traj) > len(traj):
-            traj = np.concatenate((traj, np.ones(len(j_traj) - len(traj))))
+        if len(j_traj) > len(time_spacing):
+            # Keep TCP at the final target while the last joint still converges.
+            extra_steps = np.ones(len(j_traj) - len(time_spacing))
+            time_spacing = np.concatenate((time_spacing, extra_steps))
         else:
-            extra_steps = np.ones(len(traj) - len(j_traj))
+            extra_steps = np.ones(len(time_spacing) - len(j_traj))
             j_traj = np.concatenate((j_traj, extra_steps * j_traj[-1]))
             j_vel = np.concatenate((j_vel, extra_steps * 0.0))
 
+        # Ensure a rest condition at sequence boundary.
+        j_vel[-1] = 0.0
+
         def _create_trajectory_point(i: int) -> TrajectoryPoint:
             t = time_spacing[i]
-            target = pin.SE3(np.eye(4))
+            target = pin.SE3.Identity()
             # Interpolate rotation
             target.rotation = start_pose.rotation @ pin.exp3(rot_vel * t)
             # Interpolate translation

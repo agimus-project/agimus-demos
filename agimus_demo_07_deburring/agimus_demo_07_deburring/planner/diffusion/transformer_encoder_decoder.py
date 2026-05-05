@@ -1,12 +1,5 @@
-# BSD 3-Clause License
-#
-# Copyright (C) 2025, Arthur Haffemayer.
-# Copyright note valid unless otherwise stated in individual files.
-# All rights reserved.
-
 import torch.nn as nn
 from torch import Tensor
-
 from agimus_demo_07_deburring.planner.diffusion.positional_encoding import (
     PositionalEncoding,
 )
@@ -72,10 +65,7 @@ class TransformerDiffusionEncoderDecoder(nn.Module):
         self, cond: dict[str, Tensor], sample: Tensor, noising_time_steps: Tensor
     ) -> Tensor:
         memory = self.conditioning_encoder(cond, noising_time_steps)
-        bs, T, dof = sample.shape
-        assert dof == 7, f"Expected 7 DOF per config, got {dof}"
-        sample_emb = self.configuration_embedding(sample.view(bs * T, dof))
-        sample_emb = sample_emb.view(bs, T, -1)
+        sample_emb = self.configuration_embedding(sample)
         dec_input = self.decoder_position_encoding(sample_emb)
         output = self.transformer_decoder(dec_input, memory)
         return self.output_linear(output)
