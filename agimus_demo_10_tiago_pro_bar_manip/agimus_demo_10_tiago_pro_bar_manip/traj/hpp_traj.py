@@ -90,6 +90,23 @@ class HPPPathGenerator:
             [-5.0, 5.0, -5.0, 5.0, -1, 1, -1, 1],
         )
 
+        def _set_vel_bounds(joint_name, bounds):
+            jid = self._pin_model.getJointId(joint_name)
+            idx_v = self._pin_model.joints[jid].idx_v
+            nv = self._pin_model.joints[jid].nv
+            assert len(bounds) == nv, (
+                f"{joint_name}: expected {nv} bounds, got {len(bounds)}"
+            )
+            for i, v in enumerate(bounds):
+                self._pin_model.velocityLimit[idx_v + i] = v
+
+        # Base (PlanarJoint) — vx, vy, ω
+        _set_vel_bounds(f"{robot_name}/root_joint", [0.5, 0.5, 1.0])
+
+        # Objects freeflyer — vx, vy, vz, ωx, ωy, ωz
+        for obj in (handle_object, plate_object):
+            _set_vel_bounds(f"{obj.name}/root_joint", [1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
+
         # == Problem & Graph ===================================================
         # ORDER IS CRITICAL — see comments in _generate_constraint_graph
         self._problem = Problem(self.robot)

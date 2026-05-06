@@ -2,7 +2,6 @@ import numpy as np
 
 from pyhpp.core import (
     RandomShortcut,
-    SplineGradientBased_bezier3,
     SimpleTimeParameterization,
     ProgressiveProjector,
 )
@@ -33,6 +32,8 @@ class PathPlanner:
         self.graph = cg
         self.robot = robot
         self._set_transition_planner()
+        self._shortcut = RandomShortcut(self.problem)
+        self._time_parametrize = SimpleTimeParameterization(self.problem)
         # graph MUST be initialized before this constructor is called
         # (enforced by HPPPathGenerator which calls graph.initialize()
         #  inside _generate_constraint_graph() before creating PathPlanner).
@@ -60,11 +61,6 @@ class PathPlanner:
         self.transitionPlanner.maxIterations(1000)
 
         self.transitionPlanner.clearPathOptimizers()
-        self.transitionPlanner.addPathOptimizer(RandomShortcut(self.problem))
-        stp = SimpleTimeParameterization(self.problem)
-        stp.order = 2
-        stp.maxAcceleration = 0.2
-        self.transitionPlanner.addPathOptimizer(stp)
 
         self.transitionPlanner.setTransition(self.graph.getTransition("Loop | f"))
 
@@ -391,17 +387,24 @@ class PathPlanner:
 
     def optimizePath(self, path, logger=None):
         """Optimize a path using shortcutting and spline optimization, with logging."""
-        shortcut = RandomShortcut(self.problem)
-        spline_opt = SplineGradientBased_bezier3(self.problem)
+        # Ensure we always have a PathVector (required by both optimizers)
+        if not isinstance(path, PathVector):
+            path_vect = PathVector.create(
+                path.outputSize(), path.outputDerivativeSize()
+            )
+            path_vect.appendPath(path)
+        else:
+            path_vect = path
+
         try:
             for i in range(3):
-                p_new = shortcut.optimize(path)
-                tr_before = path.timeRange()
+                p_new = self._shortcut.optimize(path_vect)
+                tr_before = path_vect.timeRange()
                 tr_after = p_new.timeRange()
                 dt = (tr_before.second - tr_before.first) - (
                     tr_after.second - tr_after.first
                 )
-                path = p_new
+                path_vect = p_new
                 self._log(
                     logger,
                     "INFO",
@@ -409,14 +412,16 @@ class PathPlanner:
                 )
                 if dt < 1e-3:
                     break
-        except Exception:
-            self._log(logger, "ERROR", "  path shortcut failed: {e}")
+        except Exception as e:
+            self._log(logger, "WARN", f"  path shortcut failed: {e}")
+
         try:
-            path = spline_opt.optimize(path)
+            path = self._time_parametrize.optimize(path_vect)
             tr = path.timeRange()
             self._log(logger, "INFO", f"  path spline: {tr.second - tr.first:.2f} s")
         except Exception as e:
-            self._log(logger, "ERROR", f"  path spline optimisation failed: {e}")
+            self._log(logger, "WARN", f"  path spline optimisation failed: {e}")
+
         return path
 
     def planPathtoBarHandling(self, gripper, handle, q_init, logger, v):
@@ -459,10 +464,11 @@ class PathPlanner:
         # Segment 0: free -> approach (direct, transit_free)
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_free"))
-        res, p0, msg = self.transitionPlanner.directPath(q_init, qap, True)
-        if not res:
-            self._log(logger, "WARN", f"Segment 0 FAILED — {msg}")
+        p0 = self.transitionPlanner.planPath(q_init, self._goals_matrix(qap), True)
+        if not p0:
+            self._log(logger, "WARN", "Segment 0 FAILED")
             return None
+        p0 = self.optimizePath(p0, logger=logger)
 
         # ==================================================================
         # Segment 1: grasp approach -> preplacement (RRT, prefix + "_01")
@@ -472,8 +478,7 @@ class PathPlanner:
         if not p1:
             self._log(logger, "WARN", "Segment 1 FAILED")
             return None
-        # p1 = self.transitionPlanner.optimizePath(p1)
-        # p1 = self.optimizePath(p1, logger=logger)
+        p1 = self.optimizePath(p1, logger=logger)
 
         # ==================================================================
         # Segment 2: pregrasp -> grasp (constrained direct, prefix + "_12")
@@ -483,10 +488,7 @@ class PathPlanner:
         if not res:
             self._log(logger, "WARN", f"Segment 2 FAILED — {msg}")
             return None
-        p2_vector = PathVector.create(p2.outputSize(), p2.outputDerivativeSize())
-        p2_vector.appendPath(p2)
-        # p2 = self.transitionPlanner.timeParameterization(p2_vector)
-        # p2 = self.optimizePath(p2_vector, logger=logger)
+        p2 = self.optimizePath(p2, logger=logger)
 
         # ==================================================================
         # Segment 3: grasp -> preplace (constrained direct, prefix + "_23")
@@ -496,10 +498,7 @@ class PathPlanner:
         if not res:
             self._log(logger, "WARN", f"Segment 3 FAILED — {msg}")
             return None
-        p3_vector = PathVector.create(p3.outputSize(), p3.outputDerivativeSize())
-        p3_vector.appendPath(p3)
-        # p3 = self.transitionPlanner.timeParameterization(p3_vector)
-        # p3 = self.optimizePath(p3_vector, logger=logger)
+        p3 = self.optimizePath(p3, logger=logger)
 
         self._log(logger, "INFO", "Grasping path planned successfully.")
         return concatenatePaths([p0, p1, p2, p3], logger=logger)
@@ -546,10 +545,11 @@ class PathPlanner:
         # Segment 0: grasp approach (direct, transit_grasp)
         # ==================================================================
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_grasp"))
-        res, p0, msg = self.transitionPlanner.directPath(q_init, qap, True)
+        p0 = self.transitionPlanner.planPath(q_init, self._goals_matrix(qap), True)
         if not res:
-            self._log(logger, "WARN", f"Segment 0 FAILED — {msg}")
+            self._log(logger, "WARN", "Segment 0 FAILED")
             return None
+        p0 = self.optimizePath(p0, logger=logger)
 
         # ==================================================================
         # Segment 1: approach -> preplacement (RRT, prefix + "_32")
@@ -559,9 +559,7 @@ class PathPlanner:
         if not p1:
             self._log(logger, "WARN", "Segment 1 FAILED")
             return None
-
-        # p1 = self.transitionPlanner.optimizePath(p1)
-        # p1 = self.optimizePath(p1, logger=logger)
+        p1 = self.optimizePath(p1, logger=logger)
 
         # ==================================================================
         # Segment 2: preplacement -> placement (constrained direct, prefix + "_21")
@@ -571,8 +569,7 @@ class PathPlanner:
         if not res:
             self._log(logger, "WARN", f"Segment 2 FAILED — {msg}")
             return None
-        # p2 = self.transitionPlanner.timeParameterization(p2)
-        # p2 = self.optimizePath(p2, logger=logger)
+        p2 = self.optimizePath(p2, logger=logger)
 
         # ==================================================================
         # Segment 3: placement -> release (constrained direct, prefix + "_10")
@@ -582,8 +579,7 @@ class PathPlanner:
         if not res:
             self._log(logger, "WARN", f"Segment 3 FAILED — {msg}")
             return None
-        # p3 = self.transitionPlanner.timeParameterization(p3)
-        # p3 = self.optimizePath(p3, logger=logger)
+        p3 = self.optimizePath(p3, logger=logger)
 
         self._log(logger, "INFO", "Placement path planned successfully.")
         return concatenatePaths([p0, p1, p2, p3])
