@@ -78,7 +78,7 @@ This will:
 2. Ask you to point the gripper tip at 3 holes of the pylone (press Enter to record each).
 3. Compute the pylone pose and print a YAML snippet to copy into `hpp_orchestrator_params.yaml`.
 
-To use specific holes (default: `hole_right_00`, `hole_right_25`, `hole_right_49`):
+To use specific holes (default: `hole_right_00`, `hole_right_50`, `hole_right_59`):
 ```bash
 python3 localize_pylone.py --holes hole_right_10 hole_right_30 hole_right_49
 ```
