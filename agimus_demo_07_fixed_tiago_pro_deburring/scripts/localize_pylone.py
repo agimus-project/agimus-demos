@@ -8,7 +8,7 @@ estimates the pylone pose using FK + SVD registration.
 
 Usage:
     python3 localize_pylone.py
-    python3 localize_pylone.py --holes hole_right_00 hole_right_25 hole_right_49
+    python3 localize_pylone.py --holes hole_right_00 hole_right_50 hole_right_59
     python3 localize_pylone.py --output /tmp/pylone_pose.yaml
 """
 
@@ -34,7 +34,7 @@ DEFAULT_OUTPUT = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
 EE_LINK = "gripper_right_tool_holder"
 
-DEFAULT_HOLES = ["hole_right_00", "hole_right_25", "hole_right_49"]
+DEFAULT_HOLES = ["hole_right_00", "hole_right_50", "hole_right_59"]
 DEFAULT_TOOL_OFFSET = 0.016  # meters, along Z axis of gripper_right_tool_holder
 
 
