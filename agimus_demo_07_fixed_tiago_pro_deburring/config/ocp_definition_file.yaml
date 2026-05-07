@@ -1,22 +1,12 @@
 ---
 # OCP definition for the TIAGo Pro deburring demo.
-# Pure trajectory tracking OCP.
+# Task-space tracking OCP: frame translation + rotation on gripper_right_tool_holder.
 
 running_model:
   class: IntegratedActionModelEuler
   differential:
     class: DifferentialActionModelFreeFwdDynamics
     costs:
-    - name: control_reg
-      update: true
-      weight: 1.0
-      cost:
-        class: CostModelResidual
-        activation:
-          class: ActivationModelWeightedQuad
-          weights: 1.0
-        residual:
-          class: ResidualModelControl
     - name: state_reg
       update: true
       weight: 1.0
@@ -27,6 +17,28 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelState
+    - name: frame_trans_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: gripper_right_tool_holder
+    - name: frame_rot_tracking_tool
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: gripper_right_tool_holder
 
 terminal_model:
   class: IntegratedActionModelEuler
@@ -43,3 +55,25 @@ terminal_model:
           weights: 1.0
         residual:
           class: ResidualModelState
+    - name: frame_trans_tracking_tool
+      update: true
+      weight: 10.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameTranslationStatic
+          frame_id: gripper_right_tool_holder
+    - name: frame_rot_tracking_tool
+      update: true
+      weight: 10.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelFrameRotationStatic
+          frame_id: gripper_right_tool_holder

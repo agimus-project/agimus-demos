@@ -38,7 +38,7 @@ from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
-from agimus_msgs.msg import MpcInput
+from agimus_msgs.msg import MpcInput, MpcEEInput
 from sensor_msgs.msg import JointState
 
 
@@ -74,8 +74,10 @@ _w          = _cfg["weights"]
 W_Q         = np.array(_w["w_q"])
 W_QDOT      = np.array(_w["w_qdot"])
 W_QDDOT     = np.array(_w["w_qddot"])
-W_EFFORT    = np.array(_w["w_effort"])
-W_COLLISION = _w["w_collision"]
+W_EFFORT      = np.array(_w["w_effort"])
+W_COLLISION   = _w["w_collision"]
+W_FRAME_TRANS = np.array(_w["w_frame_trans"])
+W_FRAME_ROT   = np.array(_w["w_frame_rot"])
 
 
 class _TrajectoryPublisherNode(Node):
@@ -225,6 +227,12 @@ class Orchestrator:
         self.q_init[ri:ri+7] = RIGHT_ARM_TUCK
         self.q_init[pi:pi+3] = [_px, _py, _pz]
         self.q_init[pi+3:pi+7] = _pq
+
+        self._pin_data = model.createData()
+        ee_frame_name = "tiago_pro/gripper_right_tool_holder"
+        self._ee_frame_id = model.getFrameId(ee_frame_name)
+        if self._ee_frame_id == model.nframes:
+            raise RuntimeError(f"Frame '{ee_frame_name}' not found in model")
 
     def _set_pylone_bounds(self, x, y, z, margin: float = 0.001):
         """Lock pylone position with tight bounds so HPP cannot move it."""
@@ -433,6 +441,14 @@ class Orchestrator:
 
         return q_arr, dq_arr, ddq_arr
 
+    def _fk_ee(self, q_arm: np.ndarray) -> pin.SE3:
+        q_full = pin.neutral(self.model)
+        ri = self._right_arm_idx
+        q_full[ri:ri + 7] = q_arm
+        pin.forwardKinematics(self.model, self._pin_data, q_full)
+        pin.updateFramePlacements(self.model, self._pin_data)
+        return self._pin_data.oMf[self._ee_frame_id].copy()
+
     def _build_msg(self, q, dq, ddq, msg_id):
         msg = MpcInput()
         msg.id           = msg_id
@@ -445,6 +461,20 @@ class Orchestrator:
         msg.w_qddot               = W_QDDOT.tolist()
         msg.w_robot_effort        = W_EFFORT.tolist()
         msg.w_collision_avoidance = W_COLLISION
+
+        T_ee = self._fk_ee(q)
+        quat = pin.Quaternion(T_ee.rotation)
+        ee_input = MpcEEInput()
+        ee_input.frame_id = "gripper_right_tool_holder"
+        ee_input.pose.position.x = float(T_ee.translation[0])
+        ee_input.pose.position.y = float(T_ee.translation[1])
+        ee_input.pose.position.z = float(T_ee.translation[2])
+        ee_input.pose.orientation.x = float(quat.x)
+        ee_input.pose.orientation.y = float(quat.y)
+        ee_input.pose.orientation.z = float(quat.z)
+        ee_input.pose.orientation.w = float(quat.w)
+        ee_input.w_pose = list(np.concatenate([W_FRAME_TRANS, W_FRAME_ROT]))
+        msg.ee_inputs = [ee_input]
         return msg
 
     def _build_messages(self, paths: list, n_hold: int = 200) -> list:
@@ -510,6 +540,88 @@ class Orchestrator:
                 time.sleep(DT)
         except KeyboardInterrupt:
             print("\nExecution interrupted.")
+
+    # ── Pose comparison ───────────────────────────────────────────────────────
+
+    def _read_robot_config(self, timeout: float = 5.0):
+        """Return a full HPP config vector from the current robot joint states."""
+        joint_state = [None]
+        sub = self._ros_node.create_subscription(
+            JointState, "/joint_states",
+            lambda m: joint_state.__setitem__(0, m), 10)
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            rclpy.spin_once(self._ros_node, timeout_sec=0.1)
+            if joint_state[0] is not None:
+                break
+        self._ros_node.destroy_subscription(sub)
+
+        if joint_state[0] is None:
+            raise RuntimeError("Timeout reading robot state from /joint_states.")
+
+        js_map = dict(zip(joint_state[0].name, joint_state[0].position))
+        q = pin.neutral(self.model).copy()
+        ri = self._right_arm_idx
+        for i in range(1, 8):
+            key = f"arm_right_{i}_joint"
+            q[ri + i - 1] = js_map.get(key, js_map.get(f"tiago_pro/{key}", 0.0))
+        return q
+
+    def compare_pose(self, q_ref=None, timeout: float = 5.0):
+        """
+        Compare a reference configuration with the current robot state,
+        at the gripper_right_tool_holder frame.
+
+        q_ref : HPP Path object, full config vector, or None (defaults to qg).
+                Examples:
+                  o.compare_pose()      # vs qg (insertion goal)
+                  o.compare_pose(o.p1)  # vs end of p1
+        """
+        if self._ros_node is None:
+            print("No ROS node available — run execute() first.")
+            return
+        if q_ref is None:
+            if self.qg is None:
+                print("No qg available — run plan() first.")
+                return
+            q_ref = np.array(self.qg)
+        elif hasattr(q_ref, "timeRange"):
+            q_ref = np.array(q_ref.eval(q_ref.timeRange().second)[0])
+
+        print("Reading current robot state …")
+        try:
+            q_actual = self._read_robot_config(timeout)
+        except RuntimeError as e:
+            print(f"compare_pose: {e}")
+            return
+
+        data_ref = self.model.createData()
+        data_act = self.model.createData()
+        pin.forwardKinematics(self.model, data_ref, q_ref)
+        pin.updateFramePlacements(self.model, data_ref)
+        pin.forwardKinematics(self.model, data_act, q_actual)
+        pin.updateFramePlacements(self.model, data_act)
+
+        T_ref = data_ref.oMf[self._ee_frame_id]
+        T_act = data_act.oMf[self._ee_frame_id]
+        delta = T_ref.inverse() * T_act
+        pos_err_mm  = np.linalg.norm(delta.translation) * 1000.0
+        rot_err_deg = np.degrees(np.linalg.norm(pin.log3(delta.rotation)))
+
+        ri = self._right_arm_idx
+        print(f"\n{'='*58}")
+        print(f"  Pose comparison  (reference vs actual robot state)")
+        print(f"{'='*58}")
+        print(f"  EE planned [m] : {np.round(T_ref.translation, 4)}")
+        print(f"  EE actual  [m] : {np.round(T_act.translation, 4)}")
+        print(f"  Position error : {pos_err_mm:.1f} mm")
+        print(f"  Rotation error : {rot_err_deg:.2f} °")
+        print(f"\n  Per-joint error — right arm [rad / °]:")
+        for i in range(7):
+            e = q_ref[ri + i] - q_actual[ri + i]
+            print(f"    arm_right_{i+1}_joint : {e:+.4f} rad  ({np.degrees(e):+.2f}°)")
+        print(f"{'='*58}\n")
 
     # ── Visualisation ─────────────────────────────────────────────────────────
 
