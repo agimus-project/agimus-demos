@@ -653,6 +653,21 @@ class Orchestrator:
         )
         print("LFC controllers active.")
 
+    def deactivate_lfc(self) -> None:
+        """Switch LFC + JSE → arm_right_controller. Call this to return to position control."""
+        print("Deactivating LFC controllers …")
+        subprocess.run(
+            [
+                "ros2", "control", "switch_controllers",
+                "--deactivate",
+                "linear_feedback_controller",
+                "joint_state_estimator",
+                "--activate", "arm_right_controller",
+            ],
+            check=True,
+        )
+        print("arm_right_controller active.")
+
     # ── Combined ──────────────────────────────────────────────────────────────
 
     def plan_and_execute(self, max_attempts: int = 50):
