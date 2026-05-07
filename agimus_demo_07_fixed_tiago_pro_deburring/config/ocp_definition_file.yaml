@@ -1,6 +1,6 @@
 ---
 # OCP definition for the TIAGo Pro deburring demo.
-# Task-space tracking OCP: frame translation + rotation on gripper_right_tool_holder.
+# Task-space priority: frame tracking dominates, state_reg is a first guess only.
 
 running_model:
   class: IntegratedActionModelEuler
@@ -17,6 +17,16 @@ running_model:
           weights: 1.0
         residual:
           class: ResidualModelState
+    - name: control_reg
+      update: true
+      weight: 1.0
+      cost:
+        class: CostModelResidual
+        activation:
+          class: ActivationModelWeightedQuad
+          weights: 1.0
+        residual:
+          class: ResidualModelControl
     - name: frame_trans_tracking_tool
       update: true
       weight: 1.0
@@ -57,7 +67,7 @@ terminal_model:
           class: ResidualModelState
     - name: frame_trans_tracking_tool
       update: true
-      weight: 10.0
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
@@ -68,7 +78,7 @@ terminal_model:
           frame_id: gripper_right_tool_holder
     - name: frame_rot_tracking_tool
       update: true
-      weight: 10.0
+      weight: 1.0
       cost:
         class: CostModelResidual
         activation:
