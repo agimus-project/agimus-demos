@@ -154,6 +154,7 @@ def launch_setup(
                 "switch_controllers",
                 "--deactivate",
                 "arm_right_controller",
+                "arm_left_controller",
                 "--activate",
             ]
             + passthrough_controllers
