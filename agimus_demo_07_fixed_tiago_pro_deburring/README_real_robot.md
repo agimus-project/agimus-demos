@@ -35,6 +35,14 @@ cp agimus-demos/agimus_demos_common/config/tiago_pro/* /tmp/
 scp agimus-demos/agimus_demos_common/config/tiago_pro/* pal@tiago-pro:/tmp/
 ```
 
+On the robot, restart controllers
+```bash
+pal module restart controller_manager
+
+# if no controller running, launch
+pal module start default_controllers
+```
+
 Configure cycloneDDS in your bashrc:
 ```bash
 echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
@@ -98,7 +106,7 @@ ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py use_rviz:
 In a separate terminal:
 
 ```bash
-python3 ~/ros2_ws/install/agimus_demo_07_fixed_tiago_pro_deburring/share/agimus_demo_07_fixed_tiago_pro_deburring/hpp/orchestrator_node.py
+python3 src/agimus-demos/agimus_demo_07_fixed_tiago_pro_deburring/hpp/orchestrator_node.py
 ```
 
 ---
@@ -108,7 +116,7 @@ python3 ~/ros2_ws/install/agimus_demo_07_fixed_tiago_pro_deburring/share/agimus_
 ```python
 # Verify pylone pose in Viser before moving
 o.init_viewer()
-o.reload_pylone_pose()   # reads pose from hpp_orchestrator_params.yaml
+o.reload_pylone_pose()   # reads pose from pylone_pose.yaml
 
 # Sync arm position from robot
 o.sync_from_robot()
@@ -116,11 +124,16 @@ o.sync_from_robot()
 # When ready (emergency stop in hand): switch to torque control
 o.activate_lfc()
 
-# Plan and execute
+# Plan
 o.plan()
-o.execute()
 
-# Or both at once
+# Execute step by step (recommended on real robot)
+o.execute([o.p1])        # approach only — check before going further
+o.compare_pose(o.p1)     # verify tracking error before insertion
+o.execute([o.p2])        # insertion
+o.execute([o.p3])        # retraction
+
+# Or plan and execute at once
 o.plan_and_execute()
 ```
 
