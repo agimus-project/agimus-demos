@@ -570,7 +570,7 @@ class HPPPathGenerator:
         times = np.arange(t_min, t_max, self._ocp_dt)
         return [np.asarray(path_obj.eval(t)[0], dtype=np.float64) for t in times]
 
-    def plan_grasp(self, gripper: str, handle: str, q_init: list):
+    def plan_pick(self, gripper: str, handle: str, q_init: list):
         q = np.asarray(q_init, dtype=np.float64)
         self.view(q)
         result = self._path_planner.planPathtoBarHandling(

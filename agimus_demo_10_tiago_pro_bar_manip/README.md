@@ -31,11 +31,11 @@ ros2 launch agimus_demo_10_tiago_pro_bar_manip bringup.launch.py use_sim_time:=T
 ```
 ### Request Grasping
 ```bash
-ros2 action send_goal /orchestrator/plan_bar_handling test_agimus_type/action/PlanBarGrasp "{action_type: 'grasp', gripper: 'tiago_pro/left', handle: 'reinforcement_bar/left'}"
+ros2 action send_goal /orchestrator/plan_bar_handling test_agimus_type/action/PlanBarPick "{action_type: 'grasp', gripper: 'tiago_pro/left', handle: 'reinforcement_bar/left'}"
 ```
 ### Request Placement
 ```bash
-ros2 action send_goal /orchestrator/plan_bar_handling test_agimus_type/action/PlanBarGrasp "{action_type: 'place', gripper: 'tiago_pro/left', handle: 'reinforcement_bar/left'}"
+ros2 action send_goal /orchestrator/plan_bar_handling test_agimus_type/action/PlanBarPick "{action_type: 'place', gripper: 'tiago_pro/left', handle: 'reinforcement_bar/left'}"
 ```
 ## Real robot
 
