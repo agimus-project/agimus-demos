@@ -6,7 +6,7 @@ Usage:
 """
 
 from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, ExecuteProcess
+from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
@@ -36,7 +36,14 @@ def launch_setup(
     # ==========================================================================
     # Tiago pro simulation
     # ==========================================================================
-    tiago_robot_launch = generate_include_launch("tiago_pro_common.launch.py")
+    tiago_robot_launch = generate_include_launch(
+        "tiago_pro_common.launch.py",
+        extra_launch_arguments={
+            "tuck_arm": "False",
+            "end_effector_right": "pal-pro-gripper",
+            "end_effector_left": "pal-pro-gripper",
+        },
+    )
 
     # ==========================================================================
     # Orchestrator weights and executable
@@ -241,11 +248,12 @@ def launch_setup(
     env_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        name="table_publisher",
+        name="empty_env_publisher",
         output="screen",
         parameters=[get_use_sim_time(), {"robot_description": empty_env_description}],
         remappings=[("robot_description", "environment_description")],
     )
+
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
@@ -291,37 +299,6 @@ def launch_setup(
             }
         ],
     )
-    # ==========================================================================
-    # Linear Feedback Controller
-    # ==========================================================================
-    activate_controllers = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "control",
-            "switch_controllers",
-            "--deactivate",
-            "arm_right_controller",
-            "arm_left_controller",
-            "--activate",
-            "arm_left_1_joint_inertia_shaping_controller",
-            "arm_left_2_joint_inertia_shaping_controller",
-            "arm_left_3_joint_inertia_shaping_controller",
-            "arm_left_4_joint_inertia_shaping_controller",
-            "arm_left_5_joint_inertia_shaping_controller",
-            "arm_left_6_joint_inertia_shaping_controller",
-            "arm_left_7_joint_inertia_shaping_controller",
-            "arm_right_1_joint_inertia_shaping_controller",
-            "arm_right_2_joint_inertia_shaping_controller",
-            "arm_right_3_joint_inertia_shaping_controller",
-            "arm_right_4_joint_inertia_shaping_controller",
-            "arm_right_5_joint_inertia_shaping_controller",
-            "arm_right_6_joint_inertia_shaping_controller",
-            "arm_right_7_joint_inertia_shaping_controller",
-            "linear_feedback_controller",
-            "joint_state_estimator",
-        ],
-        output="screen",
-    )
 
     return [
         tiago_robot_launch,
@@ -338,8 +315,14 @@ def launch_setup(
         tf_goal_bar,
         robot_srdf_publisher_node,
         agimus_controller_node,
-        activate_controllers,
         env_publisher,
+        # RegisterEventHandler(
+        #         OnProcessExit(
+        #             target_action=tiago_robot_launch,
+        #             on_exit=[agimus_controller_node,
+        #                     ],
+        #         )
+        #     ),
     ]
 
 
