@@ -316,13 +316,6 @@ def launch_setup(
         robot_srdf_publisher_node,
         agimus_controller_node,
         env_publisher,
-        # RegisterEventHandler(
-        #         OnProcessExit(
-        #             target_action=tiago_robot_launch,
-        #             on_exit=[agimus_controller_node,
-        #                     ],
-        #         )
-        #     ),
     ]
 
 

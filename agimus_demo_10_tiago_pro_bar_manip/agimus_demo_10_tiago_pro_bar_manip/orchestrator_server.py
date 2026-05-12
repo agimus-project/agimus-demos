@@ -204,7 +204,6 @@ class HPPActionServer(Node):
             urdf_str (str): urdf string
         """
         self._robot_model = pin.buildModelFromXML(urdf_str)
-        __import__("IPython").embed()
         self._robot_data = self._robot_model.createData()
         self._nq = self._robot_model.nq
         self._nv = self._robot_model.nv
@@ -355,6 +354,9 @@ class HPPActionServer(Node):
         feedback_msg.message = ""
         goal_handle.publish_feedback(feedback_msg)
 
+        message = None
+        success = False
+        traj = None
         try:
             match task:
                 case "pick":
@@ -594,10 +596,10 @@ class HPPActionServer(Node):
 
         for joint_name in self._robot_model.names.tolist():
             full = f"tiago_pro/{joint_name}"
-            if full in self._joints_config["moving_joints"]:
+            if joint_name in self._joints_config["moving_joints"]:
                 rank = robot.rankInConfiguration[full]
                 value = q_env[rank]
-                nq = robot.getJointConfigSize(full)
+                nq = len(robot.getJointConfig(full))
                 if nq == 2:
                     q_robot.append(np.cos(value))
                     q_robot.append(np.sin(value))

@@ -1,9 +1,4 @@
 ---
-# MPC parameters for the TIAGo Pro deburring demo.
-#
-# State space:
-#
-
 agimus_controller_node:
   ros__parameters:
     rate: 100.0
@@ -21,6 +16,7 @@ agimus_controller_node:
       effector_frame_name: gripper_right_fingertip_left_link
       definition_yaml_file: package://agimus_demo_10_tiago_pro_bar_manip/config/agimus_controller/ocp_definition_file.yaml
     robot_attachment_frame: universe
+    collision_as_capsule: false
     collision_pairs_names: [cp_1]
     cp_1:
       first: arm_right_7_link_0
