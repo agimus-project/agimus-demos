@@ -39,6 +39,7 @@ def launch_setup(
     # robot_ip = LaunchConfiguration("robot_ip")
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_rviz = LaunchConfiguration("use_rviz")
+    launch_lfc = LaunchConfiguration("launch_lfc", default="true")
     rviz_config_path = LaunchConfiguration("rviz_config_path")
 
     use_gazebo_bool = context.perform_substitution(use_gazebo).lower() == "true"
@@ -159,6 +160,7 @@ def launch_setup(
             + passthrough_controllers
             + ["linear_feedback_controller", "joint_state_estimator"],
             output="screen",
+            condition=IfCondition(launch_lfc),
         )
 
         return [
