@@ -637,7 +637,14 @@ class Orchestrator:
     def view(self, q=None):
         if not hasattr(self, "_viewer"):
             self.init_viewer()
-        self._viewer(q if q is not None else self.q_init)
+        q = np.array(q) if q is not None else self.q_init
+        self._viewer(q)
+        pin.forwardKinematics(self.model, self._pin_data, q)
+        pin.updateFramePlacements(self.model, self._pin_data)
+        T = self._pin_data.oMf[self._ee_frame_id]
+        rpy = pin.rpy.matrixToRpy(T.rotation)
+        print(f"EE position (xyz) [m]: {np.round(T.translation, 4).tolist()}")
+        print(f"EE rotation (rpy) [°]: {np.round(np.degrees(rpy), 1).tolist()}")
 
     def play(self, path, n=100, dt=0.05):
         """Play a path in Viser by sampling n configurations."""

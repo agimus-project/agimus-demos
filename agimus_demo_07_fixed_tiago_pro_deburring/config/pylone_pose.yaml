@@ -1,9 +1,8 @@
----
-# Pylone pose in base_link frame.
-# Default values match the simulation setup
-# On the real robot, overwrite with scripts/localize_pylone.py output.
-
-pylone_x: 0.7 # default 0.7
-pylone_y: 0.0 # default 0.0
-pylone_z: 0.8 # default 0.3 (to the ground)
-pylone_quat: [0.0, 0.0, 0.0, 1.0] # default [0.0, 0.0, 0.0, 1.0]
+pylone_quat:
+- 0.006719
+- -0.046096
+- -0.809647
+- 0.585065
+pylone_x: 1.0416
+pylone_y: -0.4831
+pylone_z: 0.6792
