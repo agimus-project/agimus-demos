@@ -755,6 +755,149 @@ class Orchestrator:
         if not hasattr(self, "_viewer"):
             print("Call o.init_viewer() to visualize.")
 
+    # ── Mocap (Qualisys) ─────────────────────────────────────────────────────
+
+    _QUALISYS_IP    = "140.93.1.100"
+    _MOCAP_BODIES   = {"pylone": 0, "tiago_endEffector": 1, "tiago_base": 2}
+    _MOCAP_BASE_IDX = 2  # tiago_base = reference frame
+
+    def connect_mocap(self, ip: str = _QUALISYS_IP) -> None:
+        """Start the Qualisys mocap subprocess.  Call this once before
+        compare_mocap() or localize_pylone_from_mocap()."""
+        _scripts_dir = os.path.join(_PKG_DIR, "scripts")
+        if _scripts_dir not in sys.path:
+            sys.path.insert(0, _scripts_dir)
+        from qualisys import QualisysClient  # noqa: PLC0415
+        self._qc = QualisysClient(ip=ip, bodies=self._MOCAP_BODIES)
+        time.sleep(1.0)   # let the subprocess receive its first packet
+        print(f"Mocap connected to {ip}.")
+
+    def disconnect_mocap(self) -> None:
+        """Stop the Qualisys subprocess."""
+        if hasattr(self, "_qc"):
+            self._qc.stop()
+            del self._qc
+            print("Mocap disconnected.")
+
+    def _mocap_se3(self, idx: int) -> pin.SE3:
+        """Return pinocchio SE3 for Qualisys body index *idx*."""
+        pos  = self._qc.getPositions()[idx]       # (3,) in metres
+        quat = self._qc.getOrientationQuats()[idx] # (4,) [qx qy qz qw]
+        return pin.XYZQUATToSE3(np.concatenate([pos, quat]))
+
+    def compare_mocap(self, timeout: float = 5.0) -> None:
+        """Compare mocap poses vs robot FK, relative to base_link / tiago_base.
+
+        Prints position error (mm) and rotation error (deg) for:
+          • end effector  (tiago_endEffector  ↔  gripper_right_tool_holder)
+          • pylone        (pylone             ↔  q_init pylone pose)
+
+        Requires connect_mocap() and a running ROS node (execute() or
+        rclpy.init() already called).
+        """
+        if not hasattr(self, "_qc"):
+            print("No mocap client — call connect_mocap() first.")
+            return
+        if self._ros_node is None:
+            print("No ROS node — run execute() first or pass a node at construction.")
+            return
+
+        print("Reading current robot joint state …")
+        try:
+            q_actual = self._read_robot_config(timeout)
+        except RuntimeError as e:
+            print(f"compare_mocap: {e}")
+            return
+
+        # ── Mocap relative poses (w.r.t. tiago_base) ──────────────────────
+        T_mocap_base = self._mocap_se3(self._MOCAP_BASE_IDX)
+        T_rel_ee_mocap  = T_mocap_base.inverse() * self._mocap_se3(1)  # tiago_endEffector
+        T_rel_pyl_mocap = T_mocap_base.inverse() * self._mocap_se3(0)  # pylone
+
+        # ── Robot poses ────────────────────────────────────────────────────
+        T_rel_ee_robot = self._fk_ee(self._extract_active_q(q_actual))
+
+        pi = self._pylone_idx
+        T_rel_pyl_robot = pin.XYZQUATToSE3(
+            np.concatenate([self.q_init[pi:pi+3], self.q_init[pi+3:pi+7]])
+        )
+
+        # ── Helpers ────────────────────────────────────────────────────────
+        def _breakdown(T_a: pin.SE3, T_b: pin.SE3):
+            """Return signed per-axis errors: (dt_mm[3], drpy_deg[3])."""
+            delta   = T_a.inverse() * T_b
+            dt_mm   = delta.translation * 1e3                          # [dx, dy, dz] mm
+            drpy    = np.degrees(pin.utils.matrixToRpy(delta.rotation)) # [dr, dp, dy] deg
+            return dt_mm, drpy
+
+        def _print_body(label: str, T_mocap: pin.SE3, T_robot: pin.SE3) -> None:
+            t_m  = T_mocap.translation
+            t_r  = T_robot.translation
+            rpy_m = np.degrees(pin.utils.matrixToRpy(T_mocap.rotation))
+            rpy_r = np.degrees(pin.utils.matrixToRpy(T_robot.rotation))
+            dt_mm, drpy = _breakdown(T_mocap, T_robot)
+            norm_t = np.linalg.norm(dt_mm)
+            norm_r = np.linalg.norm(drpy)
+            flag   = "✓" if norm_t < 20 and norm_r < 5 else "!"
+
+            print(f"\n  {label}")
+            print(f"  {'':4s}{'':12s}  {'x':>9s}  {'y':>9s}  {'z':>9s}")
+            print(f"  {'':4s}{'mocap [m]':12s}  {t_m[0]:>+9.4f}  {t_m[1]:>+9.4f}  {t_m[2]:>+9.4f}")
+            print(f"  {'':4s}{'robot [m]':12s}  {t_r[0]:>+9.4f}  {t_r[1]:>+9.4f}  {t_r[2]:>+9.4f}")
+            print(f"  {'':4s}{'Δ [mm]':12s}  {dt_mm[0]:>+9.2f}  {dt_mm[1]:>+9.2f}  {dt_mm[2]:>+9.2f}  (|Δ|={norm_t:.1f} mm)  {flag}")
+            print(f"")
+            print(f"  {'':4s}{'':12s}  {'roll':>9s}  {'pitch':>9s}  {'yaw':>9s}")
+            print(f"  {'':4s}{'mocap [°]':12s}  {rpy_m[0]:>+9.2f}  {rpy_m[1]:>+9.2f}  {rpy_m[2]:>+9.2f}")
+            print(f"  {'':4s}{'robot [°]':12s}  {rpy_r[0]:>+9.2f}  {rpy_r[1]:>+9.2f}  {rpy_r[2]:>+9.2f}")
+            print(f"  {'':4s}{'Δ [°]':12s}  {drpy[0]:>+9.2f}  {drpy[1]:>+9.2f}  {drpy[2]:>+9.2f}  (|Δ|={norm_r:.2f}°)  {flag}")
+
+        print(f"\n{'='*66}")
+        print(f"  Mocap vs Robot — poses relative to base_link / tiago_base")
+        print(f"{'='*66}")
+        _print_body(
+            "End effector  (tiago_endEffector ↔ gripper_right_tool_holder)",
+            T_rel_ee_mocap, T_rel_ee_robot,
+        )
+        print(f"\n  {'-'*62}")
+        _print_body(
+            "Pylone  (pylone ↔ pylone_link / q_init)",
+            T_rel_pyl_mocap, T_rel_pyl_robot,
+        )
+        print(f"\n{'='*66}\n")
+
+    def localize_pylone_from_mocap(self) -> None:
+        """Set the pylone pose in the orchestrator from the current mocap reading.
+
+        Reads the mocap pose of 'pylone' relative to 'tiago_base', updates
+        q_init and saves the result to config/pylone_pose.yaml.
+
+        This is an alternative to the manual pointing procedure in
+        scripts/localize_pylone.py.
+        """
+        if not hasattr(self, "_qc"):
+            print("No mocap client — call connect_mocap() first.")
+            return
+
+        T_mocap_base = self._mocap_se3(self._MOCAP_BASE_IDX)
+        T_mocap_pyl  = self._mocap_se3(0)
+        T_rel        = T_mocap_base.inverse() * T_mocap_pyl
+
+        t    = T_rel.translation.tolist()
+        qpin = pin.Quaternion(T_rel.rotation)
+        q    = [float(qpin.x), float(qpin.y), float(qpin.z), float(qpin.w)]
+
+        self.update_pylone_pose(t, q)
+
+        result = {
+            "pylone_x":    round(t[0], 4),
+            "pylone_y":    round(t[1], 4),
+            "pylone_z":    round(t[2], 4),
+            "pylone_quat": [round(v, 6) for v in q],
+        }
+        with open(_PYLONE_POSE_FILE, "w") as _f:
+            yaml.dump(result, _f, default_flow_style=False)
+        print(f"Pylone pose saved to {_PYLONE_POSE_FILE}")
+
     # ── Controller activation ─────────────────────────────────────────────────
 
     def activate_lfc(self) -> None:
