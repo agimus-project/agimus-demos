@@ -545,6 +545,11 @@ class Orchestrator:
 
     def _read_robot_config(self, timeout: float = 5.0):
         """Return a full HPP config vector from the current robot joint states."""
+        _own_node = False
+        if self._ros_node is None:
+            self._ros_node = rclpy.create_node("hpp_read_config_node")
+            _own_node = True
+
         joint_state = [None]
         sub = self._ros_node.create_subscription(
             JointState, "/joint_states",
@@ -556,6 +561,10 @@ class Orchestrator:
             if joint_state[0] is not None:
                 break
         self._ros_node.destroy_subscription(sub)
+
+        if _own_node:
+            self._ros_node.destroy_node()
+            self._ros_node = None
 
         if joint_state[0] is None:
             raise RuntimeError("Timeout reading robot state from /joint_states.")
@@ -798,9 +807,6 @@ class Orchestrator:
         if not hasattr(self, "_qc"):
             print("No mocap client — call connect_mocap() first.")
             return
-        if self._ros_node is None:
-            print("No ROS node — run execute() first or pass a node at construction.")
-            return
 
         print("Reading current robot joint state …")
         try:
@@ -852,7 +858,7 @@ class Orchestrator:
             print(f"  {'':4s}{'Δ [°]':12s}  {drpy[0]:>+9.2f}  {drpy[1]:>+9.2f}  {drpy[2]:>+9.2f}  (|Δ|={norm_r:.2f}°)  {flag}")
 
         print(f"\n{'='*66}")
-        print(f"  Mocap vs Robot — poses relative to base_link / tiago_base")
+        print(f"  Mocap vs Robot — poses relative to base_footprint / tiago_base")
         print(f"{'='*66}")
         _print_body(
             "End effector  (tiago_endEffector ↔ gripper_right_tool_holder)",
@@ -860,7 +866,7 @@ class Orchestrator:
         )
         print(f"\n  {'-'*62}")
         _print_body(
-            "Pylone  (pylone ↔ pylone_link / q_init)",
+            "Pylone  (mocap ↔ pose localisée)",
             T_rel_pyl_mocap, T_rel_pyl_robot,
         )
         print(f"\n{'='*66}\n")
