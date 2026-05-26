@@ -871,6 +871,72 @@ class Orchestrator:
         )
         print(f"\n{'='*66}\n")
 
+    def update_mocap_frames(self) -> None:
+        """Display mocap frames for EE and pylone in the Viser viewer.
+
+        On the first call, creates two coordinate-axis frames in the scene:
+          • ``mocap/ee``     — tiago_endEffector pose relative to tiago_base
+          • ``mocap/pylone`` — pylone pose relative to tiago_base
+
+        Both are expressed in the HPP world frame (= robot base_link frame),
+        so they can be compared directly with the corresponding robot FK frames.
+
+        Call repeatedly from a notebook loop to refresh the display::
+
+            while True:
+                o.update_mocap_frames()
+                time.sleep(0.1)
+
+        Requires :meth:`connect_mocap` and :meth:`init_viewer` to be called first.
+        """
+        if not hasattr(self, "_qc"):
+            print("No mocap client — call connect_mocap() first.")
+            return
+        if not hasattr(self, "_viewer"):
+            print("No viewer — call init_viewer() first.")
+            return
+
+        # ── Mocap relative poses (w.r.t. tiago_base) ──────────────────────
+        T_base    = self._mocap_se3(self._MOCAP_BASE_IDX)
+        T_rel_ee  = T_base.inverse() * self._mocap_se3(1)  # tiago_endEffector
+        T_rel_pyl = T_base.inverse() * self._mocap_se3(0)  # pylone
+
+        def _se3_to_viser(T: pin.SE3):
+            """Return (position, wxyz) arrays for a pinocchio SE3."""
+            pos  = T.translation
+            # pinocchio .coeffs() → [qx, qy, qz, qw]; viser expects [qw, qx, qy, qz]
+            wxyz = pin.Quaternion(T.rotation).coeffs()[[3, 0, 1, 2]]
+            return pos, wxyz
+
+        viser_server = self._viewer.viewer  # viser.ViserServer
+
+        # ── Create axis frames once ────────────────────────────────────────
+        if not hasattr(self, "_mocap_viser_frames"):
+            self._mocap_viser_frames = {
+                "ee": viser_server.scene.add_frame(
+                    "mocap/ee",
+                    show_axes=True,
+                    axes_length=0.15,
+                    axes_radius=0.006,
+                ),
+                "pylone": viser_server.scene.add_frame(
+                    "mocap/pylone",
+                    show_axes=True,
+                    axes_length=0.15,
+                    axes_radius=0.006,
+                ),
+            }
+            print("Mocap frames created: 'mocap/ee' and 'mocap/pylone'.")
+
+        # ── Update poses ───────────────────────────────────────────────────
+        pos, wxyz = _se3_to_viser(T_rel_ee)
+        self._mocap_viser_frames["ee"].position = pos
+        self._mocap_viser_frames["ee"].wxyz     = wxyz
+
+        pos, wxyz = _se3_to_viser(T_rel_pyl)
+        self._mocap_viser_frames["pylone"].position = pos
+        self._mocap_viser_frames["pylone"].wxyz     = wxyz
+
     def localize_pylone_from_mocap(self) -> None:
         """Set the pylone pose in the orchestrator from the current mocap reading.
 
