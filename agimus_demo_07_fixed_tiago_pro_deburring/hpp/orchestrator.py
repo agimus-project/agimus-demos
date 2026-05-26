@@ -795,14 +795,13 @@ class Orchestrator:
         return pin.XYZQUATToSE3(np.concatenate([pos, quat]))
 
     def compare_mocap(self, timeout: float = 5.0) -> None:
-        """Compare mocap poses vs robot FK, relative to base_link / tiago_base.
+        """Compare mocap poses vs robot FK, relative to base_footprint / tiago_base.
 
         Prints position error (mm) and rotation error (deg) for:
           • end effector  (tiago_endEffector  ↔  gripper_right_tool_holder)
-          • pylone        (pylone             ↔  q_init pylone pose)
+          • pylone        (mocap measurement  ↔  last localized pose in q_init)
 
-        Requires connect_mocap() and a running ROS node (execute() or
-        rclpy.init() already called).
+        Requires connect_mocap(). Creates a temporary ROS node if needed.
         """
         if not hasattr(self, "_qc"):
             print("No mocap client — call connect_mocap() first.")
