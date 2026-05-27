@@ -50,33 +50,33 @@ def launch_setup(
     # ! Launched by hand for now
     # ==========================================================================
 
-    # weights_config_path = PathJoinSubstitution(
-    #     [
-    #         FindPackageShare(PKG_NAME),
-    #         "config",
-    #         "agimus_controller",
-    #         "traj_weights.yaml",
-    #     ]
-    # )
+    weights_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare(PKG_NAME),
+            "config",
+            "agimus_controller",
+            "traj_weights.yaml",
+        ]
+    )
 
-    # joints_config_path = PathJoinSubstitution(
-    #     [
-    #         FindPackageShare(PKG_NAME),
-    #         "config",
-    #         "robot",
-    #         "tiago_pro_joints.yaml",
-    #     ]
-    # )
+    joints_config_path = PathJoinSubstitution(
+        [
+            FindPackageShare(PKG_NAME),
+            "config",
+            "planning",
+            "moving_joints.yaml",
+        ]
+    )
 
-    # orchestrator = Node(
-    #     package=PKG_NAME,
-    #     executable="orchestrator_node",
-    #     parameters=[
-    #         {"weights_config": weights_config_path, "joints_config": joints_config_path}
-    #     ],
-    #     name="orchestrator",
-    #     output="screen",
-    # )
+    orchestrator = Node(
+        package=PKG_NAME,
+        executable="orchestrator_node",
+        parameters=[
+            {"weights_config": weights_config_path, "joints_config": joints_config_path}
+        ],
+        name="orchestrator",
+        output="screen",
+    )
 
     # Used to signal the publishing of valid joint values
     wait_for_non_zero_joints_node = Node(
@@ -311,7 +311,7 @@ def launch_setup(
         tf_node_plate,
         tf_node_bar,
         tf_node_table,
-        # orchestrator,
+        orchestrator,
         tf_goal_bar,
         robot_srdf_publisher_node,
         agimus_controller_node,
