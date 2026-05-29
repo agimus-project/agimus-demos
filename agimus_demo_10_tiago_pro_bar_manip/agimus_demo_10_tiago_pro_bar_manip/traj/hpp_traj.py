@@ -28,7 +28,7 @@ class HPPPathGenerator:
         urdf_str: str,
         srdf_str: str,
         robot_model: pin.Model,
-        handle_config: Path,
+        config: Path,
         handle_object: BaseObject,
         plate_object: BaseObject,
         table_object: BaseObject,
@@ -45,11 +45,12 @@ class HPPPathGenerator:
         self._plate_object = plate_object
         self._table_object = table_object
 
-        with open(handle_config, "r") as f:
-            self._handle_config_file = yaml.safe_load(f)
+        with open(config, "r") as f:
+            self._config_file = yaml.safe_load(f)
         self._handles_config: dict[str, list] = {}
-        for gname, config in self._handle_config_file.get("grippers", {}).items():
+        for gname, config in self._config_file.get("grippers", {}).items():
             self._handles_config[gname] = config.get("handles", [])
+        self.slowdown_rate = self._config_file["trajectory"]["slowdown_rate"]
 
         # == HPP Device ========================================================
         robot = Device(f"{robot_name}-manip")
@@ -567,7 +568,7 @@ class HPPPathGenerator:
             return None
         tr = path_obj.timeRange()
         t_min, t_max = tr.first, tr.second
-        times = np.arange(t_min, t_max, self._ocp_dt)
+        times = np.arange(t_min, t_max, self._ocp_dt / self.slowdown_rate)
         return [np.asarray(path_obj.eval(t)[0], dtype=np.float64) for t in times]
 
     def plan_pick(self, gripper: str, handle: str, q_init: list):

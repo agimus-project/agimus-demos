@@ -104,25 +104,24 @@ class HPPActionServer(Node):
 
         # == OCP-related variables ==========================================
         self._ocp_dt = 0.01
-        self.declare_parameter("weights_config", "Unconfigured path")
-        weights_config_path = Path(self.get_parameter("weights_config").value)
-        with open(weights_config_path, "r") as f:
-            self.weights_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
         # == Robot state ====================================================
         self._robot_model = None
         self._robot_data = None
         self._nq = None
         self._nv = None
-        self.declare_parameter("joints_config", "Unconfigured path")
-        joints_config = Path(self.get_parameter("joints_config").value)
-        with open(joints_config, "r") as f:
-            self._joints_config = yaml.load(f, Loader=yaml.SafeLoader)
-        self.get_logger().info(str(self._joints_config))
 
-        self._left_tool_frame_id_name = self._joints_config["left_tool"]
+        self.declare_parameter("orchestrator_hpp_config", "Unconfigured path")
+        config_file_path = Path(self.get_parameter("orchestrator_hpp_config").value)
+
+        with open(config_file_path, "r") as f:
+            _config_file = yaml.load(f, Loader=yaml.SafeLoader)
+
+        self._r_config = _config_file["robot_configuration"]
+        self._weights_dict = _config_file["weights"]
+        self._left_tool_frame_id_name = self._r_config["left_tool"]
         self._left_tool_frame_id_pin_frame = None
-        self._right_tool_frame_id_name = self._joints_config["right_tool"]
+        self._right_tool_frame_id_name = self._r_config["right_tool"]
         self._right_tool_frame_id_pin_frame = None
 
         # == HPP ============================================================
@@ -169,7 +168,7 @@ class HPPActionServer(Node):
             ),
         )
         self._mpc_input_publisher_timer = self.create_timer(
-            self._ocp_dt * 10.0,  # TODO change factor to yaml param
+            self._ocp_dt,
             self._publish_mpc_input_cb,  # TODO change ocp_dt to be from a yaml
         )
 
@@ -237,8 +236,8 @@ class HPPActionServer(Node):
             urdf_str=urdf_str,
             srdf_str=srdf_str,
             robot_model=self._robot_model,
-            handle_config=os.path.join(
-                pkg, "config/planning", "handles_configurations.yaml"
+            config=os.path.join(
+                pkg, "config/planning", "orchestrator_hpp_configuration.yaml"
             ),
             handle_object=BaseObject(
                 root_joint_type="freeflyer",
@@ -596,7 +595,7 @@ class HPPActionServer(Node):
 
         for joint_name in self._robot_model.names.tolist():
             full = f"tiago_pro/{joint_name}"
-            if joint_name in self._joints_config["moving_joints"]:
+            if joint_name in self._r_config["moving_joints"]:
                 rank = robot.rankInConfiguration[full]
                 value = q_env[rank]
                 nq = len(robot.getJointConfig(full))
@@ -634,36 +633,32 @@ class HPPActionServer(Node):
 
     def _build_traj_weights(self, task: str):
         """Builds a TrajectoryPointWeights for a given task.
-        Task should be defined in the config yaml `self.weights_dict`
+        Task should be defined in the config yaml `self._weights_dict`
         Args:
             task (str): task type : ['pick', 'place']
         """
         return TrajectoryPointWeights(
-            w_robot_configuration=np.array(
-                self.weights_dict[task]["w_robot_configuration"]
-            ),
-            w_robot_velocity=np.array(self.weights_dict[task]["w_robot_velocity"]),
-            w_robot_acceleration=np.zeros_like(
-                self.weights_dict[task]["w_robot_configuration"]
-            ),
-            w_robot_effort=np.array(self.weights_dict[task]["w_robot_effort"]),
+            w_robot_configuration=np.array(self._weights_dict[task]["w_q"]),
+            w_robot_velocity=np.array(self._weights_dict[task]["w_dq"]),
+            w_robot_acceleration=np.array(self._weights_dict[task]["w_ddq"]),
+            w_robot_effort=np.array(self._weights_dict[task]["w_effort"]),
             w_end_effector_poses={
                 self._left_tool_frame_id_name: np.concatenate(
                     (
-                        np.asarray(self.weights_dict[task]["w_frame_translation"]),
-                        np.asarray(self.weights_dict[task]["w_frame_rotation"]),
+                        np.asarray(self._weights_dict[task]["w_frame_translation"]),
+                        np.asarray(self._weights_dict[task]["w_frame_rotation"]),
                     )
                 ),
                 self._right_tool_frame_id_name: np.concatenate(
                     (
-                        np.asarray(self.weights_dict[task]["w_frame_translation"]),
-                        np.asarray(self.weights_dict[task]["w_frame_rotation"]),
+                        np.asarray(self._weights_dict[task]["w_frame_translation"]),
+                        np.asarray(self._weights_dict[task]["w_frame_rotation"]),
                     )
                 ),
             },
             w_end_effector_velocities={},
             w_forces={},
-            w_collision_avoidance=self.weights_dict[task]["w_collision_avoidance"],
+            w_collision_avoidance=self._weights_dict[task]["w_collision_avoidance"],
         )
 
 
