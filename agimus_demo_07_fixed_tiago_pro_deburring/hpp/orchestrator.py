@@ -704,7 +704,9 @@ class Orchestrator:
             return
 
         js = joint_state[0]
-        js_map = dict(zip(js.name, js.position))
+        print(js)
+        print[dir(js)]
+        js_map = dict(zip(js.name, js.absolute_position))
 
         def _read_arm(side):
             return np.array([
@@ -767,7 +769,7 @@ class Orchestrator:
     # ── Mocap (Qualisys) ─────────────────────────────────────────────────────
 
     _QUALISYS_IP    = "140.93.1.100"
-    _MOCAP_BODIES   = {"pylone": 0, "tiago_endEffector": 1, "tiago_base": 2}
+    _MOCAP_BODIES   = {"pylone": 1, "tiago_endEffector": 0, "tiago_base": 2}
     _MOCAP_BASE_IDX = 2  # tiago_base = reference frame
 
     def connect_mocap(self, ip: str = _QUALISYS_IP) -> None:

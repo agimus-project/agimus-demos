@@ -67,7 +67,11 @@ cd ~/ros2_ws
 ## 3. Localize the pylone
 
 Before running the demo, the pylone pose relative to the robot must be estimated.
-Place the pylone in its intended position (no table needed — the pylone can be on any support). Then run the localization script:
+Place the pylone in its intended position (no table needed — the pylone can be on any support).
+
+### Option A — Manual pointing (no mocap required)
+
+Run the localization script:
 
 ```bash
 python3 ros2_ws/install/agimus_demo_07_fixed_tiago_pro_deburring/share/agimus_demo_07_fixed_tiago_pro_deburring/scripts/localize_pylone.py
@@ -84,6 +88,14 @@ python3 localize_pylone.py --holes hole_right_10 hole_right_30 hole_right_49
 ```
 
 The result is automatically written to `config/pylone_pose.yaml`.
+
+### Option B — Mocap-based localization (Qualisys required)
+
+Once the mocap is connected (see [section 5.5](#55-mocap-qualisys-optional)), run in the IPython shell:
+
+```python
+o.localize_pylone_from_mocap()   # reads pylone pose from mocap, saves to pylone_pose.yaml
+```
 
 ---
 
@@ -107,6 +119,83 @@ In a separate terminal:
 
 ```bash
 python3 src/agimus-demos/agimus_demo_07_fixed_tiago_pro_deburring/hpp/orchestrator_node.py
+```
+
+---
+
+## 5.5 Mocap (Qualisys) — optional
+
+Motion capture enables live pylone localization and end-effector monitoring.
+The Qualisys server IP is `140.93.1.100` by default.
+
+### Discover available bodies
+
+Before connecting, confirm the body IDs assigned by QTM:
+
+```bash
+python3 scripts/qualisys.py discover
+# or with a custom IP:
+python3 scripts/qualisys.py discover 192.168.x.x
+```
+
+Expected bodies and their current QTM IDs:
+
+| QTM ID | Name |
+|---|---|
+| 0 | `tiago_endEffector` |
+| 1 | `pylone` |
+| 2 | `tiago_base` |
+
+If IDs differ, update `_MOCAP_BODIES` in `hpp/orchestrator.py` (keep key order, update values only).
+
+### Connect / disconnect
+
+```python
+o.connect_mocap()       # start Qualisys subprocess (uses _QUALISYS_IP by default)
+o.connect_mocap("192.168.x.x")   # or with a custom IP
+o.disconnect_mocap()    # stop the subprocess
+```
+
+### Visualize mocap frames in Viser
+
+`update_mocap_frames()` creates two live coordinate-axis frames in the Viser scene:
+- `mocap/ee` — `tiago_endEffector` pose relative to `tiago_base`
+- `mocap/pylone` — `pylone` pose relative to `tiago_base`
+
+Both are expressed in the HPP world frame (= `base_link`) so they can be compared
+directly with the robot FK frames.
+
+```python
+# One-shot update
+o.update_mocap_frames()
+
+# Live loop (run in a separate thread or notebook cell)
+import time
+while True:
+    o.update_mocap_frames()
+    time.sleep(0.1)
+```
+
+Requires `connect_mocap()` and `init_viewer()` to be called first.
+
+### Compare mocap vs robot FK (numerical)
+
+```python
+o.compare_mocap()   # prints position error (mm) and rotation error (°) for EE and pylone
+```
+
+Output example:
+```
+==================================================================
+  Mocap vs Robot — poses relative to base_footprint / tiago_base
+==================================================================
+
+  End effector  (tiago_endEffector ↔ gripper_right_tool_holder)
+                       x             y             z
+      mocap [m]   +0.4123       -0.1234       +0.7456
+      robot [m]   +0.4101       -0.1219       +0.7448
+      Δ [mm]       +2.20         -1.50         -0.80   (|Δ|=2.8 mm)  ✓
+      ...
 ```
 
 ---
