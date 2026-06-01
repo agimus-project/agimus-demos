@@ -42,6 +42,8 @@ banner = (
     "║    o.disconnect_mocap()          — stop mocap subprocess          ║\n"
     "║    o.localize_pylone_from_mocap() — set pylone pose from mocap    ║\n"
     "║    o.compare_mocap()             — mocap vs robot FK (EE+pylone)  ║\n"
+    "║    o.update_mocap_frames()       — live mocap/ee + mocap/pylone   ║\n"
+    "║                                    frames in Viser                ║\n"
     "╠════════════════════════════════════════════════════════════════════╣\n"
     "║  Planning & execution                                             ║\n"
     "║    o.plan()                      — run HPP planner                ║\n"
