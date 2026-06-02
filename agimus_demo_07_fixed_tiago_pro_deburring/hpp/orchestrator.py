@@ -704,9 +704,8 @@ class Orchestrator:
             return
 
         js = joint_state[0]
-        print(js)
-        print[dir(js)]
-        js_map = dict(zip(js.name, js.absolute_position))
+
+        js_map = dict(zip(js.name, js.position))
 
         def _read_arm(side):
             return np.array([
