@@ -7,4 +7,4 @@ ament_auto_find_build_dependencies()
 
 ament_python_install_package(${PROJECT_NAME})
 
-ament_auto_package(INSTALL_TO_SHARE config hpp launch urdf)
+ament_auto_package(INSTALL_TO_SHARE config hpp launch scripts urdf)

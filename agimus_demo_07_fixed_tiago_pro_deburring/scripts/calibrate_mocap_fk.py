@@ -51,8 +51,9 @@ from std_msgs.msg import String
 _SCRIPTS_DIR   = os.path.dirname(os.path.abspath(__file__))
 _PKG_DIR       = os.path.join(_SCRIPTS_DIR, "..")
 _QUALISYS_IP   = "140.93.1.100"
-_MOCAP_BODIES  = {"pylone": 0, "tiago_endEffector": 1, "tiago_base": 2}
+_MOCAP_BODIES  = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
 _MOCAP_BASE_IDX = 2   # tiago_base = reference frame
+_EE_IDX         = 1   # tiago_endEffector local index
 _EE_FRAME_KW   = "gripper_right_tool_holder"
 
 
@@ -172,9 +173,13 @@ class Calibrator:
             self._qc = None
             print("Mocap disconnected.")
 
+    def _mocap_se3_bulk(self) -> tuple:
+        """Return (positions, quats) as two bulk snapshots to reduce race conditions."""
+        return self._qc.getPositions(), self._qc.getOrientationQuats()
+
     def _mocap_se3(self, idx: int) -> pin.SE3:
-        pos  = self._qc.getPositions()[idx]        # (3,) metres
-        quat = self._qc.getOrientationQuats()[idx]  # (4,) [qx qy qz qw]
+        pos  = self._qc.getPositions()[idx]
+        quat = self._qc.getOrientationQuats()[idx]
         return pin.XYZQUATToSE3(np.concatenate([pos, quat]))
 
     # ── FK ────────────────────────────────────────────────────────────────────
@@ -226,8 +231,9 @@ class Calibrator:
         js_map  = self._read_joint_states()
         T_fk    = self._fk_ee(js_map)
 
-        T_base  = self._mocap_se3(_MOCAP_BASE_IDX)
-        T_mocap = T_base.inverse() * self._mocap_se3(1)  # EE relative to tiago_base
+        positions, quats = self._mocap_se3_bulk()
+        T_base  = pin.XYZQUATToSE3(np.concatenate([positions[_MOCAP_BASE_IDX], quats[_MOCAP_BASE_IDX]]))
+        T_mocap = T_base.inverse() * pin.XYZQUATToSE3(np.concatenate([positions[_EE_IDX], quats[_EE_IDX]]))
 
         T_delta = T_fk.inverse() * T_mocap
         self.measurements.append((T_fk.copy(), T_mocap.copy(), T_delta.copy()))

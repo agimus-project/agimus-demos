@@ -119,7 +119,7 @@ class Orchestrator:
 
     def __init__(self, ros_node: Node = None):
         self._ros_node = ros_node
-        self.p1 = self.p2 = self.p3 = None
+        self.p1 = self.p2 = self.p3 = self.p4 = None
         self._messages = None
 
         print("Loading HPP model …")
@@ -164,6 +164,25 @@ class Orchestrator:
         _tmp = tempfile.NamedTemporaryFile(suffix=".urdf", delete=False, mode="w")
         _tmp.write(urdf_str)
         _tmp.close()
+
+        # Inject 3 cm deburring tool collision geometry at the EE.
+        # The tool extends along -Z of gripper_right_tool_holder (= into the hole at grasp).
+        # At qg: tool tip is 1 cm inside the hole face.  At qpg: tool tip is 3 cm outside.
+        _tool_snippet = (
+            '<link name="deburring_tool">'
+            '<collision><origin xyz="0 0 -0.015" rpy="0 0 0"/>'
+            '<geometry><cylinder radius="0.008" length="0.03"/></geometry>'
+            '</collision></link>'
+            '<joint name="deburring_tool_joint" type="fixed">'
+            '<parent link="gripper_right_tool_holder"/>'
+            '<child link="deburring_tool"/>'
+            '<origin xyz="0 0 0" rpy="0 0 0"/>'
+            '</joint>'
+        )
+        with open(_tmp.name, "r") as _f:
+            _urdf_with_tool = _f.read().replace("</robot>", _tool_snippet + "\n</robot>")
+        with open(_tmp.name, "w") as _f:
+            _f.write(_urdf_with_tool)
 
         robot = Device("tiago_pro")
         # anchor = fixed base, only arm joints have DOF
@@ -300,13 +319,25 @@ class Orchestrator:
         graph.addNumericalConstraintsToGraph(locked)
 
         sm = SecurityMargins(problem, factory, ["tiago_pro", "pylone"], robot)
-        sm.setSecurityMarginBetween("tiago_pro", "pylone", 0.05)
+        sm.setSecurityMarginBetween("tiago_pro", "pylone", 0.02)
         sm.apply()
 
+        # Insert: no margin at all (gripper enters the hole)
         for jname in model.names:
             if "tiago_pro" in jname:
                 graph.setSecurityMarginForTransition(
                     self._transition_insert, jname, "pylone/root_joint", float("-inf")
+                )
+
+        # Approach: allow gripper and tool to get within the 2 cm global margin
+        # (tool tip ends up 3 cm from face at qpg, which would violate 2 cm for arm links).
+        # Keep 2 cm for arm joints; remove it only for gripper/tool bodies.
+        for jname in model.names:
+            if "tiago_pro" in jname and (
+                "gripper_right" in jname or "deburring_tool" in jname
+            ):
+                graph.setSecurityMarginForTransition(
+                    self._transition_approach, jname, "pylone/root_joint", float("-inf")
                 )
 
         graph.initialize()
@@ -317,7 +348,7 @@ class Orchestrator:
     # ── Planning ──────────────────────────────────────────────────────────────
 
     def plan(self, max_attempts: int = 50) -> bool:
-        """Generate qpg (collision-free), qg, and plan p1, p2, p3."""
+        """Generate qpg (collision-free), qg, and plan p1, p2, p3, p4."""
         shooter = self.problem.configurationShooter()
         qpg = None
         for i in range(max_attempts):
@@ -401,10 +432,13 @@ class Orchestrator:
 
         p3 = p2.reverse()
         print("  p3 ready (retraction, reversed from optimised p2).")
+        p4 = p1.reverse()
+        print("  p4 ready (retreat, reversed from optimised p1).")
 
         self.p1  = p1
         self.p2  = p2
         self.p3  = p3
+        self.p4  = p4
         self.qpg = qpg
         self.qg  = qg
         return True
@@ -507,7 +541,7 @@ class Orchestrator:
         Sample and publish MpcInput messages to the controller.
 
         paths : list of Path objects to execute in sequence.
-                Defaults to [p1, p2, p3].
+                Defaults to [p1, p2, p3, p4].
         """
         if self.p1 is None:
             print("No path available — run plan() first.")
@@ -515,9 +549,10 @@ class Orchestrator:
 
         _labels = {id(self.p1): "p1 (approach)",
                    id(self.p2): "p2 (insertion)",
-                   id(self.p3): "p3 (retraction)"}
+                   id(self.p3): "p3 (retraction)",
+                   id(self.p4): "p4 (retreat)"}
         if paths is None:
-            paths = [self.p1, self.p2, self.p3]
+            paths = [self.p1, self.p2, self.p3, self.p4]
         named = [(p, _labels.get(id(p), f"path_{i+1}")) for i, p in enumerate(paths)]
 
         print("Sampling trajectories …")
@@ -768,8 +803,10 @@ class Orchestrator:
     # ── Mocap (Qualisys) ─────────────────────────────────────────────────────
 
     _QUALISYS_IP    = "140.93.1.100"
-    _MOCAP_BODIES   = {"pylone": 1, "tiago_endEffector": 0, "tiago_base": 2}
+    _MOCAP_BODIES   = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
     _MOCAP_BASE_IDX = 2  # tiago_base = reference frame
+    _MOCAP_EE_IDX   = 1  # tiago_endEffector local index
+    _MOCAP_PYL_IDX  = 0  # pylone local index
 
     def connect_mocap(self, ip: str = _QUALISYS_IP) -> None:
         """Start the Qualisys mocap subprocess.  Call this once before
@@ -817,8 +854,8 @@ class Orchestrator:
 
         # ── Mocap relative poses (w.r.t. tiago_base) ──────────────────────
         T_mocap_base = self._mocap_se3(self._MOCAP_BASE_IDX)
-        T_rel_ee_mocap  = T_mocap_base.inverse() * self._mocap_se3(1)  # tiago_endEffector
-        T_rel_pyl_mocap = T_mocap_base.inverse() * self._mocap_se3(0)  # pylone
+        T_rel_ee_mocap  = T_mocap_base.inverse() * self._mocap_se3(self._MOCAP_EE_IDX)   # tiago_endEffector
+        T_rel_pyl_mocap = T_mocap_base.inverse() * self._mocap_se3(self._MOCAP_PYL_IDX)  # pylone
 
         # ── Robot poses ────────────────────────────────────────────────────
         T_rel_ee_robot = self._fk_ee(self._extract_active_q(q_actual))
@@ -898,8 +935,8 @@ class Orchestrator:
 
         # ── Mocap relative poses (w.r.t. tiago_base) ──────────────────────
         T_base    = self._mocap_se3(self._MOCAP_BASE_IDX)
-        T_rel_ee  = T_base.inverse() * self._mocap_se3(1)  # tiago_endEffector
-        T_rel_pyl = T_base.inverse() * self._mocap_se3(0)  # pylone
+        T_rel_ee  = T_base.inverse() * self._mocap_se3(self._MOCAP_EE_IDX)   # tiago_endEffector
+        T_rel_pyl = T_base.inverse() * self._mocap_se3(self._MOCAP_PYL_IDX)  # pylone
 
         def _se3_to_viser(T: pin.SE3):
             """Return (position, wxyz) arrays for a pinocchio SE3."""
@@ -951,7 +988,7 @@ class Orchestrator:
             return
 
         T_mocap_base = self._mocap_se3(self._MOCAP_BASE_IDX)
-        T_mocap_pyl  = self._mocap_se3(0)
+        T_mocap_pyl  = self._mocap_se3(self._MOCAP_PYL_IDX)
         T_rel        = T_mocap_base.inverse() * T_mocap_pyl
 
         t    = T_rel.translation.tolist()
