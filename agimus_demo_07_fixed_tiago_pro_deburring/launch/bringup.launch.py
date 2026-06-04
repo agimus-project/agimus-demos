@@ -25,6 +25,7 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -91,6 +92,8 @@ def launch_setup(
         ],
     )
 
+    use_mocap = LaunchConfiguration("use_mocap")
+
     agimus_controller_node = Node(
         package="agimus_controller_ros",
         executable="agimus_controller_node",
@@ -102,8 +105,32 @@ def launch_setup(
         ],
         remappings=[
             ("robot_description_semantic", "robot_srdf_description"),
+            # When mocap is enabled, consume corrected trajectory instead of raw one
+            ("mpc_input", PythonExpression([
+                "'mpc_input_corrected' if '", use_mocap, "' == 'true' else 'mpc_input'"
+            ])),
         ],
         output="screen",
+    )
+
+    _scripts_dir = PathJoinSubstitution([FindPackageShare(PKG), "scripts"])
+
+    mocap_ee_publisher_node = ExecuteProcess(
+        cmd=[
+            "python3",
+            PathJoinSubstitution([_scripts_dir, "mocap_ee_publisher.py"]),
+        ],
+        output="screen",
+        condition=IfCondition(use_mocap),
+    )
+
+    mocap_mpc_corrector_node = ExecuteProcess(
+        cmd=[
+            "python3",
+            PathJoinSubstitution([_scripts_dir, "mocap_mpc_corrector.py"]),
+        ],
+        output="screen",
+        condition=IfCondition(use_mocap),
     )
 
     spawn_pylone_node = Node(
@@ -159,6 +186,8 @@ def launch_setup(
         wait_for_non_zero_joints_node,
         environment_publisher_node,
         mpc_debugger,
+        mocap_ee_publisher_node,
+        mocap_mpc_corrector_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
@@ -178,6 +207,12 @@ def generate_launch_description():
                 "use_mpc_debugger",
                 default_value="false",
                 choices=["true", "false"],
+            ),
+            DeclareLaunchArgument(
+                "use_mocap",
+                default_value="false",
+                choices=["true", "false"],
+                description="Enable Qualisys mocap: publishes mocap_ee TF and corrects MPC targets.",
             ),
             DeclareLaunchArgument(
                 "use_hpp_bridge",

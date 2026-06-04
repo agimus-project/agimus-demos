@@ -13,8 +13,8 @@ trajectory:
 handle:
   link: "pylone/pylone_link"
   name: "pylone/hole_tiago_25"
-  position: [0.0, -0.213, 0.0]   # center of right face, z=0
-  clearance: 0.05
+  position: [0.0, -0.233, 0.0]   # 2 cm outward from face: EE at face - 3 cm tool + 1 cm insertion
+  clearance: 0.04               # EE at 4 cm from handle = 6 cm from face (0.233-0.213=0.02 + 0.04 = 0.06)
 
 # ── Arm tuck configurations ───────────────────────────────────────────────────
 tuck:
