@@ -42,7 +42,10 @@ class QualisysClient:
 
     def stop(self):
         self.p.terminate()
-        self.p.join()
+        self.p.join(timeout=2.0)
+        if self.p.is_alive():
+            self.p.kill()
+            self.p.join()
 
     def getPositions(self):
         """Returns shape (num_bodies, 3)"""
@@ -90,6 +93,7 @@ class QualisysClient:
                     continue
 
                 if np.isnan(position[0]):
+                    shared_bodyPosition[p_idx:p_idx+3] = [float('nan')] * 3
                     continue
 
                 p_idx = idx * 3
@@ -184,8 +188,8 @@ def exampleOfUse():
 
 def discover(ip="140.93.1.100"):
     """
-    Connect to a Qualisys QTM server and print all 6D bodies with their index,
-    name, and current position. Use this to find the IDs to pass to QualisysClient.
+    Connect to a Qualisys QTM server and continuously print all 6D bodies with
+    their index, name, and live position. Refreshes in-place. Ctrl+C to stop.
 
     Usage:
         python3 qualisys.py discover
@@ -193,42 +197,54 @@ def discover(ip="140.93.1.100"):
     """
     import xml.etree.ElementTree as ET
 
+    header = (
+        f"\n{'ID':>4}  {'Name':<30}  {'x (mm)':>10}  {'y (mm)':>10}  {'z (mm)':>10}  {'visible'}\n"
+        + "-" * 80
+    )
+    n_lines = [0]  # number of lines printed last frame (for cursor repositioning)
+
     async def _run():
         connection = await qtm.connect(ip)
         if connection is None:
             print(f"Could not connect to Qualisys at {ip}")
             return
 
-        # Get named body list from QTM parameters
         params_xml = await connection.get_parameters(parameters=["6d"])
         root = ET.fromstring(params_xml)
         names = [el.find("Name").text for el in root.iter("Body") if el.find("Name") is not None]
 
-        # Grab one packet to get current positions
-        future = asyncio.get_event_loop().create_future()
-
         def on_packet(packet):
-            if not future.done():
-                future.set_result(packet)
+            _, bodies = packet.get_6d()
+
+            lines = [header]
+            for i, (pos, _) in enumerate(bodies):
+                name = names[i] if i < len(names) else "?"
+                visible = not (pos.x != pos.x)  # NaN check
+                if visible:
+                    lines.append(
+                        f"{i:>4}  {name:<30}  {pos.x:>10.1f}  {pos.y:>10.1f}  {pos.z:>10.1f}  yes"
+                    )
+                else:
+                    lines.append(
+                        f"{i:>4}  {name:<30}  {'---':>10}  {'---':>10}  {'---':>10}  NO"
+                    )
+            lines.append("\nCtrl+C to stop.")
+
+            # Move cursor up by the number of lines printed last time, then overwrite
+            if n_lines[0]:
+                print(f"\033[{n_lines[0]}A", end="")
+            output = "\n".join(lines)
+            print(output, end="\r\n", flush=True)
+            n_lines[0] = output.count("\n") + 1
 
         await connection.stream_frames(components=["6d"], on_packet=on_packet)
-        packet = await future
-        await connection.stream_frames_stop()
 
-        _, bodies = packet.get_6d()
-
-        print(f"\n{'ID':>4}  {'Name':<30}  {'x (mm)':>10}  {'y (mm)':>10}  {'z (mm)':>10}  {'visible'}")
-        print("-" * 80)
-        for i, (pos, _) in enumerate(bodies):
-            name = names[i] if i < len(names) else "?"
-            visible = not (pos.x != pos.x)  # NaN check
-            if visible:
-                print(f"{i:>4}  {name:<30}  {pos.x:>10.1f}  {pos.y:>10.1f}  {pos.z:>10.1f}  yes")
-            else:
-                print(f"{i:>4}  {name:<30}  {'---':>10}  {'---':>10}  {'---':>10}  NO (not tracked)")
-
+    loop = asyncio.get_event_loop()
     asyncio.ensure_future(_run())
-    asyncio.get_event_loop().run_forever()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
 
 
 if __name__ == "__main__":
