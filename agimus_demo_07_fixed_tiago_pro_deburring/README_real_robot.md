@@ -108,8 +108,17 @@ pal module_manager restart
 
 Launch the bringup (with `ssh -X` for remote connection):
 ```bash
+# Without mocap (default)
 ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py use_rviz:=true
+
+# With mocap — publishes mocap_ee TF and corrects MPC targets in real time
+ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py \
+    use_rviz:=true use_mocap:=true
 ```
+
+With `use_mocap:=true`, two additional nodes are started automatically:
+- **`mocap_ee_publisher`** — connects to Qualisys and publishes the EE pose as a TF frame (`base_link → mocap_ee`) and on `/mocap_ee_pose`
+- **`mocap_mpc_corrector`** — intercepts `mpc_input`, computes the translation error `δt = t_FK − t_mocap` at the current configuration, adds it to every target EE pose, and republishes on `mpc_input_corrected` (which the controller then consumes)
 
 ---
 
@@ -123,14 +132,14 @@ python3 src/agimus-demos/agimus_demo_07_fixed_tiago_pro_deburring/hpp/orchestrat
 
 ---
 
-## 5.5 Mocap (Qualisys) — optional
+## 5.5 Mocap (Qualisys)
 
-Motion capture enables live pylone localization and end-effector monitoring.
 The Qualisys server IP is `140.93.1.100` by default.
 
-### Discover available bodies
+### Verify body IDs before first use
 
-Before connecting, confirm the body IDs assigned by QTM:
+QTM body IDs must match the values set in `_MOCAP_BODIES` across all scripts and the orchestrator.
+Verify with:
 
 ```bash
 python3 scripts/qualisys.py discover
@@ -138,38 +147,44 @@ python3 scripts/qualisys.py discover
 python3 scripts/qualisys.py discover 192.168.x.x
 ```
 
-Expected bodies and their current QTM IDs:
+Expected mapping:
 
 | QTM ID | Name |
 |---|---|
-| 0 | `tiago_endEffector` |
-| 1 | `pylone` |
-| 2 | `tiago_base` |
+| 0 | `pylone` |
+| 1 | `tiago_base` |
+| 2 | `tiago_endEffector` |
 
-If IDs differ, update `_MOCAP_BODIES` in `hpp/orchestrator.py` (keep key order, update values only).
+If IDs differ, update `_MOCAP_BODIES` consistently in **all three files** (keep key order, update values only):
+- `hpp/orchestrator.py`
+- `scripts/mocap_ee_publisher.py`
+- `scripts/calibrate_mocap_fk.py`
 
-### Connect / disconnect
+### MPC correction (via launch)
+
+When `use_mocap:=true` is passed to the launch file, mocap-based MPC correction is fully
+automatic — no extra steps needed. In RViz you can verify the `mocap_ee` frame aligns with
+`gripper_right_tool_holder`.
+
+### Orchestrator utilities (IPython shell)
+
+These tools are available independently of the launch-level correction:
 
 ```python
-o.connect_mocap()       # start Qualisys subprocess (uses _QUALISYS_IP by default)
-o.connect_mocap("192.168.x.x")   # or with a custom IP
-o.disconnect_mocap()    # stop the subprocess
+o.connect_mocap()              # connect to Qualisys (required for all tools below)
+o.connect_mocap("192.168.x.x") # or with a custom IP
+o.disconnect_mocap()           # stop the Qualisys subprocess
 ```
 
-### Visualize mocap frames in Viser
-
-`update_mocap_frames()` creates two live coordinate-axis frames in the Viser scene:
-- `mocap/ee` — `tiago_endEffector` pose relative to `tiago_base`
-- `mocap/pylone` — `pylone` pose relative to `tiago_base`
-
-Both are expressed in the HPP world frame (= `base_link`) so they can be compared
-directly with the robot FK frames.
+**Visualize mocap frames in Viser** — two live coordinate-axis frames:
+- `mocap/ee` — `tiago_endEffector` relative to `tiago_base`
+- `mocap/pylone` — `pylone` relative to `tiago_base`
 
 ```python
 # One-shot update
 o.update_mocap_frames()
 
-# Live loop (run in a separate thread or notebook cell)
+# Live loop
 import time
 while True:
     o.update_mocap_frames()
@@ -178,10 +193,10 @@ while True:
 
 Requires `connect_mocap()` and `init_viewer()` to be called first.
 
-### Compare mocap vs robot FK (numerical)
+**Compare mocap vs robot FK (numerical):**
 
 ```python
-o.compare_mocap()   # prints position error (mm) and rotation error (°) for EE and pylone
+o.compare_mocap()  # prints per-axis position error (mm) and rotation error (°) for EE and pylone
 ```
 
 Output example:
@@ -197,6 +212,19 @@ Output example:
       Δ [mm]       +2.20         -1.50         -0.80   (|Δ|=2.8 mm)  ✓
       ...
 ```
+
+**Analyse FK vs mocap consistency** (calibration check):
+
+```python
+# Record pairs (T_FK, T_mocap) at multiple arm configurations
+c = Calibrator()    # see scripts/calibrate_mocap_fk.py
+c.connect_mocap()
+# move arm, then:
+c.record()          # repeat 10–15 times at different configs
+c.analyze()         # prints mean error and config-to-config dispersion
+```
+
+If `σ_t < 3 mm` and `σ_R < 1°`, the error is a constant FK offset and the MPC correction is reliable.
 
 ---
 
@@ -221,9 +249,10 @@ o.execute([o.p1])        # approach only — check before going further
 o.compare_pose(o.p1)     # verify tracking error before insertion
 o.execute([o.p2])        # insertion
 o.execute([o.p3])        # retraction
+o.execute([o.p4])        # retreat back to q_init
 
-# Or plan and execute at once
-o.plan_and_execute()
+# Or full sequence at once
+o.plan_and_execute()     # p1 → p2 → p3 → p4
 ```
 
 Once `activate_lfc()` is called, the arm switches from position to torque control.

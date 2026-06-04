@@ -27,13 +27,14 @@ The left arm, torso, wheels, grippers, head and mobile base are locked via
 
 ```
 q_init → [p1: approach] → qpg → [p2: insertion] → qg
-                                                    ↓
-                          qpg ← [p3: retraction] ←─┘
+  ↑                                                  ↓
+  └──────── [p4: retreat] ← qpg ← [p3: retraction] ─┘
 ```
 
 - **p1** (approach): right arm moves to pre-grasp pose in front of the hole
 - **p2** (insertion): arm inserts along handle Z (world +Y, into the hole)
-- **p3** (retraction): reverse of p2
+- **p3** (retraction): reverse of p2 (qg → qpg)
+- **p4** (retreat): reverse of p1 (qpg → q_init)
 
 ### Key files
 
