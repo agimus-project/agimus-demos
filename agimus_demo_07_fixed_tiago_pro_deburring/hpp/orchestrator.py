@@ -39,6 +39,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from agimus_msgs.msg import MpcInput, MpcEEInput
+from control_msgs.msg import DynamicJointState
 from sensor_msgs.msg import JointState
 
 
@@ -578,22 +579,46 @@ class Orchestrator:
 
     # ── Pose comparison ───────────────────────────────────────────────────────
 
+    @staticmethod
+    def _read_arm_from_dynamic(djs_msg, side: str) -> np.ndarray:
+        """Extract arm joint positions from a DynamicJointState message.
+
+        Prefers absolute_position (output shaft encoder); falls back to
+        position (motor encoder) if absolute_position is unavailable.
+        """
+        result = np.zeros(7)
+        for i in range(1, 8):
+            name = f"arm_{side}_{i}_joint"
+            for j, jname in enumerate(djs_msg.joint_names):
+                if jname == name:
+                    iv = djs_msg.interface_values[j]
+                    imap = dict(zip(iv.interface_names, iv.values))
+                    result[i - 1] = imap.get("absolute_position",
+                                             imap.get("position", 0.0))
+                    break
+        return result
+
     def _read_robot_config(self, timeout: float = 5.0):
-        """Return a full HPP config vector from the current robot joint states."""
+        """Return a full HPP config vector from the current robot joint states.
+
+        Uses absolute_position (output shaft encoder) when available,
+        falls back to position (motor encoder) otherwise.
+        """
         _own_node = False
         if self._ros_node is None:
             self._ros_node = rclpy.create_node("hpp_read_config_node")
             _own_node = True
 
-        joint_state = [None]
+        djs_state = [None]
         sub = self._ros_node.create_subscription(
-            JointState, "/joint_states",
-            lambda m: joint_state.__setitem__(0, m), 10)
+            DynamicJointState,
+            "/joint_torque_state_broadcaster/dynamic_joint_states",
+            lambda m: djs_state.__setitem__(0, m), 10)
 
         deadline = time.time() + timeout
         while time.time() < deadline:
             rclpy.spin_once(self._ros_node, timeout_sec=0.1)
-            if joint_state[0] is not None:
+            if djs_state[0] is not None:
                 break
         self._ros_node.destroy_subscription(sub)
 
@@ -601,15 +626,12 @@ class Orchestrator:
             self._ros_node.destroy_node()
             self._ros_node = None
 
-        if joint_state[0] is None:
-            raise RuntimeError("Timeout reading robot state from /joint_states.")
+        if djs_state[0] is None:
+            raise RuntimeError("Timeout reading robot state from dynamic_joint_states.")
 
-        js_map = dict(zip(joint_state[0].name, joint_state[0].position))
-        q = pin.neutral(self.model).copy()
+        q  = pin.neutral(self.model).copy()
         ri = self._right_arm_idx
-        for i in range(1, 8):
-            key = f"arm_right_{i}_joint"
-            q[ri + i - 1] = js_map.get(key, js_map.get(f"tiago_pro/{key}", 0.0))
+        q[ri:ri+7] = self._read_arm_from_dynamic(djs_state[0], "right")
         return q
 
     def compare_pose(self, q_ref=None, timeout: float = 5.0):
@@ -710,34 +732,40 @@ class Orchestrator:
     # ── Robot state sync ──────────────────────────────────────────────────────
 
     def sync_from_robot(self, timeout: float = 5.0):
-        """Update q_init from the current robot joint state (arm only)."""
+        """Update q_init from the current robot joint state (arm only).
+
+        Uses absolute_position (output shaft encoder) when available,
+        falls back to position (motor encoder) otherwise.
+        """
         if self._ros_node is None:
             self._ros_node = rclpy.create_node("hpp_sync_node")
             _own_node = True
         else:
             _own_node = False
 
-        joint_state = [None]
-        joint_sub = self._ros_node.create_subscription(
-            JointState, "/joint_states",
-            lambda msg: joint_state.__setitem__(0, msg), 10
+        djs_state = [None]
+        djs_sub = self._ros_node.create_subscription(
+            DynamicJointState,
+            "/joint_torque_state_broadcaster/dynamic_joint_states",
+            lambda msg: djs_state.__setitem__(0, msg), 10
         )
 
         deadline = time.time() + timeout
         while time.time() < deadline:
             rclpy.spin_once(self._ros_node, timeout_sec=0.1)
-            if joint_state[0] is not None:
+            if djs_state[0] is not None:
                 break
 
-        self._ros_node.destroy_subscription(joint_sub)
+        self._ros_node.destroy_subscription(djs_sub)
         if _own_node:
             self._ros_node.destroy_node()
             self._ros_node = None
 
-        if joint_state[0] is None:
-            print("sync_from_robot: timeout — could not receive /joint_states")
+        if djs_state[0] is None:
+            print("sync_from_robot: timeout — could not receive dynamic_joint_states")
             return
 
+<<<<<<< Updated upstream
         js = joint_state[0]
 
         js_map = dict(zip(js.name, js.position))
@@ -749,11 +777,13 @@ class Orchestrator:
                 for i in range(1, 8)
             ])
 
+=======
+>>>>>>> Stashed changes
         ri = self._right_arm_idx
         li = self._left_arm_idx
 
-        left_arm  = _read_arm("left")
-        right_arm = _read_arm("right")
+        right_arm = self._read_arm_from_dynamic(djs_state[0], "right")
+        left_arm  = self._read_arm_from_dynamic(djs_state[0], "left")
 
         self.q_init[ri:ri+7] = right_arm
         self.q_init[li:li+7] = left_arm
