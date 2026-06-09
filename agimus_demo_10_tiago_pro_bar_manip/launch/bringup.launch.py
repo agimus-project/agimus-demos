@@ -203,12 +203,12 @@ def launch_setup(
         rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
     )
 
-    quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, -np.pi / 2])))
+    quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([np.pi / 2, 0, 0])))
 
     tf_goal_bar = static_transform_publisher_node(
         frame_id="plate_base_link",
         child_frame_id="bar_goal_pose",
-        xyz=["0", "0.4", "0.01"],
+        xyz=["-0.7", "0.2", "0.0"],
         rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
     )
 

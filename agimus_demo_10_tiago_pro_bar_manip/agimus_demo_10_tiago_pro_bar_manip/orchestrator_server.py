@@ -736,7 +736,7 @@ class HPPActionServer(Node):
         q_init_place[r] += 1.0
         q_init_place[hx] += 1.0
 
-        target_bar_pose = [1.2, 0.0, 0.67, 0.0, 0.0, 0.0, 1.0]
+        target_bar_pose = self._bar_goal_pose
 
         traj = self._hpp.plan_place(
             gripper=gripper,
