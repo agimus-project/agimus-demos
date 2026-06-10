@@ -62,11 +62,7 @@ TIME_SCALE = _cfg["trajectory"]["time_scale"]
 
 _PYLONE_POSE_FILE = os.path.join(_PKG_DIR, "config", "pylone_pose.yaml")
 
-_h           = _cfg["handle"]
-HANDLE_LINK  = _h["link"]
-HANDLE_NAME  = _h["name"]
-HANDLE_POS   = np.array(_h["position"])
-HANDLE_CLEAR = _h["clearance"]
+HANDLE_NAME = _cfg["handle"]["name"]
 
 LEFT_ARM_TUCK  = _cfg["tuck"]["left_arm"]
 RIGHT_ARM_TUCK = _cfg["tuck"]["right_arm"]
@@ -227,15 +223,11 @@ class Orchestrator:
 
         self._set_pylone_bounds(_px, _py, _pz)
 
-        # Add handle: Rx(-90°) so handle Z = world +Y (into the hole)
-        _R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
-        robot.addHandle(
-            HANDLE_LINK, HANDLE_NAME,
-            pin.SE3(_R, HANDLE_POS),
-            HANDLE_CLEAR,
-            6 * [True],
-        )
-        robot.handles()[HANDLE_NAME].approachingDirection = np.array([0, 0, 1])
+        _handle = robot.handles()[HANDLE_NAME]
+        _R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])  # Rx(-90°): handle Z = world +Y
+        _handle.localPosition = pin.SE3(_R, _handle.localPosition.translation)
+        _handle.mask = [True, True, True, True, True, True]
+        _handle.approachingDirection = np.array([0, 0, 1])
 
         li = self._left_arm_idx
         ri = self._right_arm_idx
@@ -371,6 +363,8 @@ class Orchestrator:
             print(f"Failed to find collision-free qpg in {max_attempts} attempts.")
             return False
 
+        self.qpg = qpg
+
         res, qg, err = self.graph.generateTargetConfig(
             self._transition_insert, qpg, qpg
         )
@@ -381,7 +375,7 @@ class Orchestrator:
 
         self.problem.constraintGraph(self.graph)
         planner = TransitionPlanner(self.problem)
-        planner.maxIterations(1000)
+        planner.maxIterations(5000)
 
         planner.setTransition(self._transition_approach)
         q_goal = np.zeros((1, self.robot.configSize()), order='F')

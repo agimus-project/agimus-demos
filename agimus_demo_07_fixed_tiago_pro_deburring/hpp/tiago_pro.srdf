@@ -99,7 +99,7 @@
   <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
   <end_effector group="gripper_right" name="gripper_right" parent_group="arm_right" parent_link="arm_right_tool_link"/>
   <!-- gripper right: TCP frame at gripper_right_tool_holder (0.142m from arm_right_tool_link) -->
-  <gripper name="gripper" clearance="0.05">
+  <gripper name="gripper" clearance="0.0">
     <position xyz="0 0 0.0" wxyz="1 0 0 0" />
     <link name="gripper_right_tool_holder"/>
   </gripper>
