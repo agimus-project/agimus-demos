@@ -759,20 +759,6 @@ class Orchestrator:
             print("sync_from_robot: timeout — could not receive dynamic_joint_states")
             return
 
-<<<<<<< Updated upstream
-        js = joint_state[0]
-
-        js_map = dict(zip(js.name, js.position))
-
-        def _read_arm(side):
-            return np.array([
-                js_map.get(f"arm_{side}_{i}_joint",
-                           js_map.get(f"tiago_pro/arm_{side}_{i}_joint", 0.0))
-                for i in range(1, 8)
-            ])
-
-=======
->>>>>>> Stashed changes
         ri = self._right_arm_idx
         li = self._left_arm_idx
 
