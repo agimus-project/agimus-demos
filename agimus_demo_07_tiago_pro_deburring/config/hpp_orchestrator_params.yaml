@@ -16,12 +16,11 @@ scene:
   table_z: 0.0
   pylone_z_offset: 1.03   # table surface (0.73) + pylone base height (0.30)
 
-# ── Handle (hole_tiago_25 on right face of pylone) ───────────────────────────
+# ── Handle ───────────────────────────────────────────────────────────────────
+# outside: pylone/hole_right_25
+# inside:  pylone/hole_right_inside_25
 handle:
-  link: "pylone/pylone_link"
-  name: "pylone/hole_tiago_25"
-  position: [0.0, -0.213, 0.0]   # center of right face, z=0
-  clearance: 0.05
+  name: "pylone/hole_right_inside_25"
 
 # ── Arm tuck configurations ───────────────────────────────────────────────────
 tuck:

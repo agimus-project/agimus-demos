@@ -9,12 +9,11 @@ trajectory:
   dt: 0.01          # sampling period (s) — must match agimus_controller rate
   time_scale: 2.0   # stretch HPP path time — increase to slow down execution
 
-# ── Handle (hole_tiago_25 on right face of pylone) ───────────────────────────
+# ── Handle ───────────────────────────────────────────────────────────────────
+# outside: pylone/hole_right_25
+# inside:  pylone/hole_right_inside_25
 handle:
-  link: "pylone/pylone_link"
-  name: "pylone/hole_tiago_25"
-  position: [0.0, -0.233, 0.0]   # 2 cm outward from face: EE at face - 3 cm tool + 1 cm insertion
-  clearance: 0.04               # EE at 4 cm from handle = 6 cm from face (0.233-0.213=0.02 + 0.04 = 0.06)
+  name: "pylone/hole_right_25"
 
 # ── Arm tuck configurations ───────────────────────────────────────────────────
 tuck:
