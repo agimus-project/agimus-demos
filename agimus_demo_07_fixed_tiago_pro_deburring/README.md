@@ -123,7 +123,7 @@ or overwritten by `scripts/localize_pylone.py` on the real robot.
 
 ```
 Pylone base (default):  x=1.5, y=0.0, z=1.03 m (base_link frame)
-Active hole:            right face, y=-0.213, x=0.0, z=0.0 (pylone frame)
+Active hole:            pylone/hole_right_25 — right face, y=-0.213, x=0.0, z=0.0 (pylone frame)
 ```
 
 ---
