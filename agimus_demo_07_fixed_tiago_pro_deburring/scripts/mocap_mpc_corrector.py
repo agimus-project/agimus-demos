@@ -60,9 +60,9 @@ class MocapMpcCorrectorNode(Node):
         self._data  = None
         self._ee_id = None
         self._q_current: np.ndarray | None = None
-        self._mocap_se3: pin.SE3 | None = None      # full EE pose from mocap
-        self._mocap_ee_stamp: float | None = None   # wall time of last valid mocap msg
-        self._MOCAP_TIMEOUT = 0.3  # seconds — pass-through if no fresh mocap
+        self._mocap_se3: pin.SE3 | None = None   # latest EE pose from mocap
+        self._mocap_new: bool = False             # True when a new mocap msg arrived
+        self._last_valid_correction: pin.SE3 | None = None  # frozen when mocap lost
 
         qos_latched = QoSProfile(
             depth=1,
@@ -125,7 +125,7 @@ class MocapMpcCorrectorNode(Node):
         q = np.array([msg.pose.orientation.x, msg.pose.orientation.y,
                       msg.pose.orientation.z, msg.pose.orientation.w])
         self._mocap_se3 = pin.XYZQUATToSE3(np.concatenate([t, q]))
-        self._mocap_ee_stamp = self.get_clock().now().nanoseconds * 1e-9
+        self._mocap_new = True
 
     # ── Correction ────────────────────────────────────────────────────────────
 
@@ -141,23 +141,20 @@ class MocapMpcCorrectorNode(Node):
             self._pub.publish(msg)
             return
 
-        T_fk  = self._fk_se3()
-        now   = self.get_clock().now().nanoseconds * 1e-9
+        if self._mocap_new:
+            T_fk = self._fk_se3()
+            if T_fk is not None:
+                # Left-side SE3 correction: T_correction = T_fk * T_mocap⁻¹
+                # When applied to a target T: T_corrected = T_correction * T_target
+                # At convergence FK(q*) = T_corrected, real EE = T_mocap(q*) = T_target ✓
+                self._last_valid_correction = T_fk * self._mocap_se3.inverse()
+            self._mocap_new = False
 
-        mocap_fresh = (
-            self._mocap_se3 is not None
-            and self._mocap_ee_stamp is not None
-            and (now - self._mocap_ee_stamp) < self._MOCAP_TIMEOUT
-        )
-
-        if T_fk is None or not mocap_fresh:
+        if self._last_valid_correction is None:
             self._pub.publish(msg)
             return
 
-        # Left-side SE3 correction: T_correction = T_fk * T_mocap⁻¹
-        # When applied to a target T: T_corrected = T_correction * T_target
-        # At convergence FK(q*) = T_corrected, real EE = T_mocap(q*) = T_target ✓
-        T_correction = T_fk * self._mocap_se3.inverse()
+        T_correction = self._last_valid_correction
 
         for ee_input in msg.ee_inputs:
             t = np.array([ee_input.pose.position.x,
