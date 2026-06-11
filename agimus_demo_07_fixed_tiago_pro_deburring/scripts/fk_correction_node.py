@@ -2,16 +2,17 @@
 """
 FK correction node.
 
-Intercepts mpc_input messages and applies a static translation correction
+Intercepts mpc_input messages and applies a static SE3 correction
 computed once at startup from the difference between FK(absolute_position)
 and FK(motor_position).
 
 Correction formula:
-    delta_t = FK(q_abs).translation - FK(q_motor).translation
-    target_corrected.position -= delta_t
+    T_correction = FK(q_motor) * FK(q_abs)⁻¹
+    T_corrected  = T_correction * T_target
 
 This compensates for the systematic offset between the absolute encoder
-zero-calibration and the URDF joint zero-calibration (motor encoder based).
+zero-calibration and the URDF joint zero-calibration (motor encoder based),
+in both translation and rotation.
 
 Subscriptions:
     mpc_input                                              (agimus_msgs/MpcInput)
@@ -60,7 +61,7 @@ class FKCorrectionNode(Node):
         self._ee_id       = None
         self._q_motor     = None
         self._q_abs       = None
-        self._delta_t     = None   # correction vector, set once
+        self._correction  = None   # SE3, set once
 
         qos_latched = QoSProfile(
             depth=1,
@@ -108,7 +109,7 @@ class FKCorrectionNode(Node):
     # ── Joint state callbacks ─────────────────────────────────────────────────
 
     def _js_cb(self, msg: JointState) -> None:
-        if self._model is None or self._delta_t is not None:
+        if self._model is None or self._correction is not None:
             return
         js_map = dict(zip(msg.name, msg.position))
         q = pin.neutral(self._model)
@@ -121,7 +122,7 @@ class FKCorrectionNode(Node):
         self._try_compute_correction()
 
     def _djs_cb(self, msg: DynamicJointState) -> None:
-        if self._model is None or self._delta_t is not None:
+        if self._model is None or self._correction is not None:
             return
         q = pin.neutral(self._model)
         for i, jname in enumerate(msg.joint_names):
@@ -154,22 +155,37 @@ class FKCorrectionNode(Node):
             return
         T_motor = self._fk_ee(self._q_motor)
         T_abs   = self._fk_ee(self._q_abs)
-        self._delta_t = T_abs.translation - T_motor.translation
-        self.get_logger().info(
-            f"FK correction computed: δt = {np.round(self._delta_t * 1000, 2)} mm"
-        )
+        # T_correction = T_motor * T_abs⁻¹
+        # At convergence FK(q_motor) = T_correction * T_target → FK(q_abs) = T_target ✓
+        self._correction = T_motor * T_abs.inverse()
+        dt_mm = np.round((T_abs.translation - T_motor.translation) * 1000, 2)
+        self.get_logger().info(f"FK correction computed: δt = {dt_mm} mm")
 
     # ── MPC interception ──────────────────────────────────────────────────────
 
     def _mpc_cb(self, msg: MpcInput) -> None:
-        if self._delta_t is None or not msg.ee_inputs:
+        if self._correction is None or not msg.ee_inputs:
             self._pub.publish(msg)
             return
 
         for ee_input in msg.ee_inputs:
-            ee_input.pose.position.x -= float(self._delta_t[0])
-            ee_input.pose.position.y -= float(self._delta_t[1])
-            ee_input.pose.position.z -= float(self._delta_t[2])
+            t = np.array([ee_input.pose.position.x,
+                          ee_input.pose.position.y,
+                          ee_input.pose.position.z])
+            q = np.array([ee_input.pose.orientation.x,
+                          ee_input.pose.orientation.y,
+                          ee_input.pose.orientation.z,
+                          ee_input.pose.orientation.w])
+            T_corrected = self._correction * pin.XYZQUATToSE3(np.concatenate([t, q]))
+            q_out = pin.Quaternion(T_corrected.rotation)
+
+            ee_input.pose.position.x    = float(T_corrected.translation[0])
+            ee_input.pose.position.y    = float(T_corrected.translation[1])
+            ee_input.pose.position.z    = float(T_corrected.translation[2])
+            ee_input.pose.orientation.x = float(q_out.x)
+            ee_input.pose.orientation.y = float(q_out.y)
+            ee_input.pose.orientation.z = float(q_out.z)
+            ee_input.pose.orientation.w = float(q_out.w)
 
         self._pub.publish(msg)
 
