@@ -108,15 +108,22 @@ pal module_manager restart
 
 Launch the bringup (with `ssh -X` for remote connection):
 ```bash
-# Without mocap (default)
+# No correction (default)
 ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py use_rviz:=true
 
-# With mocap — publishes mocap_ee TF and corrects MPC targets in real time
+# FK correction — compensates static offset between absolute encoder and URDF calibration
 ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py \
-    use_rviz:=true use_mocap:=true
+    use_rviz:=true correction:=fk
+
+# Mocap correction — corrects MPC targets from Qualisys EE measurement
+ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py \
+    use_rviz:=true correction:=mocap
 ```
 
-With `use_mocap:=true`, two additional nodes are started automatically:
+With `correction:=fk`, one additional node is started:
+- **`fk_correction_node`** — reads `/joint_states` (motor encoder) and `dynamic_joint_states` (absolute encoder), computes δt = FK(q_abs) − FK(q_motor) once at startup, subtracts δt from every target EE position in `mpc_input`, republishes on `mpc_input_corrected`
+
+With `correction:=mocap`, two additional nodes are started:
 - **`mocap_ee_publisher`** — connects to Qualisys and publishes the EE pose as a TF frame (`base_link → mocap_ee`) and on `/mocap_ee_pose`
 - **`mocap_mpc_corrector`** — intercepts `mpc_input`, computes the translation error `δt = t_FK − t_mocap` at the current configuration, adds it to every target EE pose, and republishes on `mpc_input_corrected` (which the controller then consumes)
 
