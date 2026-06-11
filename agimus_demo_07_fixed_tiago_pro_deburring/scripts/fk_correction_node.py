@@ -109,7 +109,7 @@ class FKCorrectionNode(Node):
     # ── Joint state callbacks ─────────────────────────────────────────────────
 
     def _js_cb(self, msg: JointState) -> None:
-        if self._model is None or self._correction is not None:
+        if self._model is None:
             return
         js_map = dict(zip(msg.name, msg.position))
         q = pin.neutral(self._model)
@@ -122,7 +122,7 @@ class FKCorrectionNode(Node):
         self._try_compute_correction()
 
     def _djs_cb(self, msg: DynamicJointState) -> None:
-        if self._model is None or self._correction is not None:
+        if self._model is None:
             return
         q = pin.neutral(self._model)
         for i, jname in enumerate(msg.joint_names):
