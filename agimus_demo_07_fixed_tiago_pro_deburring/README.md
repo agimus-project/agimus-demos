@@ -128,6 +128,33 @@ Active hole:            pylone/hole_right_25 — right face, y=-0.213, x=0.0, z=
 
 ---
 
+## Collision model visualisation
+
+Simplified capsule geometries (`_sc` links) have been added to the Tiago Pro
+right arm in `pal_sea_arm_description/urdf/arm/arm.urdf.xacro` for future MPC
+collision avoidance (following the Panda `with_sc` pattern):
+
+| Link | Radius | Length | Offset |
+|---|---|---|---|
+| `arm_right_3_link_sc` | 55 mm | 420 mm | origin |
+| `arm_right_5_link_sc` | 55 mm | 420 mm | origin |
+| `arm_right_7_link_sc` | 40 mm | 300 mm | +20 mm Z |
+
+The capsules are only added when the xacro argument `with_sc:=true` is passed
+(default is `false`, so normal bringup is unaffected).
+
+To visualise them overlaid on the real geometry:
+
+```bash
+python3 scripts/display_collision_model.py
+```
+
+- **Without ROS**: loads via xacro directly, displays a static pose.
+- **With ROS**: subscribes to `/robot_description` (injects `_sc` links into
+  the calibrated URDF automatically) and `/joint_states` (live pose at 20 Hz).
+
+---
+
 ## Real robot
 
 See [README_real_robot.md](README_real_robot.md).
