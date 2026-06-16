@@ -143,7 +143,7 @@ class FKCorrectionNode(Node):
         self._q_abs = q
         self._try_compute_correction()
 
-    # ── Correction computation (once) ────────────────────────────────────────
+    # ── Correction computation ───────────────────────────────────────────────
 
     def _fk_ee(self, q: np.ndarray) -> pin.SE3:
         pin.forwardKinematics(self._model, self._data, q)
@@ -159,7 +159,10 @@ class FKCorrectionNode(Node):
         # At convergence FK(q_motor) = T_correction * T_target → FK(q_abs) = T_target ✓
         self._correction = T_motor * T_abs.inverse()
         dt_mm = np.round((T_abs.translation - T_motor.translation) * 1000, 2)
-        self.get_logger().info(f"FK correction computed: δt = {dt_mm} mm")
+        self.get_logger().info(
+            f"FK correction: δt = {dt_mm} mm",
+            throttle_duration_sec=5.0,
+        )
 
     # ── MPC interception ──────────────────────────────────────────────────────
 
