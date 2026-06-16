@@ -6,9 +6,9 @@ Intercepts mpc_input messages from the HPP orchestrator, computes the
 translation error between FK and mocap at the current configuration, and
 applies that correction to every target EE pose in the trajectory.
 
-Correction formula (translation only):
-    delta_t = T_FK.translation - T_mocap.translation
-    target_corrected.position += delta_t
+Correction formula:
+    T_correction = T_FK * T_mocap⁻¹
+    T_corrected  = T_correction * T_target
 
 This compensates for a constant FK bias (joint calibration offset or
 marker placement). The MPC receives targets that, when reached via FK,
@@ -27,8 +27,6 @@ import glob
 import os
 import sys
 import tempfile
-import time
-
 import numpy as np
 import pinocchio as pin
 
@@ -141,18 +139,30 @@ class MocapMpcCorrectorNode(Node):
             self._pub.publish(msg)
             return
 
-        if self._mocap_new:
+        mocap_live = self._mocap_new
+        if mocap_live:
             T_fk = self._fk_se3()
             if T_fk is not None:
                 # Left-side SE3 correction: T_correction = T_fk * T_mocap⁻¹
                 # When applied to a target T: T_corrected = T_correction * T_target
                 # At convergence FK(q*) = T_corrected, real EE = T_mocap(q*) = T_target ✓
                 self._last_valid_correction = T_fk * self._mocap_se3.inverse()
+                dt_mm = np.round(self._last_valid_correction.translation * 1000, 2)
+                self.get_logger().info(
+                    f"Mocap correction (live): δt = {dt_mm} mm",
+                    throttle_duration_sec=5.0,
+                )
             self._mocap_new = False
 
         if self._last_valid_correction is None:
             self._pub.publish(msg)
             return
+
+        if not mocap_live:
+            self.get_logger().warn(
+                "Mocap lost — applying last valid correction.",
+                throttle_duration_sec=5.0,
+            )
 
         T_correction = self._last_valid_correction
 
