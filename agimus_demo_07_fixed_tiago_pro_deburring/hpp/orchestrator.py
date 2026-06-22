@@ -322,15 +322,14 @@ class Orchestrator:
                     self._transition_insert, jname, "pylone/root_joint", float("-inf")
                 )
 
-        # Approach: allow gripper and tool to get within the 2 cm global margin
-        # (tool tip ends up 3 cm from face at qpg, which would violate 2 cm for arm links).
-        # Keep 2 cm for arm joints; remove it only for gripper/tool bodies.
+        # Approach: gripper/tool need to get closer than the 2 cm global margin to reach qpg.
+        # Keep 2 cm for arm joints; use 1 cm for gripper/tool so the path stays finite.
         for jname in model.names:
             if "tiago_pro" in jname and (
                 "gripper_right" in jname or "deburring_tool" in jname
             ):
                 graph.setSecurityMarginForTransition(
-                    self._transition_approach, jname, "pylone/root_joint", float("-inf")
+                    self._transition_approach, jname, "pylone/root_joint", 0.01
                 )
 
         graph.initialize()
@@ -595,24 +594,23 @@ class Orchestrator:
     def _read_robot_config(self, timeout: float = 5.0):
         """Return a full HPP config vector from the current robot joint states.
 
-        Uses absolute_position (output shaft encoder) when available,
-        falls back to position (motor encoder) otherwise.
+        Uses position from /joint_states (motor encoder).
         """
         _own_node = False
         if self._ros_node is None:
             self._ros_node = rclpy.create_node("hpp_read_config_node")
             _own_node = True
 
-        djs_state = [None]
+        js_state = [None]
         sub = self._ros_node.create_subscription(
-            DynamicJointState,
-            "/joint_torque_state_broadcaster/dynamic_joint_states",
-            lambda m: djs_state.__setitem__(0, m), 10)
+            JointState,
+            "/joint_states",
+            lambda m: js_state.__setitem__(0, m), 10)
 
         deadline = time.time() + timeout
         while time.time() < deadline:
             rclpy.spin_once(self._ros_node, timeout_sec=0.1)
-            if djs_state[0] is not None:
+            if js_state[0] is not None:
                 break
         self._ros_node.destroy_subscription(sub)
 
@@ -620,12 +618,18 @@ class Orchestrator:
             self._ros_node.destroy_node()
             self._ros_node = None
 
-        if djs_state[0] is None:
-            raise RuntimeError("Timeout reading robot state from dynamic_joint_states.")
+        if js_state[0] is None:
+            raise RuntimeError("Timeout reading robot state from joint_states.")
 
+        msg = js_state[0]
+        js_map = dict(zip(msg.name, msg.position))
         q  = pin.neutral(self.model).copy()
         ri = self._right_arm_idx
-        q[ri:ri+7] = self._read_arm_from_dynamic(djs_state[0], "right")
+        for i in range(1, 8):
+            jname = f"arm_right_{i}_joint"
+            val = js_map.get(f"tiago_pro/{jname}") or js_map.get(jname)
+            if val is not None:
+                q[ri + i - 1] = val
         return q
 
     def compare_pose(self, q_ref=None, timeout: float = 5.0):
@@ -728,8 +732,7 @@ class Orchestrator:
     def sync_from_robot(self, timeout: float = 5.0):
         """Update q_init from the current robot joint state (arm only).
 
-        Uses absolute_position (output shaft encoder) when available,
-        falls back to position (motor encoder) otherwise.
+        Uses position from /joint_states (motor encoder).
         """
         if self._ros_node is None:
             self._ros_node = rclpy.create_node("hpp_sync_node")
@@ -737,36 +740,43 @@ class Orchestrator:
         else:
             _own_node = False
 
-        djs_state = [None]
-        djs_sub = self._ros_node.create_subscription(
-            DynamicJointState,
-            "/joint_torque_state_broadcaster/dynamic_joint_states",
-            lambda msg: djs_state.__setitem__(0, msg), 10
+        js_state = [None]
+        sub = self._ros_node.create_subscription(
+            JointState,
+            "/joint_states",
+            lambda msg: js_state.__setitem__(0, msg), 10
         )
 
         deadline = time.time() + timeout
         while time.time() < deadline:
             rclpy.spin_once(self._ros_node, timeout_sec=0.1)
-            if djs_state[0] is not None:
+            if js_state[0] is not None:
                 break
 
-        self._ros_node.destroy_subscription(djs_sub)
+        self._ros_node.destroy_subscription(sub)
         if _own_node:
             self._ros_node.destroy_node()
             self._ros_node = None
 
-        if djs_state[0] is None:
-            print("sync_from_robot: timeout — could not receive dynamic_joint_states")
+        if js_state[0] is None:
+            print("sync_from_robot: timeout — could not receive joint_states")
             return
+
+        msg = js_state[0]
+        js_map = dict(zip(msg.name, msg.position))
 
         ri = self._right_arm_idx
         li = self._left_arm_idx
 
-        right_arm = self._read_arm_from_dynamic(djs_state[0], "right")
-        left_arm  = self._read_arm_from_dynamic(djs_state[0], "left")
-
-        self.q_init[ri:ri+7] = right_arm
-        self.q_init[li:li+7] = left_arm
+        right_arm = np.zeros(7)
+        left_arm  = np.zeros(7)
+        for i in range(1, 8):
+            for side, idx, arr in [("right", ri, right_arm), ("left", li, left_arm)]:
+                jname = f"arm_{side}_{i}_joint"
+                val = js_map.get(f"tiago_pro/{jname}") or js_map.get(jname)
+                if val is not None:
+                    arr[i - 1] = val
+                    self.q_init[idx + i - 1] = val
 
         self._left_arm_lock_values = left_arm.tolist()
         print("  Rebuilding constraint graph with synced left arm …")
