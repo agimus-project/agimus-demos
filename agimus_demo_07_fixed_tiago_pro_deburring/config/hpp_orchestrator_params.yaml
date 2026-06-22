@@ -7,7 +7,7 @@
 # ── Trajectory sampling ───────────────────────────────────────────────────────
 trajectory:
   dt: 0.01          # sampling period (s) — must match agimus_controller rate
-  time_scale: 2.0   # stretch HPP path time — increase to slow down execution
+  time_scale: 1.0   # stretch HPP path time — increase to slow down execution
 
 # ── Handle ───────────────────────────────────────────────────────────────────
 # outside: pylone/hole_right_25
@@ -22,9 +22,9 @@ tuck:
 
 # ── MPC weights ───────────────────────────────────────────────────────────────
 weights:
-  w_q:           [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]  # first guess only
-  w_qdot:        [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]         # light damping
-  w_qddot:       [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  w_q:           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # first guess only
+  w_qdot:        [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]         # light damping
+  w_qddot:       [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
   w_effort:      [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]  # torque regularization
   w_collision:   0.0
   w_frame_trans: [1000.0, 1000.0, 1000.0]                               # task priority
