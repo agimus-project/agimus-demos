@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Environment description for the agimus_controller.
+  Publishes the pylone with simplified capsule collision links (_sc) so the MPC
+  can compute ResidualDistanceCollision against the pylone geometry.
+
+  Args:
+    with_sc       — include _sc collision links (default: false)
+    pylone_x/y/z  — pylone position in world frame (m)
+    pylone_roll/pitch/yaw — pylone orientation in world frame (rad)
+-->
+<robot name="environment" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="with_sc"        default="false"/>
+  <xacro:arg name="pylone_x"       default="1.5"/>
+  <xacro:arg name="pylone_y"       default="0.0"/>
+  <xacro:arg name="pylone_z"       default="1.03"/>
+  <xacro:arg name="pylone_roll"    default="0.0"/>
+  <xacro:arg name="pylone_pitch"   default="0.0"/>
+  <xacro:arg name="pylone_yaw"     default="0.0"/>
+
+  <link name="world"/>
+
+  <xacro:include filename="$(find agimus_demo_07_fixed_tiago_pro_deburring)/urdf/pylone.urdf.xacro"/>
+
+  <joint name="world_to_pylone" type="fixed">
+    <parent link="world"/>
+    <child link="pylone_link"/>
+    <origin xyz="$(arg pylone_x) $(arg pylone_y) $(arg pylone_z)"
+            rpy="$(arg pylone_roll) $(arg pylone_pitch) $(arg pylone_yaw)"/>
+  </joint>
+
+</robot>

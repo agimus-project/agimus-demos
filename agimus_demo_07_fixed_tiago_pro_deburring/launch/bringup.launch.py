@@ -28,6 +28,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 from agimus_demos_common.launch_utils import (
@@ -87,7 +88,17 @@ def launch_setup(
         parameters=[
             {
                 "topic_name": "environment_description",
-                "string_value": "<robot name='empty'><link name='env'/></robot>",
+                "string_value": ParameterValue(Command([
+                    FindExecutable(name="xacro"), " ",
+                    PathJoinSubstitution([FindPackageShare(PKG), "urdf", "environment.urdf.xacro"]),
+                    " with_sc:=true",
+                    f" pylone_x:={PYLONE_X}",
+                    f" pylone_y:={PYLONE_Y}",
+                    f" pylone_z:={PYLONE_Z}",
+                    f" pylone_roll:={PYLONE_ROLL}",
+                    f" pylone_pitch:={PYLONE_PITCH}",
+                    f" pylone_yaw:={PYLONE_YAW}",
+                ]), value_type=str),
             }
         ],
     )
