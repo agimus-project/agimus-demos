@@ -151,8 +151,11 @@ def _try_ros_mode(viz_ref, sc_xml, initial_model):
             self.create_subscription(JointState, "/joint_states", self._js_cb, 10)
 
         def _urdf_cb(self, msg):
-            # Inject _sc links into the calibrated URDF from the robot
-            urdf = msg.data.replace("</robot>", sc_xml + "\n</robot>")
+            # RSP already publishes with with_sc:=true — inject only if _sc links are missing.
+            if "_link_sc" in msg.data:
+                urdf = msg.data
+            else:
+                urdf = msg.data.replace("</robot>", sc_xml + "\n</robot>")
             try:
                 model, collision_model, visual_model = _build_models(urdf)
             except Exception as e:
@@ -199,7 +202,7 @@ def main():
     sc_xml = "\n".join(
         ET.tostring(elem, encoding="unicode")
         for elem in tree
-        if "_sc" in elem.get("name", "")
+        if elem.get("name", "").endswith("_sc") or "_link_sc" in elem.get("name", "")
     )
 
     print("Building Pinocchio model …")
