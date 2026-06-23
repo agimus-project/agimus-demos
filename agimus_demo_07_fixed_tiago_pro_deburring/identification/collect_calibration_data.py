@@ -46,7 +46,7 @@ from builtin_interfaces.msg import Duration
 
 import pinocchio as pin
 
-_IDENTIFICATION = Path(__file__).parent.parent / "identification"
+_IDENTIFICATION = Path(__file__).parent
 _CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
 _OUTPUT_DEFAULT  = _IDENTIFICATION / "calibration_samples.csv"
 
