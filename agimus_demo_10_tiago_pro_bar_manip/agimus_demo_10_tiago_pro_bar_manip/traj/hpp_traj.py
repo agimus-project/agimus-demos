@@ -28,7 +28,7 @@ class HPPPathGenerator:
         urdf_str: str,
         srdf_str: str,
         robot_model: pin.Model,
-        config: Path,
+        handle_config: Path,
         handle_object: BaseObject,
         plate_object: BaseObject,
         table_object: BaseObject,
@@ -45,12 +45,12 @@ class HPPPathGenerator:
         self._plate_object = plate_object
         self._table_object = table_object
 
-        with open(config, "r") as f:
-            self._config_file = yaml.safe_load(f)
+        with open(handle_config, "r") as f:
+            self._handle_config_file = yaml.safe_load(f)
         self._handles_config: dict[str, list] = {}
-        for gname, config in self._config_file.get("grippers", {}).items():
+        for gname, config in self._handle_config_file.get("grippers", {}).items():
             self._handles_config[gname] = config.get("handles", [])
-        self.slowdown_rate = self._config_file["trajectory"]["slowdown_rate"]
+        self.slowdown_rate = self._handle_config_file["trajectory"]["slowdown_rate"]
 
         # == HPP Device ========================================================
         robot = Device(f"{robot_name}-manip")
@@ -131,7 +131,7 @@ class HPPPathGenerator:
         # == Grippers & handles ================================================
         c = sqrt(2) / 2
         pose_gripper = pin.XYZQUATToSE3(
-            np.array([0, 0, 0.19, 0, -c, 0, c], dtype=float)
+            np.array([0.015, 0, 0, 0, 0, 0, 1], dtype=float)
         )
         pose_hd_left = pin.XYZQUATToSE3(
             np.array([0, 0.01, -0.25, 0, 0, -c, c], dtype=float)
@@ -141,13 +141,13 @@ class HPPPathGenerator:
         )
         self.define_gripper(
             self.robot,
-            f"{robot_name}/arm_left_7_link",
+            f"{robot_name}/gripper_left_grasping_link",
             f"{robot_name}/left",
             pose_gripper,
         )
         self.define_gripper(
             self.robot,
-            f"{robot_name}/arm_right_7_link",
+            f"{robot_name}/gripper_right_grasping_link",
             f"{robot_name}/right",
             pose_gripper,
         )
@@ -577,16 +577,21 @@ class HPPPathGenerator:
         result = self._path_planner.planPathtoBarHandling(
             gripper, handle, q, self._logger, self._viewer
         )
-        if result is not None:
+        if result and all(seg is not None for seg in result):
             self._logger.info("Path to bar grasping planned successfully.")
             if hasattr(self, "_viewer"):
-                self._viewer.loadPath(result)
+                for seg in result:
+                    self._viewer.loadPath(seg)
         else:
             self._logger.warn("Path to bar grasping planning failed.")
             return None, None
-        traj = self.sample_trajectory(result)
-        last_q = list(traj[-1]) if traj else None
-        return traj, last_q
+        segments = [
+            self.sample_trajectory(result[0]),
+            self.sample_trajectory(result[1]),
+            self.sample_trajectory(result[2]),
+            self.sample_trajectory(result[3]),
+        ]
+        return segments
 
     def plan_place(
         self, gripper: str, handle: str, q_init: list, target_bar_pose: list

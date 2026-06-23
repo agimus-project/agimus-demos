@@ -501,7 +501,7 @@ class PathPlanner:
         p3 = self.optimizePath(p3, logger=logger)
 
         self._log(logger, "INFO", "Grasping path planned successfully.")
-        return concatenatePaths([p0, p1, p2, p3], logger=logger)
+        return [p0, p1, p2, p3]
 
     def planPathtoBarPlacement(
         self, gripper, handle, q_init, target_bar_pose, logger, viewer
@@ -582,4 +582,4 @@ class PathPlanner:
         p3 = self.optimizePath(p3, logger=logger)
 
         self._log(logger, "INFO", "Placement path planned successfully.")
-        return concatenatePaths([p0, p1, p2, p3])
+        return [p0, p1, p2, p3]

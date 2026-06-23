@@ -18,40 +18,43 @@ grippers:
 
 # Path Variables
 trajectory:
-  slowdown_rate: 2  # slows the trajectory by a N factor
+  slowdown_rate: 1.25  # slows the trajectory by a N factor
 
 robot_configuration:
-  left_tool: gripper_right_finger_joint
-  right_tool: gripper_left_finger_joint
-  moving_joints: [arm_left_1_joint, arm_left_2_joint, arm_left_3_joint, arm_left_4_joint,
-    arm_left_5_joint, arm_left_6_joint, arm_left_7_joint, arm_right_1_joint, arm_right_2_joint,
-    arm_right_3_joint, arm_right_4_joint, arm_right_5_joint, arm_right_6_joint, arm_right_7_joint]
+  left_tool: gripper_left_grasping_link #gripper_right_finger_joint
+  right_tool: gripper_right_grasping_link #gripper_left_finger_joint
+  moving_joints: [torso_lift_joint, arm_left_1_joint, arm_left_2_joint, arm_left_3_joint,
+    arm_left_4_joint, arm_left_5_joint, arm_left_6_joint, arm_left_7_joint, arm_right_1_joint,
+    arm_right_2_joint, arm_right_3_joint, arm_right_4_joint, arm_right_5_joint, arm_right_6_joint,
+    arm_right_7_joint]
 
 weights:
   pick:
-    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     w_dq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
-      0.001, 0.001]
-    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    w_effort: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
-      0.01]
+      0.001, 0.001, 0.001]
+    w_ddq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001]
+    w_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001, 0.001]
 
-    w_frame_rotation: [0.6, 0.6, 0.6]
-    w_frame_translation: [2.5, 2.5, 2.5]
+    w_frame_translation: [10.0, 10.0, 10.0]                               # task priority
+    w_frame_rotation: [5.0, 5.0, 5.0]
     w_desired_force: [0.0, 0.0, 0.0]
     w_collision_avoidance: 0.0
 
   place:
-    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     w_dq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
-      0.001, 0.001]
-    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    w_effort: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
-      0.01]
+      0.001, 0.001, 0.001]
+    w_ddq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001]
+    w_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001, 0.001]
     # w_effort: [0.05, 0.05, 0.1, 0.001, 0.001, 0.001, 0.001,
     #            0.05, 0.05, 0.1, 0.001, 0.001, 0.001, 0.001]
 
-    w_frame_rotation: [0.6, 0.6, 0.6]
-    w_frame_translation: [2.5, 2.5, 2.5]
+    w_frame_translation: [10.0, 10.0, 10.0]                               # task priority
+    w_frame_rotation: [5.0, 5.0, 5.0]
     w_desired_force: [0.0, 0.0, 0.0]
     w_collision_avoidance: 0.0

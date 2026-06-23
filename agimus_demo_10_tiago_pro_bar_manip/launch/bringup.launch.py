@@ -40,6 +40,11 @@ def launch_setup(
         "tiago_pro_common.launch.py",
         extra_launch_arguments={
             "tuck_arm": "False",
+            "launch_lfc": "true",
+            "lfc_pkg": "agimus_demos_common",
+            "lfc_yaml": "config/tiago_pro/linear_feedback_controller_simu_params.yaml",
+            "jse_yaml": "config/tiago_pro/joint_state_estimator_simu_params.yaml",
+            "pc_yaml": "config/tiago_pro/dummy_controllers.yaml",
             "end_effector_right": "pal-pro-gripper",
             "end_effector_left": "pal-pro-gripper",
         },

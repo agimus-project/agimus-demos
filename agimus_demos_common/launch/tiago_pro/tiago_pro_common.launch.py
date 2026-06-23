@@ -141,6 +141,7 @@ def launch_setup(
                 "is_public_sim": "True",
                 "moveit": "False",
                 "play_motion2": "False",
+                "gzclient": "False",
             }.items(),
         )
 
@@ -155,6 +156,7 @@ def launch_setup(
                 "--deactivate",
                 "arm_right_controller",
                 "arm_left_controller",
+                "torso_controller",
                 "--activate",
             ]
             + passthrough_controllers

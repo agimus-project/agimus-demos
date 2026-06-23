@@ -41,6 +41,9 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
+from std_srvs.srv import Empty
+from rclpy.action import ActionClient
+from control_msgs.action import FollowJointTrajectory
 from tf2_ros import (
     Buffer,
     ConnectivityException,
@@ -64,6 +67,14 @@ from agimus_demo_10_tiago_pro_bar_manip.traj.hpp_traj import (
     HPPPathGenerator,
 )
 from agimus_demo_10_tiago_pro_bar_manip.rostools import process_xacro
+
+GRIPPER_OPEN_POSITION = 0.07
+GRIPPER_CLOSED_POSITION = 0.0
+GRIPPER_MOTION_DURATION = 1.5
+LEFT_GRIPPER_RELEASE_SERVICE = "/gripper_left_grasper_srv/release"
+LEFT_GRIPPER_GRASP_SERVICE = "/gripper_left_grasper_srv/grasp"
+RIGHT_GRIPPER_RELEASE_SERVICE = "/gripper_right_grasper_srv/release"
+RIGHT_GRIPPER_GRASP_SERVICE = "/gripper_right_grasper_srv/grasp"
 
 
 def _patch_srdf(srdf_str: str) -> str:
@@ -172,6 +183,18 @@ class HPPActionServer(Node):
             self._publish_mpc_input_cb,  # TODO change ocp_dt to be from a yaml
         )
 
+        # self._traj_pub = self.create_publisher(
+        #     JointTrajectory,
+        #     "/joint_trajectory_controller/joint_trajectory",
+        #     qos_profile=QoSProfile(depth=10, reliability=QoSReliabilityPolicy.RELIABLE),
+        # )
+
+        self._traj_action_client = ActionClient(
+            self,
+            FollowJointTrajectory,
+            "/joint_trajectory_controller/follow_joint_trajectory",
+        )
+
         # == TF2 ============================================================
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread=True)
@@ -236,7 +259,7 @@ class HPPActionServer(Node):
             urdf_str=urdf_str,
             srdf_str=srdf_str,
             robot_model=self._robot_model,
-            config=os.path.join(
+            handle_config=os.path.join(
                 pkg, "config/planning", "orchestrator_hpp_configuration.yaml"
             ),
             handle_object=BaseObject(
@@ -273,6 +296,76 @@ class HPPActionServer(Node):
         self._plate_pose = self._lookup_pose("table_link", "plate_base_link")
         self._odom = self._lookup_pose("table_link", "base_footprint")
         self._bar_goal_pose = self._lookup_pose("table_link", "bar_goal_pose")
+
+    def _call_grasper_service(
+        self,
+        service_name: list[str],
+        action_label: list[str],
+        timeout: list[float] = {5.0, 5.0},
+    ) -> tuple:
+        node = rclpy.create_node(f"hpp_gripper_client_{time.monotonic_ns()}")
+        try:
+            client_left = node.create_client(Empty, service_name[0])
+            client_right = node.create_client(Empty, service_name[1])
+
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                if client_left.wait_for_service(
+                    timeout_sec=min(0.2, self._ocp_dt)
+                ) and client_right.wait_for_service(timeout_sec=min(0.2, self._ocp_dt)):
+                    break
+            else:
+                print(f"One of the Gripper service '{service_name}' is not available.")
+                return False, False
+
+            future_left = client_left.call_async(Empty.Request())
+            future_right = client_right.call_async(Empty.Request())
+
+            while not future_left.done() and future_right.done():
+                rclpy.spin_once(node, timeout_sec=0.1)
+
+            if future_left.cancelled():
+                print(
+                    f"Gripper {action_label} request to '{service_name}' was cancelled."
+                )
+                return False
+
+            exc = future_left.exception()
+            if exc is not None:
+                print(f"Gripper {action_label} failed via '{service_name}': {exc}")
+                return False
+
+            return True, True
+        finally:
+            node.destroy_node()
+
+    def open_gripper(
+        self,
+        position: float = GRIPPER_OPEN_POSITION,
+        duration: float = GRIPPER_MOTION_DURATION,
+        timeout: float = 5.0,
+    ) -> bool:
+        """Open the left gripper in Gazebo."""
+        del position, duration
+        return self._call_grasper_service(
+            [LEFT_GRIPPER_RELEASE_SERVICE, RIGHT_GRIPPER_RELEASE_SERVICE],
+            ["open", "open"],
+            timeout=timeout,
+        )
+
+    def close_gripper(
+        self,
+        position: float = GRIPPER_CLOSED_POSITION,
+        duration: float = GRIPPER_MOTION_DURATION,
+        timeout: float = 5.0,
+    ) -> bool:
+        """Close the left gripper in Gazebo."""
+        del position, duration
+        return self._call_grasper_service(
+            [LEFT_GRIPPER_RELEASE_SERVICE, RIGHT_GRIPPER_RELEASE_SERVICE],
+            ["close", "close"],
+            timeout=timeout,
+        )
 
     # == Action callbacks ======================================================
 
@@ -322,15 +415,12 @@ class HPPActionServer(Node):
         return CancelResponse.ACCEPT
 
     def _execute_cb(self, goal_handle):
-        """Plans the trajectory using HPP and adds it to the buffer
-
+        """Plans the trajectory using HPP and executes each segment sequentially.
         Args:
             goal_handle (rclpy.action.server.ServerGoalHandle): ros2 action message
-
         Returns:
             test_agimus_type.action._plan_bar_pick.PlanBarPick_Result: return message
         """
-
         self._planning = True
         result_msg = PlanBarPick.Result()
         task = goal_handle.request.task
@@ -346,16 +436,16 @@ class HPPActionServer(Node):
             self._planning = False
             return result_msg
 
-        # Planning
-        # update the action server feedback to match current action
+        # Feedback: planning
         feedback_msg = PlanBarPick.Feedback()
         feedback_msg.current_action = f'plan "{task}" path'
         feedback_msg.message = ""
         goal_handle.publish_feedback(feedback_msg)
 
-        message = None
         success = False
+        message = ""
         traj = None
+
         try:
             match task:
                 case "pick":
@@ -363,42 +453,221 @@ class HPPActionServer(Node):
                 case "place":
                     success, message, traj = self._plan_place(gripper_name, handle_name)
                 case _:
-                    self.get_logger().error(
-                        f"_execute_ plan : task '{task}' not in ['pick','place']"
-                    )
+                    success = False
+                    message = f"task '{task}' not in ['pick', 'place']"
+                    self.get_logger().error(message)
+
         except RuntimeError as e:
             self.get_logger().warn(f"Plan failed: {str(e)}")
-            result_msg.success = False
-            result_msg.message = str(e)
+            success = False
+            message = str(e)
 
         except Exception as e:
             import traceback
 
             self.get_logger().error(f"CRITICAL BUG:\n{traceback.format_exc()}")
-            result_msg.success = False
-            result_msg.message = f"Internal Software Error: {str(e)}"
-
-        self.get_logger().info(message)
+            success = False
+            message = f"Internal Software Error: {str(e)}"
 
         if not success:
+            self.get_logger().warn(f"Planning failed: {message}")
+            result_msg.success = False
+            result_msg.message = message
             goal_handle.abort()
-            return
+            self._planning = False
+            return result_msg
+
+        # Gripper actions per segment:
+        # pick:  Approach=None, Pregrasp=open, Grasp=close, Preplace=None
+        # place: Approach=None, Preplace=None, Place=open,  Retreat=None
+        gripper_actions = {
+            "pick": [None, "open", "close", None],
+            "place": [None, None, "open", None],
+        }
+
+        self.get_logger().info(f"Planning succeeded — executing {len(traj)} segments")
+
+        for seg_id, segment in enumerate(traj):
+            gripper_action = gripper_actions[task][seg_id]
+
+            feedback_msg = PlanBarPick.Feedback()
+            feedback_msg.current_action = "execute"
+            feedback_msg.message = (
+                f"Segment {seg_id}/{len(traj) - 1} — gripper={gripper_action}"
+            )
+            goal_handle.publish_feedback(feedback_msg)
+
+            self.get_logger().info(f"Segment {seg_id}: gripper={gripper_action}")
+
+            ok = self._execute_segment_and_wait_ee(
+                traj=segment,
+                task=task,
+                gripper_action=gripper_action,
+            )
+
+            if not ok:
+                message = f"Segment {seg_id} failed"
+                self.get_logger().error(message)
+                result_msg.success = False
+                result_msg.message = message
+                goal_handle.abort()
+                self._planning = False
+                return result_msg
+
+        self.get_logger().info("All segments completed successfully")
+        result_msg.success = True
+        result_msg.message = "Task completed successfully"
+        goal_handle.succeed()
+        self._planning = False
+        return result_msg
+
+    def _execute_segment_and_wait_ee(
+        self,
+        traj: list,
+        task: str,
+        gripper_action: str | None,  # "open" | "close" | None
+        timeout_margin: float = 15.0,
+        position_control: bool = False,
+        ee_tol: float = 0.015,
+    ) -> bool:
+        if position_control:
+            # Sending traj to position controller
+            joint_traj = self._hpp_to_joint_traj(traj)
+            goal = FollowJointTrajectory.Goal()
+            goal.trajectory = joint_traj
         else:
-            # Sending traj to robot
+            # Sending traj to MPC
             weighted_trajectory = self._convert_path(traj, task)
             with self._trajectory_buffer_lock:
                 self._trajectory_buffer.extend(weighted_trajectory)
 
-            feedback_msg = PlanBarPick.Feedback()
-            feedback_msg.current_action = "Run"
-            feedback_msg.message = "Trajectory sent to MPC"
-            goal_handle.publish_feedback(feedback_msg)
+        if position_control:
+            if not self._traj_action_client.wait_for_server(timeout_sec=5.0):
+                self.get_logger().error(
+                    "FollowJointTrajectory action server not available"
+                )
+                return False
 
-        result_msg.success = success
-        result_msg.message = message
-        self._planning = False
+        traj_duration = len(traj) * self._ocp_dt + timeout_margin
+        if position_control:
+            send_goal_future = self._traj_action_client.send_goal_async(goal)
+            # Attendre que le goal soit accepté
+            deadline = time.time() + 5.0
+            while not send_goal_future.done() and time.time() < deadline:
+                time.sleep(0.01)
+            if not send_goal_future.done():
+                self.get_logger().error("Timeout waiting for goal acceptance")
+                return False
+            goal_handle = send_goal_future.result()
+            if not goal_handle.accepted:
+                self.get_logger().error("Trajectory goal rejected by controller")
+                return False
+            self.get_logger().info(
+                f"Segment accepted — waiting for completion ({traj_duration:.1f}s max)"
+            )
+            # 2. Attendre le résultat
+            result_future = goal_handle.get_result_async()
+            deadline = time.time() + traj_duration
+            while not result_future.done() and time.time() < deadline:
+                time.sleep(0.05)
 
-        return result_msg
+            if not result_future.done():
+                self.get_logger().warn(
+                    "Timeout: trajectory did not complete in time, cancelling"
+                )
+                goal_handle.cancel_goal_async()
+                return False
+
+            result = result_future.result()
+            error_code = result.result.error_code
+            if error_code != FollowJointTrajectory.Result.SUCCESSFUL:
+                self.get_logger().warn(
+                    f"Trajectory failed with error_code={error_code}"
+                )
+                return False
+        else:
+            pass
+            # deadline = time.time() + traj_duration + timeout_margin
+            # traj_done = False
+            # while not traj_done and time.time() < deadline:
+            #     if self._joint_state is None:
+            #         time.sleep(0.05)
+            #         continue
+
+            #     q_current = self._build_q_init()
+            #     q_target = traj[-1]
+            #     err = self._get_ee_pose_error(q_current, q_target)
+            #     if err < ee_tol :
+            #        traj_done = True
+            #     time.sleep(0.05)
+            # if not traj_done:
+            #     self.get_logger().warn("Timeout: trajectory did not complete in time, cancelling")
+            #     return False
+
+        self.get_logger().info("Segment completed successfully")
+
+        # 3. Action gripper après completion
+        if gripper_action == "open":
+            return self.open_gripper()
+        elif gripper_action == "close":
+            return self.close_gripper()
+        return True
+
+    def _extract_q_robot(self, q_hpp: list) -> np.ndarray:
+        """Extracts the native Pinocchio configuration from the full HPP state"""
+        robot = self._hpp.robot
+        q_robot = np.zeros(self._robot_model.nq)
+
+        # Iterate over the native Pinocchio model joints
+        for joint_name in self._robot_model.names:
+            if joint_name == "universe":
+                continue
+
+            # Map native name to HPP prefixed name
+            full_name = f"tiago_pro/{joint_name}"
+            if full_name in robot.rankInConfiguration:
+                rank = robot.rankInConfiguration[full_name]
+                joint_id = self._robot_model.getJointId(joint_name)
+                idx_q = self._robot_model.joints[joint_id].idx_q
+                nq = self._robot_model.joints[joint_id].nq
+
+                # Copy values
+                for j in range(nq):
+                    if full_name == "tiago_pro/torso_lift_joint":
+                        q_robot[idx_q + j] = 0
+                    else:
+                        q_robot[idx_q + j] = q_hpp[rank + j]
+
+        return q_robot
+
+    def _get_ee_pose_error(self, q_current, q_target) -> float:
+        """
+        Calcule l'erreur de pose entre la config courante et la config cible
+        en comparant la pose du frame effecteur dans les deux configs.
+        """
+        # 1. Extract purely the robot joints (bypasses HPP entirely)
+        q_cur_rob = self._extract_q_robot(q_current)
+        q_tgt_rob = self._extract_q_robot(q_target)
+
+        # 2. Use the standard pure Pinocchio model built from URDF in _buildRobot
+        pin_model = self._robot_model
+        pin_data = pin_model.createData()  # This will now perfectly work!
+
+        frame_id = self._left_tool_frame_id_pin_frame
+
+        # 3. Compute Current Pose
+        pin.forwardKinematics(pin_model, pin_data, q_cur_rob)
+        pin.updateFramePlacements(pin_model, pin_data)
+        M_current = pin_data.oMf[frame_id].copy()  # .copy() prevents memory overwrite
+
+        # 4. Compute Target Pose
+        pin.forwardKinematics(pin_model, pin_data, q_tgt_rob)
+        pin.updateFramePlacements(pin_model, pin_data)
+        M_target = pin_data.oMf[frame_id].copy()  # .copy() prevents memory overwrite
+
+        # 5. Calculate 6D error
+        err = pin.log6(M_current.inverse() * M_target)
+        return float(np.linalg.norm(err.vector))
 
     # == Planning helpers ======================================================
 
@@ -416,11 +685,11 @@ class HPPActionServer(Node):
         if q_init is None:
             return False, "Failed to build q_init", None
 
-        traj, q_end = self._hpp.plan_pick(gripper=gripper, handle=handle, q_init=q_init)
-        if traj is None:
+        traj = self._hpp.plan_pick(gripper=gripper, handle=handle, q_init=q_init)
+        if traj is None or any(seg is None for seg in traj):
             return False, "Pick planning failed", None
 
-        self._q_after_pick = q_end
+        self._q_after_pick = list(traj[-1][-1])
         return True, "Pick planned successfully", traj
 
     def _plan_place(self, gripper, handle):
@@ -443,14 +712,14 @@ class HPPActionServer(Node):
 
         target_bar_pose = [1.2, 0.0, 0.67, 0.0, 0.0, 0.0, 1.0]
 
-        traj, _ = self._hpp.plan_place(
+        traj = self._hpp.plan_place(
             gripper=gripper,
             handle=handle,
             q_init=q_init_place,
             target_bar_pose=target_bar_pose,
         )
-        if traj is None:
-            return False, "Place planning failed."
+        if traj is None or any(seg is None for seg in traj):
+            return False, "Place planning failed.", None
 
         return True, "Place planned successfully", traj
 
