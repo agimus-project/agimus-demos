@@ -46,9 +46,9 @@ from builtin_interfaces.msg import Duration
 
 import pinocchio as pin
 
-_FIGAROH_DATA = Path("/home/gepetto/ros2_ws/src/figaroh_tiagoPro/data")
-_CONFIGS_DEFAULT = _FIGAROH_DATA / "optimal_configs.yaml"
-_OUTPUT_DEFAULT  = _FIGAROH_DATA / "calibration_samples.csv"
+_IDENTIFICATION = Path(__file__).parent.parent / "identification"
+_CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
+_OUTPUT_DEFAULT  = _IDENTIFICATION / "calibration_samples.csv"
 
 ARM_JOINTS = [
     "arm_right_1_joint",
