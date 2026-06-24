@@ -92,13 +92,13 @@ class QualisysClient:
                 except IndexError:
                     continue
 
-                if np.isnan(position[0]):
-                    shared_bodyPosition[p_idx:p_idx+3] = [float('nan')] * 3
-                    continue
-
                 p_idx = idx * 3
                 q_idx = idx * 4
                 m_idx = idx * 9
+
+                if np.isnan(position[0]):
+                    shared_bodyPosition[p_idx:p_idx+3] = [float('nan')] * 3
+                    continue
 
                 # Read last state from shared memory to compute velocity
                 last_position = np.array([
