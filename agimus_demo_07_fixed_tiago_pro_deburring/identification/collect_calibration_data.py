@@ -65,7 +65,7 @@ ACTIVE_JOINTS = TORSO_JOINTS + ARM_JOINTS
 _ARM_ACTION   = "/arm_right_controller/follow_joint_trajectory"
 _TORSO_ACTION = "/torso_controller/follow_joint_trajectory"
 
-_SETTLE_S        = 2.0
+_SETTLE_S        = 5.0
 _FRESHNESS_S     = 0.5
 _STILL_THRESHOLD = 0.005  # rad/s
 
@@ -209,6 +209,7 @@ class CalibrationCollector(Node):
         self._duration    = duration_sec
         self._samples     = []
         self._last_target = None
+        self._last_ee_pos = None   # guard against frozen mocap
 
         self._lock     = threading.Lock()
         self._js_msg   : JointState | None  = None
@@ -299,11 +300,19 @@ class CalibrationCollector(Node):
                 self.get_logger().warn("Still moving — skipping sample.")
                 return False
 
+        ee_pos = np.array([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
+        if self._last_ee_pos is not None and np.linalg.norm(ee_pos - self._last_ee_pos) < 1e-4:
+            self.get_logger().error(
+                "EE position unchanged from previous sample — mocap may be frozen! Skipping."
+            )
+            return False
+        self._last_ee_pos = ee_pos
+
         js_map = dict(zip(js.name, js.position))
         sample = {
-            "x1": pose.pose.position.x,
-            "y1": pose.pose.position.y,
-            "z1": pose.pose.position.z,
+            "x1": float(ee_pos[0]),
+            "y1": float(ee_pos[1]),
+            "z1": float(ee_pos[2]),
         }
         for jname in ACTIVE_JOINTS:
             val = js_map.get(jname) or js_map.get(f"tiago_pro/{jname}")
@@ -399,8 +408,7 @@ def main():
 
     time.sleep(1.0)
 
-    print("\nStarting automated collection.")
-    print("Controls: 's' to skip | 'q' to abort\n")
+    print("\nStarting automated collection. Ctrl+C to abort.\n")
 
     try:
         idx = 0
@@ -417,14 +425,6 @@ def main():
                 viser.update_target(_q_from_active(model, target_vals))
             node._last_target = target_vals
 
-            print(f"\nMoving in {parsed.duration:.0f}s ... (Enter to continue, 's' skip, 'q' quit)")
-            line = input().strip().lower()
-            if line == "q":
-                break
-            if line == "s":
-                idx += 1
-                continue
-
             ok = node.move_to(target_vals)
             if not ok:
                 print("  [warn] motion failed — skipping.")
@@ -435,12 +435,8 @@ def main():
             if recorded:
                 idx += 1
             else:
-                print("  [warn] recording failed. Enter=retry | 's'=skip | 'q'=quit")
-                line = input().strip().lower()
-                if line == "q":
-                    break
-                elif line == "s":
-                    idx += 1
+                print("  [warn] recording failed — skipping.")
+                idx += 1
 
     except KeyboardInterrupt:
         pass
