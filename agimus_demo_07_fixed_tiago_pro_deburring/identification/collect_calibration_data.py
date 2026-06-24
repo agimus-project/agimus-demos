@@ -65,7 +65,7 @@ ACTIVE_JOINTS = TORSO_JOINTS + ARM_JOINTS
 _ARM_ACTION   = "/arm_right_controller/follow_joint_trajectory"
 _TORSO_ACTION = "/torso_controller/follow_joint_trajectory"
 
-_SETTLE_S        = 0.8
+_SETTLE_S        = 2.0
 _FRESHNESS_S     = 0.5
 _STILL_THRESHOLD = 0.005  # rad/s
 
@@ -77,7 +77,7 @@ def _q_from_js(model, js_msg):
     q = pin.neutral(model)
     for jid in range(1, model.njoints):
         jname = model.names[jid]
-        val = js_map.get(jname) or js_map.get(jname.replace("tiago_pro/", ""))
+        val = js_map.get(jname) or js_map.get(f"tiago_pro/{jname}")
         if val is not None and model.joints[jid].nq == 1:
             q[model.joints[jid].idx_q] = val
     return q
