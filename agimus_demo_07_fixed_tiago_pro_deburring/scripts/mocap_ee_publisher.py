@@ -40,7 +40,7 @@ _QUALISYS_IP    = "140.93.1.100"
 _MOCAP_BODIES   = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
 _BASE_IDX       = 2  # local index of tiago_base
 _EE_IDX         = 1  # local index of tiago_endEffector
-_BASE_FRAME     = "base_link"
+_BASE_FRAME     = "base_footprint"
 _MOCAP_EE_FRAME = "mocap_ee"
 
 
