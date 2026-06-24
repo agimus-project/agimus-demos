@@ -255,13 +255,20 @@ class CalibrationCollector(Node):
         goal = FollowJointTrajectory.Goal()
         goal.trajectory = _make_trajectory(joint_names, positions, duration_sec)
         future = client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self, future)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
+        if not future.done():
+            self.get_logger().warn("Goal send timed out — is the controller running?")
+            return False
         handle = future.result()
         if not handle.accepted:
             self.get_logger().warn("Goal rejected!")
             return False
         result_future = handle.get_result_async()
-        rclpy.spin_until_future_complete(self, result_future)
+        timeout = duration_sec + 15.0
+        rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
+        if not result_future.done():
+            self.get_logger().warn(f"Goal execution timed out after {timeout:.0f}s — skipping.")
+            return False
         return result_future.result().status == GoalStatus.STATUS_SUCCEEDED
 
     def move_to(self, target_vals):
