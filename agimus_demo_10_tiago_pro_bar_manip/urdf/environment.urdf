@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="empty_env">
+    <link name="empty_env_base_link"/>
+</robot>

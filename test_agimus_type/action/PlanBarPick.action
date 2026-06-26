@@ -1,0 +1,12 @@
+# Goal
+string task
+string gripper
+string handle
+---
+# Result
+bool success
+string message
+---
+# Feedback
+string current_action
+string message
