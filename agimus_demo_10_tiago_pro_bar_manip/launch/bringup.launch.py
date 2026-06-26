@@ -33,6 +33,7 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     ref_frame = LaunchConfiguration("ref_frame").perform(context)
+    plotjuggler_config = LaunchConfiguration("plotjuggler_config")
     # ==========================================================================
     # Tiago pro simulation
     # ==========================================================================
@@ -296,6 +297,16 @@ def launch_setup(
         ],
     )
 
+    plotjuggler = Node(
+        package="plotjuggler",
+        executable="plotjuggler",
+        arguments=[
+            "--layout",
+            plotjuggler_config,
+        ],
+        output="screen",
+    )
+
     return [
         tiago_robot_launch,
         rviz,
@@ -312,6 +323,7 @@ def launch_setup(
         robot_srdf_publisher_node,
         agimus_controller_node,
         env_publisher,
+        plotjuggler,
     ]
 
 
@@ -322,6 +334,19 @@ def generate_launch_description():
             "ref_frame",
             default_value="base_link",
             description="Reference frame for the demo (world, map, odom...)",
+        )
+    )
+    args.append(
+        DeclareLaunchArgument(
+            "plotjuggler_config",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare(PKG_NAME),
+                    "config",
+                    "plotjuggler.xml",
+                ]
+            ),
+            description="PlotJuggler layout/config file",
         )
     )
     return LaunchDescription(args + [OpaqueFunction(function=launch_setup)])

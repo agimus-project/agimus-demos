@@ -27,7 +27,6 @@ class HPPPathGenerator:
         self,
         urdf_str: str,
         srdf_str: str,
-        robot_model: pin.Model,
         handle_config: Path,
         handle_object: BaseObject,
         plate_object: BaseObject,
@@ -39,7 +38,6 @@ class HPPPathGenerator:
         self._ocp_dt = ocp_dt
         self._robot_name = robot_name
         self._logger = logger
-        self._robot_model = robot_model
 
         self._handle_object = handle_object
         self._plate_object = plate_object

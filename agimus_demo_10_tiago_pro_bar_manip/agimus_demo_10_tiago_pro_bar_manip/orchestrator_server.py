@@ -215,32 +215,40 @@ class HPPActionServer(Node):
     def _cb_robot_description(self, msg: String):
         if self._hpp is not None:
             return
-        self._buildRobot(urdf_str=msg.data)
         self.get_logger().info("/robot_description received — building HPP...")
         self._init_hpp(urdf_str=msg.data)
+        self._buildRobot()
 
-    def _buildRobot(self, urdf_str):
-        """Builds the pinocchio robot model from the urdf and
-        sets `_right_tool_frame_id_pin_frame` & `_left_tool_frame_id_pin_frame`
-        Args:
-            urdf_str (str): urdf string
-        """
-        self._robot_model = pin.buildModelFromXML(urdf_str)
+    def _buildRobot(self):
+        full_robot_model = self._hpp.robot.model().copy()
+
+        locked_joint_ids = []
+        for full in full_robot_model.names.tolist():
+            if full == "universe":
+                continue
+            joint_name = full.removeprefix("tiago_pro/")
+            if joint_name not in self._r_config["moving_joints"]:
+                joint_id = int(full_robot_model.getJointId(full))  # int natif Python
+                locked_joint_ids.append(joint_id)
+
+        q_ref = pin.neutral(full_robot_model)  # vecteur full nq, toujours disponible
+
+        self._robot_model = pin.buildReducedModel(
+            full_robot_model,
+            locked_joint_ids,  # liste Python d'int natifs
+            q_ref,
+        )
         self._robot_data = self._robot_model.createData()
-        self._nq = self._robot_model.nq
-        self._nv = self._robot_model.nv
+
         self._left_tool_frame_id_pin_frame = self._robot_model.getFrameId(
-            self._left_tool_frame_id_name
+            f"tiago_pro/{self._left_tool_frame_id_name}"
         )
         self._right_tool_frame_id_pin_frame = self._robot_model.getFrameId(
-            self._right_tool_frame_id_name
+            f"tiago_pro/{self._right_tool_frame_id_name}"
         )
         self.get_logger().info(f"Pinocchio model built: {self._robot_model.nq} dof")
 
     def _init_hpp(self, urdf_str):
-        if self._robot_model is None:
-            raise ValueError("Pinocchio robot model is empty!")
-
         # SRDF string
         moveit_pkg = get_package_share_directory("tiago_pro_moveit_config")
         srdf_raw = os.path.join(moveit_pkg, "config", "srdf", "tiago_pro.srdf.xacro")
@@ -258,7 +266,6 @@ class HPPActionServer(Node):
         self._hpp = HPPPathGenerator(
             urdf_str=urdf_str,
             srdf_str=srdf_str,
-            robot_model=self._robot_model,
             handle_config=os.path.join(
                 pkg, "config/planning", "orchestrator_hpp_configuration.yaml"
             ),
@@ -586,27 +593,52 @@ class HPPActionServer(Node):
                 )
                 return False
         else:
-            pass
-            # deadline = time.time() + traj_duration + timeout_margin
-            # traj_done = False
-            # while not traj_done and time.time() < deadline:
-            #     if self._joint_state is None:
-            #         time.sleep(0.05)
-            #         continue
+            weighted_trajectory = self._convert_path(traj, task)
+            num_points = len(weighted_trajectory)
 
-            #     q_current = self._build_q_init()
-            #     q_target = traj[-1]
-            #     err = self._get_ee_pose_error(q_current, q_target)
-            #     if err < ee_tol :
-            #        traj_done = True
-            #     time.sleep(0.05)
-            # if not traj_done:
-            #     self.get_logger().warn("Timeout: trajectory did not complete in time, cancelling")
-            #     return False
+            self.get_logger().info(f"Sending {num_points} points to MPC buffer...")
+            with self._trajectory_buffer_lock:
+                self._trajectory_buffer.extend(weighted_trajectory)
 
-        self.get_logger().info("Segment completed successfully")
+            traj_duration = num_points * self._ocp_dt
+            deadline = time.time() + traj_duration + timeout_margin
 
-        # 3. Action gripper après completion
+            # Wait until buffer empty
+            self.get_logger().info("Waiting for MPC to consume buffer...")
+            while time.time() < deadline:
+                with self._trajectory_buffer_lock:
+                    buf_len = len(self._trajectory_buffer)
+
+                # If it remain 1 the buffer is emptuy because we hold the last traj pose
+                if buf_len <= 1:
+                    break
+                time.sleep(0.1)
+
+            # Wait the robot has execute the traj
+            self.get_logger().info("Waiting for EE pose convergence...")
+            traj_done = False
+            while not traj_done and time.time() < deadline:
+                if self._joint_state is None:
+                    time.sleep(0.1)
+                    continue
+
+                q_current = self._build_q_init()
+                q_target = traj[-1]
+                err = self._get_ee_pose_error(q_current, q_target)
+
+                if err < ee_tol:
+                    self.get_logger().info(f"EE Pose converged (err={err:.4f})")
+                    traj_done = True
+                    break
+                time.sleep(0.1)
+
+            if not traj_done:
+                self.get_logger().warn(
+                    f"Timeout: EE pose did not converge (err={err:.4f})"
+                )
+                return False
+
+        # Action gripper
         if gripper_action == "open":
             return self.open_gripper()
         elif gripper_action == "close":
@@ -630,20 +662,14 @@ class HPPActionServer(Node):
                 joint_id = self._robot_model.getJointId(joint_name)
                 idx_q = self._robot_model.joints[joint_id].idx_q
                 nq = self._robot_model.joints[joint_id].nq
-
-                # Copy values
                 for j in range(nq):
-                    if full_name == "tiago_pro/torso_lift_joint":
-                        q_robot[idx_q + j] = 0
-                    else:
-                        q_robot[idx_q + j] = q_hpp[rank + j]
+                    q_robot[idx_q + j] = q_hpp[rank + j]
 
         return q_robot
 
     def _get_ee_pose_error(self, q_current, q_target) -> float:
         """
-        Calcule l'erreur de pose entre la config courante et la config cible
-        en comparant la pose du frame effecteur dans les deux configs.
+        Compute pose Error between 2 config
         """
         # 1. Extract purely the robot joints (bypasses HPP entirely)
         q_cur_rob = self._extract_q_robot(q_current)
@@ -861,9 +887,8 @@ class HPPActionServer(Node):
             return None
         robot = self._hpp.robot
         q_robot = []
-
-        for joint_name in self._robot_model.names.tolist():
-            full = f"tiago_pro/{joint_name}"
+        for full in self._robot_model.names.tolist():
+            joint_name = full.removeprefix("tiago_pro/")
             if joint_name in self._r_config["moving_joints"]:
                 rank = robot.rankInConfiguration[full]
                 value = q_env[rank]
@@ -878,7 +903,9 @@ class HPPActionServer(Node):
         # r = robot.rankInConfiguration["tiago_pro/root_joint"]
         # q[r : r + 4] = self._tf_to_base_odom(self._odom)
 
-        # pin.framesForwardKinematics(self._robot_model, self._robot_data, np.asarray(q_robot)) # ! unused in the message cause there is no vel and acc and effort?
+        pin.framesForwardKinematics(
+            self._robot_model, self._robot_data, np.asarray(q_robot)
+        )  # ! unused in the message cause there is no vel and acc and effort?
 
         traj_point = TrajectoryPoint(
             id=id,
@@ -897,6 +924,7 @@ class HPPActionServer(Node):
                 ),
             },
         )
+        # self.get_logger().info(f"ee pose :{traj_point.end_effector_poses}")
 
         return WeightedTrajectoryPoint(point=copy.copy(traj_point), weights=weights)
 
