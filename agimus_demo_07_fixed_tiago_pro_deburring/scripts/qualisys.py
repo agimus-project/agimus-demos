@@ -189,17 +189,19 @@ def exampleOfUse():
 def discover(ip="140.93.1.100"):
     """
     Connect to a Qualisys QTM server and continuously print all 6D bodies with
-    their index, name, and live position. Refreshes in-place. Ctrl+C to stop.
+    their index, name, position and orientation (RPY). Refreshes in-place. Ctrl+C to stop.
 
     Usage:
         python3 qualisys.py discover
         python3 qualisys.py discover 192.168.1.10
     """
     import xml.etree.ElementTree as ET
+    import pinocchio as pin
 
     header = (
-        f"\n{'ID':>4}  {'Name':<30}  {'x (mm)':>10}  {'y (mm)':>10}  {'z (mm)':>10}  {'visible'}\n"
-        + "-" * 80
+        f"\n{'ID':>4}  {'Name':<20}  {'x (m)':>8}  {'y (m)':>8}  {'z (m)':>8}"
+        f"  {'rx (rad)':>9}  {'ry (rad)':>9}  {'rz (rad)':>9}  {'visible'}\n"
+        + "-" * 105
     )
     n_lines = [0]  # number of lines printed last frame (for cursor repositioning)
 
@@ -217,16 +219,25 @@ def discover(ip="140.93.1.100"):
             _, bodies = packet.get_6d()
 
             lines = [header]
-            for i, (pos, _) in enumerate(bodies):
+            for i, (pos, rot) in enumerate(bodies):
                 name = names[i] if i < len(names) else "?"
                 visible = not (pos.x != pos.x)  # NaN check
                 if visible:
+                    p = np.array([pos.x, pos.y, pos.z]) * 1e-3  # mm → m
+                    R = np.array(rot.matrix).reshape(3, 3).T
+                    rpy = pin.rpy.matrixToRpy(R)
                     lines.append(
-                        f"{i:>4}  {name:<30}  {pos.x:>10.1f}  {pos.y:>10.1f}  {pos.z:>10.1f}  yes"
+                        f"{i:>4}  {name:<20}  {p[0]:>8.4f}  {p[1]:>8.4f}  {p[2]:>8.4f}"
+                        f"  {rpy[0]:>9.4f}  {rpy[1]:>9.4f}  {rpy[2]:>9.4f}  yes"
+                    )
+                    lines.append(
+                        f"      base_pose: [{p[0]:.4f}, {p[1]:.4f}, {p[2]:.4f},"
+                        f" {rpy[0]:.4f}, {rpy[1]:.4f}, {rpy[2]:.4f}]"
                     )
                 else:
                     lines.append(
-                        f"{i:>4}  {name:<30}  {'---':>10}  {'---':>10}  {'---':>10}  NO"
+                        f"{i:>4}  {name:<20}  {'---':>8}  {'---':>8}  {'---':>8}"
+                        f"  {'---':>9}  {'---':>9}  {'---':>9}  NO"
                     )
             lines.append("\nCtrl+C to stop.")
 
