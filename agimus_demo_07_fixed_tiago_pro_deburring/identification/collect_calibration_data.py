@@ -9,11 +9,15 @@ For each optimal configuration (from generate_optimal_configs.py):
   3. Records the (q, mocap_EE_pose) pair automatically.
   4. Advances to the next configuration.
 
+Mocap data is read directly from Qualisys (raw, in the Qualisys world frame)
+without any transformation to base_footprint. This is required for Figaroh
+calibration with known_baseframe=False.
+
 Viser shows the live robot state and the target EE frame simultaneously.
 
 Prerequisites:
   - arm_right_controller and torso_controller active (NOT agimus_controller)
-  - mocap_ee_publisher.py running (publishes /mocap_ee_pose)
+  - Qualisys mocap running and reachable at _QUALISYS_IP
 
 Usage:
     python3 scripts/collect_calibration_data.py
@@ -39,12 +43,19 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from action_msgs.msg import GoalStatus
 from control_msgs.action import FollowJointTrajectory
-from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
 
 import pinocchio as pin
+
+_SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+sys.path.insert(0, str(_SCRIPTS_DIR))
+from qualisys import QualisysClient
+
+_QUALISYS_IP  = "140.93.1.100"
+_MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
+_EE_IDX       = 1  # local index of tiago_endEffector in _MOCAP_BODIES
 
 _IDENTIFICATION = Path(__file__).parent
 _CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
@@ -211,12 +222,15 @@ class CalibrationCollector(Node):
         self._last_target = None
         self._last_ee_pos = None   # guard against frozen mocap
 
-        self._lock     = threading.Lock()
-        self._js_msg   : JointState | None  = None
-        self._pose_msg : PoseStamped | None = None
+        self._lock   = threading.Lock()
+        self._js_msg : JointState | None = None
 
-        self.create_subscription(JointState,  "/joint_states",  self._js_cb,   10)
-        self.create_subscription(PoseStamped, "/mocap_ee_pose", self._pose_cb, 10)
+        self.create_subscription(JointState, "/joint_states", self._js_cb, 10)
+
+        self.get_logger().info(f"Connecting to Qualisys at {_QUALISYS_IP} ...")
+        self._qc = QualisysClient(ip=_QUALISYS_IP, bodies=_MOCAP_BODIES)
+        time.sleep(1.0)
+        self.get_logger().info("Qualisys connected.")
 
         self._arm_client   = ActionClient(self, FollowJointTrajectory, _ARM_ACTION)
         self._torso_client = ActionClient(self, FollowJointTrajectory, _TORSO_ACTION)
@@ -226,10 +240,6 @@ class CalibrationCollector(Node):
             self._js_msg = msg
         if self._viser and self._model:
             self._viser.update_current(_q_from_js(self._model, msg))
-
-    def _pose_cb(self, msg):
-        with self._lock:
-            self._pose_msg = msg
 
     def _is_fresh(self, stamp):
         now = self.get_clock().now().nanoseconds * 1e-9
@@ -286,17 +296,13 @@ class CalibrationCollector(Node):
         time.sleep(_SETTLE_S)
 
         with self._lock:
-            js   = self._js_msg
-            pose = self._pose_msg
+            js = self._js_msg
 
-        if js is None or pose is None:
-            self.get_logger().warn("Missing messages — skipping sample.")
+        if js is None:
+            self.get_logger().warn("No /joint_states received — skipping sample.")
             return False
         if not self._is_fresh(js.header.stamp):
             self.get_logger().warn("/joint_states is stale — skipping.")
-            return False
-        if not self._is_fresh(pose.header.stamp):
-            self.get_logger().warn("/mocap_ee_pose is stale — skipping.")
             return False
         if not self._is_still(js):
             self.get_logger().warn("Robot still moving — waiting 1s more ...")
@@ -307,7 +313,10 @@ class CalibrationCollector(Node):
                 self.get_logger().warn("Still moving — skipping sample.")
                 return False
 
-        ee_pos = np.array([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
+        ee_pos = self._qc.getPositions()[_EE_IDX]
+        if np.any(np.isnan(ee_pos)):
+            self.get_logger().warn("Mocap EE marker not visible (NaN) — skipping.")
+            return False
         if self._last_ee_pos is not None and np.linalg.norm(ee_pos - self._last_ee_pos) < 1e-4:
             self.get_logger().error(
                 "EE position unchanged from previous sample — mocap may be frozen! Skipping."
@@ -339,6 +348,10 @@ class CalibrationCollector(Node):
             _print_error_table(self._last_target, _get_active_vals(self._model, q_cur))
 
         return True
+
+    def destroy_node(self):
+        self._qc.stop()
+        super().destroy_node()
 
     def save(self):
         if not self._samples:
