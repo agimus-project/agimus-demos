@@ -9,9 +9,11 @@ For each optimal configuration (from generate_optimal_configs.py):
   3. Records the (q, mocap_EE_pose) pair automatically.
   4. Advances to the next configuration.
 
-Mocap data is read directly from Qualisys (raw, in the Qualisys world frame)
-without any transformation to base_footprint. This is required for Figaroh
-calibration with known_baseframe=False.
+Mocap data is read directly from Qualisys and corrected to be expressed in
+the tiago_base frame (T_ee_in_base = T_base⁻¹ · T_ee), the same correction
+mocap_ee_publisher.py applies for the MPC. This removes the mocap world
+frame from the measurement so the estimated base transform only captures
+the fixed marker-to-robot mounting offset, not the base's pose in the room.
 
 Viser shows the live robot state and the target EE frame simultaneously.
 
@@ -56,6 +58,7 @@ from qualisys import QualisysClient
 _QUALISYS_IP  = "140.93.1.100"
 _MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
 _EE_IDX       = 1  # local index of tiago_endEffector in _MOCAP_BODIES
+_BASE_IDX     = 2  # local index of tiago_base in _MOCAP_BODIES
 
 _IDENTIFICATION = Path(__file__).parent
 _CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
@@ -130,6 +133,21 @@ def _fk_ee(model, q, ee_id):
     data = model.createData()
     pin.framesForwardKinematics(model, data, q)
     return data.oMf[ee_id].copy()
+
+
+def _ee_pos_in_base(qc):
+    """EE position expressed in the tiago_base mocap frame, or None if a marker is lost.
+
+    Mirrors mocap_ee_publisher.py's T_ee_in_base = T_base⁻¹ · T_ee so the
+    calibration measurement matches the frame used at runtime.
+    """
+    positions = qc.getPositions()
+    if np.any(np.isnan(positions[_EE_IDX])) or np.any(np.isnan(positions[_BASE_IDX])):
+        return None
+    quats = qc.getOrientationQuats()
+    T_ee   = pin.XYZQUATToSE3(np.concatenate([positions[_EE_IDX],   quats[_EE_IDX]]))
+    T_base = pin.XYZQUATToSE3(np.concatenate([positions[_BASE_IDX], quats[_BASE_IDX]]))
+    return (T_base.inverse() * T_ee).translation
 
 
 def _print_error_table(target_vals, current_vals):
@@ -313,9 +331,9 @@ class CalibrationCollector(Node):
                 self.get_logger().warn("Still moving — skipping sample.")
                 return False
 
-        ee_pos = self._qc.getPositions()[_EE_IDX]
-        if np.any(np.isnan(ee_pos)):
-            self.get_logger().warn("Mocap EE marker not visible (NaN) — skipping.")
+        ee_pos = _ee_pos_in_base(self._qc)
+        if ee_pos is None:
+            self.get_logger().warn("Mocap EE or base marker not visible (NaN) — skipping.")
             return False
         if self._last_ee_pos is not None and np.linalg.norm(ee_pos - self._last_ee_pos) < 1e-4:
             self.get_logger().error(
