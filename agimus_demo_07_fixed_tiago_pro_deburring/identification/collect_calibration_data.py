@@ -138,16 +138,18 @@ def _fk_ee(model, q, ee_id):
 def _ee_pos_in_base(qc):
     """EE position expressed in the tiago_base mocap frame, or None if a marker is lost.
 
-    Mirrors mocap_ee_publisher.py's T_ee_in_base = T_base⁻¹ · T_ee so the
-    calibration measurement matches the frame used at runtime.
+    The EE marker is a single point (position-only calibration, known_tipframe=False
+    identifies pEEx/y/z only), so only the base's orientation is needed to rotate
+    (t_ee - t_base) into the base frame — the EE's own orientation doesn't affect
+    the result. Matches mocap_ee_publisher.py's T_ee_in_base = T_base⁻¹ · T_ee.
     """
     positions = qc.getPositions()
-    if np.any(np.isnan(positions[_EE_IDX])) or np.any(np.isnan(positions[_BASE_IDX])):
+    t_ee, t_base = positions[_EE_IDX], positions[_BASE_IDX]
+    if np.any(np.isnan(t_ee)) or np.any(np.isnan(t_base)):
         return None
-    quats = qc.getOrientationQuats()
-    T_ee   = pin.XYZQUATToSE3(np.concatenate([positions[_EE_IDX],   quats[_EE_IDX]]))
-    T_base = pin.XYZQUATToSE3(np.concatenate([positions[_BASE_IDX], quats[_BASE_IDX]]))
-    return (T_base.inverse() * T_ee).translation
+    q_base = qc.getOrientationQuats()[_BASE_IDX]
+    T_base = pin.XYZQUATToSE3(np.concatenate([t_base, q_base]))
+    return T_base.rotation.T @ (t_ee - t_base)
 
 
 def _print_error_table(target_vals, current_vals):
