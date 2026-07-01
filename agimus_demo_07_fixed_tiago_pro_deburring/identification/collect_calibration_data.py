@@ -3,11 +3,12 @@
 Calibration data collector for Tiago Pro — automatic version.
 
 For each optimal configuration (from generate_optimal_configs.py):
-  1. Sends a FollowJointTrajectory goal to arm_right_controller and
+  1. Runs play_motion2 horizontal_right to reach a safe intermediate pose.
+  2. Sends a FollowJointTrajectory goal to arm_right_controller and
      torso_controller sequentially (torso first, then arm).
-  2. Waits for the robot to settle.
-  3. Records the (q, mocap_EE_pose) pair automatically.
-  4. Advances to the next configuration.
+  3. Waits for the robot to settle.
+  4. Records the (q, mocap_EE_pose) pair automatically.
+  5. Advances to the next configuration.
 
 Mocap data is read directly from Qualisys and corrected to be expressed in
 the tiago_base frame (T_ee_in_base = T_base⁻¹ · T_ee), the same correction
@@ -19,6 +20,7 @@ Viser shows the live robot state and the target EE frame simultaneously.
 
 Prerequisites:
   - arm_right_controller and torso_controller active (NOT agimus_controller)
+  - play_motion2 running (for the horizontal_right via-pose)
   - Qualisys mocap running and reachable at _QUALISYS_IP
 
 Usage:
@@ -45,6 +47,7 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from action_msgs.msg import GoalStatus
 from control_msgs.action import FollowJointTrajectory
+from play_motion2_msgs.action import PlayMotion2
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
@@ -60,7 +63,7 @@ _MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
 _EE_IDX       = 1  # local index of tiago_endEffector in _MOCAP_BODIES
 _BASE_IDX     = 2  # local index of tiago_base in _MOCAP_BODIES
 
-_IDENTIFICATION = Path(__file__).parent
+_IDENTIFICATION  = Path(__file__).parent
 _CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
 _OUTPUT_DEFAULT  = _IDENTIFICATION / "calibration_samples.csv"
 
@@ -76,8 +79,10 @@ ARM_JOINTS = [
 TORSO_JOINTS  = ["torso_lift_joint"]
 ACTIVE_JOINTS = TORSO_JOINTS + ARM_JOINTS
 
-_ARM_ACTION   = "/arm_right_controller/follow_joint_trajectory"
-_TORSO_ACTION = "/torso_controller/follow_joint_trajectory"
+_ARM_ACTION         = "/arm_right_controller/follow_joint_trajectory"
+_TORSO_ACTION       = "/torso_controller/follow_joint_trajectory"
+_PLAY_MOTION_ACTION = "play_motion2"
+_VIA_MOTION_NAME    = "horizontal_right"
 
 _SETTLE_S        = 5.0
 _FRESHNESS_S     = 0.5
@@ -252,8 +257,9 @@ class CalibrationCollector(Node):
         time.sleep(1.0)
         self.get_logger().info("Qualisys connected.")
 
-        self._arm_client   = ActionClient(self, FollowJointTrajectory, _ARM_ACTION)
-        self._torso_client = ActionClient(self, FollowJointTrajectory, _TORSO_ACTION)
+        self._arm_client         = ActionClient(self, FollowJointTrajectory, _ARM_ACTION)
+        self._torso_client       = ActionClient(self, FollowJointTrajectory, _TORSO_ACTION)
+        self._play_motion_client = ActionClient(self, PlayMotion2, _PLAY_MOTION_ACTION)
 
     def _js_cb(self, msg):
         with self._lock:
@@ -279,6 +285,8 @@ class CalibrationCollector(Node):
             raise RuntimeError(f"Action server not available: {_ARM_ACTION}")
         if not self._torso_client.wait_for_server(timeout_sec=timeout):
             raise RuntimeError(f"Action server not available: {_TORSO_ACTION}")
+        if not self._play_motion_client.wait_for_server(timeout_sec=timeout):
+            raise RuntimeError(f"Action server not available: {_PLAY_MOTION_ACTION}")
         self.get_logger().info("Action servers ready.")
 
     def _send_goal(self, client, joint_names, positions, duration_sec):
@@ -301,9 +309,37 @@ class CalibrationCollector(Node):
             return False
         return result_future.result().status == GoalStatus.STATUS_SUCCEEDED
 
+    def _run_play_motion(self, motion_name, skip_planning=False, timeout=60.0):
+        """Send a play_motion2 goal and block until completion. Returns True on success."""
+        goal = PlayMotion2.Goal()
+        goal.motion_name   = motion_name
+        goal.skip_planning = skip_planning
+        future = self._play_motion_client.send_goal_async(goal)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
+        if not future.done():
+            self.get_logger().warn(f"play_motion2 '{motion_name}' send timed out.")
+            return False
+        handle = future.result()
+        if not handle.accepted:
+            self.get_logger().warn(f"play_motion2 '{motion_name}' goal rejected.")
+            return False
+        result_future = handle.get_result_async()
+        rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
+        if not result_future.done():
+            self.get_logger().warn(f"play_motion2 '{motion_name}' execution timed out.")
+            return False
+        error = result_future.result().result.error
+        if error:
+            self.get_logger().warn(f"play_motion2 '{motion_name}' failed: {error}")
+            return False
+        return True
+
     def move_to(self, target_vals):
         torso_vals = [target_vals[ACTIVE_JOINTS.index(j)] for j in TORSO_JOINTS]
         arm_vals   = [target_vals[ACTIVE_JOINTS.index(j)] for j in ARM_JOINTS]
+
+        self.get_logger().info(f"Via pose: {_VIA_MOTION_NAME} ...")
+        self._run_play_motion(_VIA_MOTION_NAME)
 
         self.get_logger().info("Moving torso ...")
         ok_t = self._send_goal(self._torso_client, TORSO_JOINTS, torso_vals, self._duration)
