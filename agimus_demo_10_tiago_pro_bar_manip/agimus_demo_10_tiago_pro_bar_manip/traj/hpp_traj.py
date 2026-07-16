@@ -27,7 +27,7 @@ class HPPPathGenerator:
         self,
         urdf_str: str,
         srdf_str: str,
-        handle_config: Path,
+        hpp_config: Path,
         handle_object: BaseObject,
         plate_object: BaseObject,
         table_object: BaseObject,
@@ -42,13 +42,20 @@ class HPPPathGenerator:
         self._handle_object = handle_object
         self._plate_object = plate_object
         self._table_object = table_object
+        self._ground_object = BaseObject(
+                root_joint_type="anchor",
+                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/ground.urdf",
+                srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/ground.srdf",
+                name="ground",
+            )
 
-        with open(handle_config, "r") as f:
-            self._handle_config_file = yaml.safe_load(f)
+        with open(hpp_config, "r") as f:
+            self._hpp_config_file = yaml.safe_load(f)
         self._handles_config: dict[str, list] = {}
-        for gname, config in self._handle_config_file.get("grippers", {}).items():
+        for gname, config in self._hpp_config_file.get("grippers", {}).items():
             self._handles_config[gname] = config.get("handles", [])
-        self.slowdown_rate = self._handle_config_file["trajectory"]["slowdown_rate"]
+        self.slowdown_rate = self._hpp_config_file["trajectory"]["slowdown_rate"]
+        self._disabled_collisions = self._hpp_config_file.get("disabled_collisions", [])
 
         # == HPP Device ========================================================
         robot = Device(f"{robot_name}-manip")
@@ -61,7 +68,7 @@ class HPPPathGenerator:
             srdf_str,
             pin.SE3.Identity(),
         )
-        for obj in (handle_object, plate_object, table_object):
+        for obj in (self._handle_object, self._plate_object, self._table_object, self._ground_object):
             urdf.loadModel(
                 robot,
                 0,
@@ -77,11 +84,15 @@ class HPPPathGenerator:
 
         # == Joint bounds ======================================================
         self.robot.setJointBounds(
-            f"{handle_object.name}/root_joint",
+            f"{self._handle_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0.0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
         )
         self.robot.setJointBounds(
-            f"{plate_object.name}/root_joint",
+            f"{self._plate_object.name}/root_joint",
+            [-5.0, 5.0, -5.0, 5.0, 0.0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
+        )
+        self.robot.setJointBounds(
+            f"{self._table_object.name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, 0.0, 2.0, -1, 1, -1, 1, -1, 1, -1, 1],
         )
         self.robot.setJointBounds(
@@ -103,7 +114,7 @@ class HPPPathGenerator:
         _set_vel_bounds(f"{robot_name}/root_joint", [0.5, 0.5, 1.0])
 
         # Objects freeflyer — vx, vy, vz, ωx, ωy, ωz
-        for obj in (handle_object, plate_object):
+        for obj in (self._handle_object, self._plate_object, self._table_object):
             _set_vel_bounds(f"{obj.name}/root_joint", [1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
 
         # == Problem & Graph ===================================================
@@ -120,6 +131,7 @@ class HPPPathGenerator:
         self._locked_head = self._create_locked_head(robot_name)
         self._locked_wheels = self._create_locked_wheels(robot_name)
         self._locked_plate = self._create_locked_plate()
+        self._locked_table = self._create_locked_table()
         self._locked_base_mobility = self._create_locked_base_mobility(robot_name)
         self._locked_arms, self._locked_torso = self._create_locked_arms_and_torso(
             robot_name
@@ -151,14 +163,14 @@ class HPPPathGenerator:
         )
         self.define_handle(
             self.robot,
-            f"{handle_object.name}/bar_base_link",
-            f"{handle_object.name}/left",
+            f"{self._handle_object.name}/bar_base_link",
+            f"{self._handle_object.name}/left",
             pose_hd_left,
         )
         self.define_handle(
             self.robot,
-            f"{handle_object.name}/bar_base_link",
-            f"{handle_object.name}/right",
+            f"{self._handle_object.name}/bar_base_link",
+            f"{self._handle_object.name}/right",
             pose_hd_right,
         )
 
@@ -235,6 +247,14 @@ class HPPPathGenerator:
     def _create_locked_plate(self):
         lj = self._lock(
             f"{self._plate_object.name}/root_joint",
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        )
+        self._problem.setConstantRightHandSide(lj, False)
+        return [lj]
+
+    def _create_locked_table(self):
+        lj = self._lock(
+            f"{self._table_object.name}/root_joint",
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
         )
         self._problem.setConstantRightHandSide(lj, False)
@@ -322,6 +342,7 @@ class HPPPathGenerator:
         obj_name = self._handle_object.name
         table_name = self._table_object.name
         plate_name = self._plate_object.name
+        ground_name = self._ground_object.name
 
         gripper_names = list(self._handles_config.keys())
         primary_gripper = gripper_names[0]
@@ -531,11 +552,31 @@ class HPPPathGenerator:
         self.graph.setWeight(self.graph.getTransition("Loop | f"), 1)
         self.graph.setWeight(self.graph.getTransition("Loop | 0-0"), 1)
 
-        # locked_plate on every transition
-        for e_name in self.graph.getTransitionNames():
+        # locked_plate and table on every transition
+        for edge in self.graph.getTransitions() :
             self.graph.addNumericalConstraintsToTransition(
-                self.graph.getTransition(e_name), self._locked_plate
+                edge, self._locked_plate
             )
+            self.graph.addNumericalConstraintsToTransition(
+                edge, self._locked_table
+            )
+        
+        geom_model = self.robot.geomModel()
+        geom_objects = geom_model.geometryObjects
+        name_to_id = {obj.name: i for i, obj in enumerate(geom_objects)}
+
+        pairs_to_remove = []
+        for pair in self._disabled_collisions:
+            name_a, name_b = pair[0], pair[1]
+            ia = name_to_id.get(name_a)
+            ib = name_to_id.get(name_b)
+            if ia is None or ib is None:
+                self._logger.warn(f"Collision pair not found: {name_a} <-> {name_b}")
+                continue
+            pairs_to_remove.append(pin.CollisionPair(ia, ib))
+
+        for cp in pairs_to_remove:
+            geom_model.removeCollisionPair(cp)
 
         self.graph.initialize()
 

@@ -141,7 +141,7 @@ def launch_setup(
                 "is_public_sim": "True",
                 "moveit": "False",
                 "play_motion2": "False",
-                "gzclient": "False",
+                "gzclient": "True",
             }.items(),
         )
 

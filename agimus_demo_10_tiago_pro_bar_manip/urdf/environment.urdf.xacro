@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot name="environment" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <link name="world"/>
+  <link name="odom"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/ground.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/plate.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/reinforcement_bar.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/table.urdf.xacro"/>
+
+ <joint name="world_odom" type="fixed">
+    <parent link="world"/>
+    <child link="odom"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:ground/>
+  <joint name="ground_world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="ground_link"/>
+    <origin xyz="0 0 -0.005" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:table/>
+  <joint name="table_world_joint" type="floating">
+    <parent link="ground_link"/>
+    <child link="table_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:bordered_plate name="plate">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:bordered_plate>
+  <joint name="plate_world_joint" type="floating">
+    <parent link="ground_link"/> 
+    <child link="plate_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  
+  <xacro:reinforcement_bar/>
+  <joint name="bar_world_joint" type="floating">
+    <parent link="ground_link"/>
+    <child link="bar_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

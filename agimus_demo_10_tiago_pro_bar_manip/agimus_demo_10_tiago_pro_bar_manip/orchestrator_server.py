@@ -105,6 +105,7 @@ class HPPActionServer(Node):
         self._odom = None
         self._bar_pose = None
         self._plate_pose = None
+        self._table_pose = None
 
         # == Planning state =================================================
         self._path = None
@@ -266,24 +267,24 @@ class HPPActionServer(Node):
         self._hpp = HPPPathGenerator(
             urdf_str=urdf_str,
             srdf_str=srdf_str,
-            handle_config=os.path.join(
+            hpp_config=os.path.join(
                 pkg, "config/planning", "orchestrator_hpp_configuration.yaml"
             ),
             handle_object=BaseObject(
                 root_joint_type="freeflyer",
-                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/reinforcement_bar.urdf",
+                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/reinforcement_bar.urdf",
                 srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/reinforcement_bar.srdf",
                 name="reinforcement_bar",
             ),
             plate_object=BaseObject(
                 root_joint_type="freeflyer",
-                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/plate.urdf",
+                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/plate.urdf",
                 srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/plate.srdf",
                 name="plate",
             ),
             table_object=BaseObject(
-                root_joint_type="anchor",
-                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/table.urdf",
+                root_joint_type="freeflyer",
+                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/table.urdf",
                 srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/table.srdf",
                 name="table",
             ),
@@ -299,10 +300,11 @@ class HPPActionServer(Node):
         self._joint_state = msg
 
     def _cb_object_pose(self):
-        self._bar_pose = self._lookup_pose("table_link", "bar_base_link")
-        self._plate_pose = self._lookup_pose("table_link", "plate_base_link")
-        self._odom = self._lookup_pose("table_link", "base_footprint")
-        self._bar_goal_pose = self._lookup_pose("table_link", "bar_goal_pose")
+        self._bar_pose = self._lookup_pose("world", "bar_base_link")
+        self._plate_pose = self._lookup_pose("world", "plate_base_link")
+        self._odom = self._lookup_pose("world", "base_footprint")
+        self._bar_goal_pose = self._lookup_pose("world", "bar_goal_pose")
+        self._table_pose = self._lookup_pose("world", "table_link")
 
     def _call_grasper_service(
         self,
@@ -843,6 +845,8 @@ class HPPActionServer(Node):
         q[r_bar : r_bar + 7] = self._bar_pose
         r_plate = robot.rankInConfiguration["plate/root_joint"]
         q[r_plate : r_plate + 7] = self._plate_pose
+        r_table = robot.rankInConfiguration["table/root_joint"]
+        q[r_table : r_table + 7] = self._table_pose
         return q
 
     # == Path helpers =========================================================

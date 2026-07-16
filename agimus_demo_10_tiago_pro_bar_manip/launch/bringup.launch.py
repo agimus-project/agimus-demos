@@ -107,7 +107,7 @@ def launch_setup(
     # HPP
     # ==========================================================================
 
-    plate_description = ParameterValue(
+    env_description = ParameterValue(
         Command(
             [
                 PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -116,69 +116,21 @@ def launch_setup(
                     [
                         FindPackageShare(PKG_NAME),
                         "urdf",
-                        "plate.urdf",
+                        "environment.urdf.xacro",
                     ]
                 ),
             ]
         ),
         value_type=str,
-    )
-    plate_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="plate_publisher",
-        output="screen",
-        parameters=[get_use_sim_time(), {"robot_description": plate_description}],
-        remappings=[("robot_description", "plate_description")],
-    )
-    bar_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare(PKG_NAME),
-                        "urdf",
-                        "reinforcement_bar.urdf",
-                    ]
-                ),
-            ]
-        ),
-        value_type=str,
-    )
-    bar_reinforcement_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="bar_publisher",
-        output="screen",
-        parameters=[get_use_sim_time(), {"robot_description": bar_description}],
-        remappings=[("robot_description", "bar_description")],
     )
 
-    table_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare(PKG_NAME),
-                        "urdf",
-                        "table.urdf",
-                    ]
-                ),
-            ]
-        ),
-        value_type=str,
-    )
-    table_publisher = Node(
+    env_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        name="table_publisher",
+        name="env_publisher",
         output="screen",
-        parameters=[get_use_sim_time(), {"robot_description": table_description}],
-        remappings=[("robot_description", "table_description")],
+        parameters=[get_use_sim_time(), {"robot_description": env_description}],
+        remappings=[("robot_description", "environment_description")],
     )
 
     tf_odom = Node(
@@ -220,36 +172,17 @@ def launch_setup(
         xyz=["2.9", "0", "0."],
         rot_xyzw=quat_values.coeffs().tolist(),
     )
+    quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, 0])))
+    tf_tiago = static_transform_publisher_node(
+        frame_id=f"{ref_frame}",
+        child_frame_id="base_footprint",
+        xyz=["0", "0", "0."],
+        rot_xyzw=quat_values.coeffs().tolist(),
+    )
 
     # ==========================================================================
     # Agimus-controller (MPC)
     # ==========================================================================
-    # The agimus controller is waiting to receive an environment description
-    empty_env_description = ParameterValue(
-        Command(
-            [
-                PathJoinSubstitution([FindExecutable(name="xacro")]),
-                " ",
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare(PKG_NAME),
-                        "urdf",
-                        "environment.urdf",
-                    ]
-                ),
-            ]
-        ),
-        value_type=str,
-    )
-
-    env_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="empty_env_publisher",
-        output="screen",
-        parameters=[get_use_sim_time(), {"robot_description": empty_env_description}],
-        remappings=[("robot_description", "environment_description")],
-    )
 
     agimus_controller_node = Node(
         package="agimus_controller_ros",
@@ -310,20 +243,17 @@ def launch_setup(
     return [
         tiago_robot_launch,
         rviz,
-        wait_for_non_zero_joints_node,
-        plate_publisher_node,
-        table_publisher,
-        bar_reinforcement_publisher,
-        tf_odom,
+        # wait_for_non_zero_joints_node,
+        env_publisher,
         tf_node_plate,
         tf_node_bar,
         tf_node_table,
+        tf_tiago,
         # orchestrator,
         tf_goal_bar,
         robot_srdf_publisher_node,
         agimus_controller_node,
-        env_publisher,
-        plotjuggler,
+        # plotjuggler,
     ]
 
 
@@ -332,7 +262,7 @@ def generate_launch_description():
     args.append(
         DeclareLaunchArgument(
             "ref_frame",
-            default_value="base_link",
+            default_value="world",
             description="Reference frame for the demo (world, map, odom...)",
         )
     )

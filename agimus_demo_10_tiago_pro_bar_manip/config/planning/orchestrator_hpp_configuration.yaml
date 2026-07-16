@@ -59,3 +59,28 @@ weights:
     w_frame_rotation: [15.0, 15.0, 15.0]
     w_desired_force: [0.0, 0.0, 0.0]
     w_collision_avoidance: 0.0
+
+
+# Collision to deactivate
+disabled_collisions:
+  - [tiago_pro/base_link_0, ground/ground_link_0]
+  - [tiago_pro/base_link_1, ground/ground_link_0]
+  - [tiago_pro/base_link_2, ground/ground_link_0]
+  - [tiago_pro/base_antenna_left_link_0, ground/ground_link_0]
+  - [tiago_pro/base_antenna_right_link_0, ground/ground_link_0]
+  - [tiago_pro/base_dock_link_0, ground/ground_link_0]
+  - [tiago_pro/suspension_front_left_link_0, ground/ground_link_0]
+  - [tiago_pro/suspension_front_right_link_0, ground/ground_link_0]
+  - [tiago_pro/suspension_rear_left_link_0, ground/ground_link_0]
+  - [tiago_pro/suspension_rear_right_link_0, ground/ground_link_0]
+  - [tiago_pro/torso_base_link_0, ground/ground_link_0]
+  - [tiago_pro/wheel_front_left_link_0, ground/ground_link_0]
+  - [tiago_pro/wheel_front_right_link_0, ground/ground_link_0]
+  - [tiago_pro/wheel_rear_left_link_0, ground/ground_link_0]
+  - [tiago_pro/wheel_rear_right_link_0, ground/ground_link_0]
+  - [tiago_pro/torso_lift_link_0, ground/ground_link_0]
+  - [tiago_pro/torso_lift_link_1, ground/ground_link_0]
+  - [tiago_pro/torso_head_link_0, ground/ground_link_0]
+  - [tiago_pro/head_1_link_0, ground/ground_link_0]
+  - [tiago_pro/head_2_link_0, ground/ground_link_0]
+  - [tiago_pro/head_front_camera_link_0, ground/ground_link_0]

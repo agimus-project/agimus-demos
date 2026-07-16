@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="reinforcement_bar" params="prefix:=''">
+    <link name="${prefix}bar_base_link">
+      <collision>
+        <origin xyz="0 0 -0.48"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/reinforcment_bar.stl"
+                scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 -0.48"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/reinforcment_bar.stl"
+                scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
+</robot>

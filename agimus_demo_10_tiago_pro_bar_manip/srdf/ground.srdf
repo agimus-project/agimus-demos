@@ -1,0 +1,12 @@
+<robot name="ground">
+<contact name="ground_surface">
+    <link name="ground_link"/>
+    <point>
+        10 10 0.005
+        10 -10 0.005
+        -10 10 0.005
+        -10 -10 0.005
+    </point>
+    <shape> 4 0 1 2 3 </shape>
+</contact>
+</robot>
