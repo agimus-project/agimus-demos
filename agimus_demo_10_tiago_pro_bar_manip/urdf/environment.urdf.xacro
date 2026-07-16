@@ -31,11 +31,11 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:bordered_plate>
   <joint name="plate_world_joint" type="floating">
-    <parent link="ground_link"/> 
+    <parent link="ground_link"/>
     <child link="plate_base_link"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
-  
+
   <xacro:reinforcement_bar/>
   <joint name="bar_world_joint" type="floating">
     <parent link="ground_link"/>

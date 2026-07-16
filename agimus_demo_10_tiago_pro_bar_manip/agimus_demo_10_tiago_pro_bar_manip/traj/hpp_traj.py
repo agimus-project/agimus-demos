@@ -43,11 +43,11 @@ class HPPPathGenerator:
         self._plate_object = plate_object
         self._table_object = table_object
         self._ground_object = BaseObject(
-                root_joint_type="anchor",
-                urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/ground.urdf",
-                srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/ground.srdf",
-                name="ground",
-            )
+            root_joint_type="anchor",
+            urdf_path="package://agimus_demo_10_tiago_pro_bar_manip/urdf/standalone/ground.urdf",
+            srdf_path="package://agimus_demo_10_tiago_pro_bar_manip/srdf/ground.srdf",
+            name="ground",
+        )
 
         with open(hpp_config, "r") as f:
             self._hpp_config_file = yaml.safe_load(f)
@@ -68,7 +68,12 @@ class HPPPathGenerator:
             srdf_str,
             pin.SE3.Identity(),
         )
-        for obj in (self._handle_object, self._plate_object, self._table_object, self._ground_object):
+        for obj in (
+            self._handle_object,
+            self._plate_object,
+            self._table_object,
+            self._ground_object,
+        ):
             urdf.loadModel(
                 robot,
                 0,
@@ -553,14 +558,10 @@ class HPPPathGenerator:
         self.graph.setWeight(self.graph.getTransition("Loop | 0-0"), 1)
 
         # locked_plate and table on every transition
-        for edge in self.graph.getTransitions() :
-            self.graph.addNumericalConstraintsToTransition(
-                edge, self._locked_plate
-            )
-            self.graph.addNumericalConstraintsToTransition(
-                edge, self._locked_table
-            )
-        
+        for edge in self.graph.getTransitions():
+            self.graph.addNumericalConstraintsToTransition(edge, self._locked_plate)
+            self.graph.addNumericalConstraintsToTransition(edge, self._locked_table)
+
         geom_model = self.robot.geomModel()
         geom_objects = geom_model.geometryObjects
         name_to_id = {obj.name: i for i, obj in enumerate(geom_objects)}
