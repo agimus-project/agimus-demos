@@ -80,3 +80,7 @@ linear_feedback_controller:
     pd_to_lf_transition_duration: 0.1
     remove_gravity_compensation_effort: false
     robot_has_free_flyer: false
+    ignore_state_interfaces:
+      position: ['']
+      velocity: ['']
+      effort: [torso_lift_joint]
