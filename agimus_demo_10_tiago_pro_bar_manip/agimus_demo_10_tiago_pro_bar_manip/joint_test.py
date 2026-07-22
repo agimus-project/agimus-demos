@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Debug script: publish a traj for the torso lift joint (0.05 → 0.3 m, 5 s) on /mpc_input.
-Every other joint are freeze
+Debug script: publish a traj for the chosen joint (0.05 → 0.3 m, 5 s) on /mpc_input.
+Every other joint are freezed
 """
 
 import copy
@@ -26,10 +26,11 @@ from agimus_controller.trajectory import (
 )
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 
-POS_START = 0.05
-POS_END = 0.30
+POS_END = -0.3
 TRAJ_DURATION = 5.0
 OCP_DT = 0.01
+
+JOINT_TO_TEST = "arm_right_4_joint"
 
 MOVING_JOINTS = [
     "torso_lift_joint",
@@ -95,15 +96,15 @@ _W = {
 }
 
 
-class TorsoLiftMpcNode(Node):
+class JointTestMpcNode(Node):
     def __init__(self):
-        super().__init__("torso_lift_mpc_traj")
+        super().__init__("joint_mpc_traj")
 
         self._robot_model = None
         self._robot_data = None
         self._left_frame_id = None
         self._right_frame_id = None
-        self._torso_idx = None
+        self._tested_joint_idx = None
         self._joint_state = None
 
         self._buffer_lock = threading.Lock()
@@ -142,7 +143,7 @@ class TorsoLiftMpcNode(Node):
         self._buildRobot(msg.data)
         self.get_logger().info(
             f"Model ready | nq={self._robot_model.nq} | "
-            f"torso_idx={self._torso_idx} | "
+            f"tested_joint_idx={self._tested_joint_idx} | "
             f"left_fid={self._left_frame_id} right_fid={self._right_frame_id}"
         )
         if self._joint_state is not None:
@@ -181,8 +182,8 @@ class TorsoLiftMpcNode(Node):
 
         for jid in range(1, self._robot_model.njoints):
             jname = self._robot_model.names[jid].removeprefix("tiago_pro/")
-            if jname == "torso_lift_joint":
-                self._torso_idx = self._robot_model.joints[jid].idx_q
+            if jname == JOINT_TO_TEST:
+                self._tested_joint_idx = self._robot_model.joints[jid].idx_q
                 break
 
         self._left_frame_id = self._get_frame_id(LEFT_TOOL_NAME)
@@ -229,15 +230,15 @@ class TorsoLiftMpcNode(Node):
         weights = self._build_traj_weights()
         n_points = int(TRAJ_DURATION / OCP_DT)
 
-        pos_start = q_init[self._torso_idx]
+        pos_start = q_init[self._tested_joint_idx]
         self.get_logger().info(
-            f"Traj torso : {pos_start:.4f} → {POS_END:.4f} m ({n_points} pts)"
+            f"Traj tested joint : {pos_start:.4f} → {POS_END:.4f} m ({n_points} pts)"
         )
 
         for i in range(n_points):
             alpha = i / max(n_points - 1, 1)
             q = q_init.copy()
-            q[self._torso_idx] = pos_start + alpha * (POS_END - pos_start)
+            q[self._tested_joint_idx] = pos_start + alpha * (POS_END - pos_start)
             pt = self._convert_point(i, q, weights)
             with self._buffer_lock:
                 self._buffer.append(pt)
@@ -298,7 +299,7 @@ class TorsoLiftMpcNode(Node):
 
 def main():
     rclpy.init()
-    node = TorsoLiftMpcNode()
+    node = JointTestMpcNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
