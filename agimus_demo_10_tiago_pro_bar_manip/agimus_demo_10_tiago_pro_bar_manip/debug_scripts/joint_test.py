@@ -26,11 +26,11 @@ from agimus_controller.trajectory import (
 )
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 
-POS_END = -0.3
-TRAJ_DURATION = 5.0
+POS_END = 0.1
+TRAJ_DURATION = 10.0
 OCP_DT = 0.01
 
-JOINT_TO_TEST = "arm_right_4_joint"
+JOINT_TO_TEST = "torso_lift_joint"
 
 MOVING_JOINTS = [
     "torso_lift_joint",
