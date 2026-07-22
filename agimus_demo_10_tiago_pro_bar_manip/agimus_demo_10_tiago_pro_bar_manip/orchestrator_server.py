@@ -539,106 +539,48 @@ class HPPActionServer(Node):
         position_control: bool = False,
         ee_tol: float = 0.015,
     ) -> bool:
-        if position_control:
-            # Sending traj to position controller
-            joint_traj = self._hpp_to_joint_traj(traj)
-            goal = FollowJointTrajectory.Goal()
-            goal.trajectory = joint_traj
-        else:
-            # Sending traj to MPC
-            weighted_trajectory = self._convert_path(traj, task)
+        weighted_trajectory = self._convert_path(traj, task)
+        num_points = len(weighted_trajectory)
+
+        self.get_logger().info(f"Sending {num_points} points to MPC buffer...")
+        with self._trajectory_buffer_lock:
+            self._trajectory_buffer.extend(weighted_trajectory)
+
+        traj_duration = num_points * self._ocp_dt
+        deadline = time.time() + traj_duration + timeout_margin
+
+        # Wait until buffer empty
+        self.get_logger().info("Waiting for MPC to consume buffer...")
+        while time.time() < deadline:
             with self._trajectory_buffer_lock:
-                self._trajectory_buffer.extend(weighted_trajectory)
+                buf_len = len(self._trajectory_buffer)
 
-        if position_control:
-            if not self._traj_action_client.wait_for_server(timeout_sec=5.0):
-                self.get_logger().error(
-                    "FollowJointTrajectory action server not available"
-                )
-                return False
+            # If it remain 1 the buffer is empty because we hold the last traj pose
+            if buf_len <= 1:
+                break
+            time.sleep(0.1)
 
-        traj_duration = len(traj) * self._ocp_dt + timeout_margin
-        if position_control:
-            send_goal_future = self._traj_action_client.send_goal_async(goal)
-            # Attendre que le goal soit accepté
-            deadline = time.time() + 5.0
-            while not send_goal_future.done() and time.time() < deadline:
-                time.sleep(0.01)
-            if not send_goal_future.done():
-                self.get_logger().error("Timeout waiting for goal acceptance")
-                return False
-            goal_handle = send_goal_future.result()
-            if not goal_handle.accepted:
-                self.get_logger().error("Trajectory goal rejected by controller")
-                return False
-            self.get_logger().info(
-                f"Segment accepted — waiting for completion ({traj_duration:.1f}s max)"
-            )
-            # 2. Attendre le résultat
-            result_future = goal_handle.get_result_async()
-            deadline = time.time() + traj_duration
-            while not result_future.done() and time.time() < deadline:
-                time.sleep(0.05)
-
-            if not result_future.done():
-                self.get_logger().warn(
-                    "Timeout: trajectory did not complete in time, cancelling"
-                )
-                goal_handle.cancel_goal_async()
-                return False
-
-            result = result_future.result()
-            error_code = result.result.error_code
-            if error_code != FollowJointTrajectory.Result.SUCCESSFUL:
-                self.get_logger().warn(
-                    f"Trajectory failed with error_code={error_code}"
-                )
-                return False
-        else:
-            weighted_trajectory = self._convert_path(traj, task)
-            num_points = len(weighted_trajectory)
-
-            self.get_logger().info(f"Sending {num_points} points to MPC buffer...")
-            with self._trajectory_buffer_lock:
-                self._trajectory_buffer.extend(weighted_trajectory)
-
-            traj_duration = num_points * self._ocp_dt
-            deadline = time.time() + traj_duration + timeout_margin
-
-            # Wait until buffer empty
-            self.get_logger().info("Waiting for MPC to consume buffer...")
-            while time.time() < deadline:
-                with self._trajectory_buffer_lock:
-                    buf_len = len(self._trajectory_buffer)
-
-                # If it remain 1 the buffer is emptuy because we hold the last traj pose
-                if buf_len <= 1:
-                    break
+        # Wait the robot has execute the traj
+        self.get_logger().info("Waiting for EE pose convergence...")
+        traj_done = False
+        while not traj_done and time.time() < deadline:
+            if self._joint_state is None:
                 time.sleep(0.1)
+                continue
 
-            # Wait the robot has execute the traj
-            self.get_logger().info("Waiting for EE pose convergence...")
-            traj_done = False
-            while not traj_done and time.time() < deadline:
-                if self._joint_state is None:
-                    time.sleep(0.1)
-                    continue
+            q_current = self._build_q_init()
+            q_target = traj[-1]
+            err = self._get_ee_pose_error(q_current, q_target)
 
-                q_current = self._build_q_init()
-                q_target = traj[-1]
-                err = self._get_ee_pose_error(q_current, q_target)
+            if err < ee_tol:
+                self.get_logger().info(f"EE Pose converged (err={err:.4f})")
+                traj_done = True
+                break
+            time.sleep(0.1)
 
-                if err < ee_tol:
-                    self.get_logger().info(f"EE Pose converged (err={err:.4f})")
-                    traj_done = True
-                    break
-                time.sleep(0.1)
-
-            if not traj_done:
-                self.get_logger().warn(
-                    f"Timeout: EE pose did not converge (err={err:.4f})"
-                )
-                return False
+        if not traj_done:
+            self.get_logger().warn("Timeout: EE pose did not converge")
+            return False
 
         # Action gripper
         if gripper_action == "open":
