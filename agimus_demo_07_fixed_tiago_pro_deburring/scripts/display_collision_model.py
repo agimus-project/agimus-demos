@@ -44,9 +44,9 @@ XACRO_MAPPINGS = {
 
 # Display joint angles for the fallback static pose
 _STATIC_JOINTS = [
-    ("arm_right_2_joint", 30.0),
-    ("arm_right_4_joint", 30.0),
-    ("arm_right_6_joint", 30.0),
+    ("arm_right_2_joint", 40.0),
+    ("arm_right_4_joint", 40.0),
+    ("arm_right_6_joint", 40.0),
 ]
 
 # Throttle live display updates
