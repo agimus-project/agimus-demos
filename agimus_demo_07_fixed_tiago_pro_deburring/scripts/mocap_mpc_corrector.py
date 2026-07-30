@@ -15,9 +15,9 @@ marker placement). The MPC receives targets that, when reached via FK,
 put the real EE at the intended world position.
 
 Subscriptions:
-    mpc_input          (agimus_msgs/MpcInput)  — from HPP orchestrator
-    /mocap_ee_pose     (geometry_msgs/PoseStamped) — from mocap_ee_publisher
-    /joint_states      (sensor_msgs/JointState)
+    mpc_input                                            (agimus_msgs/MpcInput)  — from HPP orchestrator
+    /mocap_ee_pose                                        (geometry_msgs/PoseStamped) — from mocap_ee_publisher
+    /joint_torque_state_broadcaster/dynamic_joint_states  (control_msgs/DynamicJointState) — absolute_position
 
 Publications:
     mpc_input_corrected (agimus_msgs/MpcInput)  — to agimus_controller
@@ -42,8 +42,8 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 
 from agimus_msgs.msg import MpcInput
+from control_msgs.msg import DynamicJointState
 from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 
 _EE_FRAME_KW = "gripper_right_tool_holder"
@@ -70,7 +70,11 @@ class MocapMpcCorrectorNode(Node):
         self.create_subscription(
             String, "/robot_description", self._urdf_cb, qos_latched
         )
-        self.create_subscription(JointState, "/joint_states", self._js_cb, 10)
+        self.create_subscription(
+            DynamicJointState,
+            "/joint_torque_state_broadcaster/dynamic_joint_states",
+            self._js_cb, 10,
+        )
         self.create_subscription(PoseStamped, "/mocap_ee_pose", self._mocap_cb, 10)
         _qos_mpc = QoSProfile(depth=1000, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(MpcInput, "mpc_input", self._mpc_input_cb, _qos_mpc)
@@ -106,16 +110,26 @@ class MocapMpcCorrectorNode(Node):
 
     # ── State callbacks ───────────────────────────────────────────────────────
 
-    def _js_cb(self, msg: JointState) -> None:
+    def _js_cb(self, msg: DynamicJointState) -> None:
+        """Build q_current from absolute_position (output shaft encoder),
+        falling back to position (motor encoder) if unavailable."""
         if self._model is None:
             return
-        js_map = dict(zip(msg.name, msg.position))
         q = pin.neutral(self._model)
-        for jid in range(1, self._model.njoints):
-            jname = self._model.names[jid]
-            val = js_map.get(jname) or js_map.get(jname.replace("tiago_pro/", ""))
-            if val is not None and self._model.joints[jid].nq == 1:
-                q[self._model.joints[jid].idx_q] = val
+        for i, jname_raw in enumerate(msg.joint_names):
+            iv = msg.interface_values[i]
+            imap = dict(zip(iv.interface_names, iv.values))
+            val = imap.get("absolute_position", imap.get("position"))
+            if val is None:
+                continue
+            for jname in (f"tiago_pro/{jname_raw}", jname_raw):
+                try:
+                    jid = self._model.getJointId(jname)
+                    if jid < self._model.njoints and self._model.joints[jid].nq == 1:
+                        q[self._model.joints[jid].idx_q] = val
+                        break
+                except Exception:
+                    pass
         self._q_current = q
 
     def _mocap_cb(self, msg: PoseStamped) -> None:

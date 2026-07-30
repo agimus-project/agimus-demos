@@ -143,15 +143,6 @@ def launch_setup(
         condition=IfCondition(PythonExpression(["'", correction, "' == 'mocap'"])),
     )
 
-    fk_correction_node = ExecuteProcess(
-        cmd=[
-            "python3",
-            PathJoinSubstitution([_scripts_dir, "fk_correction_node.py"]),
-        ],
-        output="screen",
-        condition=IfCondition(PythonExpression(["'", correction, "' == 'fk'"])),
-    )
-
     spawn_pylone_node = Node(
         package="ros_gz_sim",
         executable="create",
@@ -207,7 +198,6 @@ def launch_setup(
         mpc_debugger,
         mocap_ee_publisher_node,
         mocap_mpc_corrector_node,
-        fk_correction_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=wait_for_non_zero_joints_node,
@@ -231,11 +221,10 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "correction",
                 default_value="none",
-                choices=["none", "fk", "mocap"],
+                choices=["none", "mocap"],
                 description=(
                     "MPC target correction mode: "
                     "'none' — no correction; "
-                    "'fk' — static FK correction (absolute_position vs motor encoder); "
                     "'mocap' — Qualisys mocap correction."
                 ),
             ),

@@ -111,17 +111,10 @@ Launch the bringup (with `ssh -X` for remote connection):
 # No correction (default)
 ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py use_rviz:=true
 
-# FK correction — compensates static offset between absolute encoder and URDF calibration
-ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py \
-    use_rviz:=true correction:=fk
-
 # Mocap correction — corrects MPC targets from Qualisys EE measurement
 ros2 launch agimus_demo_07_fixed_tiago_pro_deburring bringup.launch.py \
     use_rviz:=true correction:=mocap
 ```
-
-With `correction:=fk`, one additional node is started:
-- **`fk_correction_node`** — reads `/joint_states` (motor encoder) and `dynamic_joint_states` (absolute encoder), computes δt = FK(q_abs) − FK(q_motor) once at startup, subtracts δt from every target EE position in `mpc_input`, republishes on `mpc_input_corrected`
 
 With `correction:=mocap`, two additional nodes are started:
 - **`mocap_ee_publisher`** — connects to Qualisys and publishes the EE pose as a TF frame (`base_link → mocap_ee`) and on `/mocap_ee_pose`
