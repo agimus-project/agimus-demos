@@ -7,6 +7,17 @@ Provides an interactive interface for step-by-step planning and execution:
     o.execute()          # sample + publish trajectory to MPC
     o.plan_and_execute() # both in sequence
 
+Staged mocap correction (one-shot, instead of the continuous
+mocap_mpc_corrector.py stream — see hpp/orchestrator.py's "Staged mocap
+correction" section for why):
+    o.connect_mocap()
+    o.plan()
+    o.execute([o.p1])                     # blind approach to qpg
+    o.correct_alignment_from_mocap()      # measure + replan p1_correction, p2
+    o.update_reversals()                  # rebuild p3, p1_correction_reverse, p4
+    o.execute([o.p1_correction, o.p2, o.p3, o.p1_correction_reverse, o.p4])
+or in one call: o.plan_and_execute_staged().
+
 Run via orchestrator_node.py (sources both ros2_config.sh and hpp_config.sh).
 """
 
@@ -435,6 +446,199 @@ class Orchestrator:
         self.p4  = p4
         self.qpg = qpg
         self.qg  = qg
+        return True
+
+    # ── Staged mocap correction ─────────────────────────────────────────────────
+    #
+    # Alternative to the continuous mocap_mpc_corrector.py stream: instead of
+    # re-injecting a fresh correction into the OCP at every mocap frame
+    # (which can push the target outside the joint limits), take ONE mocap
+    # reading while the robot is stationary at qpg, then replan the
+    # *alignment* to a corrected qpg, and only then replan the insertion
+    # (p2) from that newly-aligned pose.
+
+    def correct_alignment_from_mocap(self, n_samples: int = 10, sample_dt: float = 0.05) -> bool:
+        """Measure the FK-vs-real bias at the end effector via mocap, replan
+        a short realignment leg (through _transition_approach) from the
+        current qpg to a bias-compensated qpg, then replan p2 (insertion)
+        from that corrected qpg.
+
+        Call this after executing p1 — the robot must be stationary at qpg
+        for both the mocap reading and the FK-of-actual-joints reading to be
+        valid. Updates self.qpg, self.qg, self.p1_correction (new leg: old
+        qpg → corrected qpg), self.p2 (insertion, corrected). Leaves the
+        original self.p1 and self.p4 untouched.
+        """
+        if not hasattr(self, "_qc"):
+            print("No mocap client — call connect_mocap() first.")
+            return False
+        if getattr(self, "qpg", None) is None:
+            print("No qpg — run plan() and execute the approach (p1) first.")
+            return False
+
+        qpg_old = self.qpg
+
+        # ── FK-vs-real EE bias at the current (stationary) configuration ────
+        try:
+            q_actual = self._read_robot_config()
+        except RuntimeError as e:
+            print(f"correct_alignment_from_mocap: {e}")
+            return False
+        T_fk_ee = self._fk_ee(self._extract_active_q(q_actual))
+
+        samples = []
+        for _ in range(n_samples):
+            T_mocap_base = self._mocap_se3(self._MOCAP_BASE_IDX)
+            T_mocap_ee   = T_mocap_base.inverse() * self._mocap_se3(self._MOCAP_EE_IDX)
+            samples.append(T_mocap_ee)
+            time.sleep(sample_dt)
+
+        t_mean = np.mean([s.translation for s in samples], axis=0)
+        # Naive quaternion averaging — fine given the small spread expected
+        # between consecutive readings of a stationary body.
+        quats = np.array([pin.Quaternion(s.rotation).coeffs() for s in samples])
+        quats *= np.sign(quats @ quats[0])[:, None]  # keep the same hemisphere
+        q_mean = quats.mean(axis=0)
+        q_mean /= np.linalg.norm(q_mean)
+        T_mocap_ee = pin.XYZQUATToSE3(np.concatenate([t_mean, q_mean]))
+
+        # Left-side correction, same convention as mocap_mpc_corrector.py:
+        # T_bias = T_fk * T_mocap⁻¹ — how far FK's belief is from reality.
+        T_bias = T_fk_ee * T_mocap_ee.inverse()
+        dt_mm = T_bias.translation * 1000
+        print(f"EE flex bias: {n_samples} samples, δt = {np.round(dt_mm, 2).tolist()} mm")
+
+        # ── Bias-compensate the (already correctly localized) pylone pose,
+        #    for planning purposes only — not persisted to disk ─────────────
+        pi = self._pylone_idx
+        T_pylone_true = pin.XYZQUATToSE3(
+            np.concatenate([self.q_init[pi:pi+3], self.q_init[pi+3:pi+7]])
+        )
+        T_pylone_biased = T_bias.inverse() * T_pylone_true
+        qpin = pin.Quaternion(T_pylone_biased.rotation)
+        self.update_pylone_pose(
+            T_pylone_biased.translation.tolist(),
+            [float(qpin.x), float(qpin.y), float(qpin.z), float(qpin.w)],
+        )
+
+        # Propagate the bias-compensated pylone slice into the seed vectors
+        # below — qpg_old/self.q_init only share the pylone slice if we copy
+        # it explicitly, generateTargetConfig() won't pick it up otherwise.
+        qpg_old = qpg_old.copy()
+        qpg_old[pi:pi+7] = self.q_init[pi:pi+7]
+
+        planner = TransitionPlanner(self.problem)
+        planner.maxIterations(5000)
+        shortcut   = RandomShortcut(self.problem)
+        spline_opt = SplineGradientBased_bezier3(self.problem)
+        q_goal = np.zeros((1, self.robot.configSize()), order='F')
+
+        # ── Realign: new qpg from the bias-compensated pylone pose, reached
+        #    via the margined approach transition ────────────────────────────
+        res, qpg_new, err = self.graph.generateTargetConfig(
+            self._transition_approach, qpg_old, qpg_old
+        )
+        print(f"  qpg (corrected): res={res}, err={err:.2e}")
+        if not res:
+            print("Failed to generate corrected qpg.")
+            return False
+
+        planner.setTransition(self._transition_approach)
+        q_goal[0, :] = qpg_new
+        print("Planning alignment correction (approach, corrected) …")
+        p1_correction = planner.planPath(qpg_old, q_goal, True)
+        print("  correction leg found.")
+        try:
+            p1_correction = shortcut.optimize(p1_correction)
+        except Exception as e:
+            print(f"  correction shortcut failed: {e}")
+        try:
+            p1_correction = spline_opt.optimize(p1_correction)
+        except Exception as e:
+            print(f"  correction spline optimisation failed: {e}")
+
+        # ── Insertion from the newly-aligned qpg ─────────────────────────────
+        res, qg_new, err = self.graph.generateTargetConfig(
+            self._transition_insert, qpg_new, qpg_new
+        )
+        print(f"  qg (corrected): res={res}, err={err:.2e}")
+        if not res:
+            print("Failed to generate corrected qg.")
+            return False
+
+        planner.setTransition(self._transition_insert)
+        q_goal[0, :] = qg_new
+        print("Planning p2 (insertion, from corrected qpg) …")
+        p2 = planner.planPath(qpg_new, q_goal, True)
+        print("  p2 found.")
+        try:
+            p2 = shortcut.optimize(p2)
+        except Exception as e:
+            print(f"  p2 shortcut failed: {e}")
+        try:
+            p2 = spline_opt.optimize(p2)
+        except Exception as e:
+            print(f"  p2 spline optimisation failed: {e}")
+
+        self.qpg = qpg_new
+        self.qg  = qg_new
+        self.p1_correction = p1_correction
+        self.p2 = p2
+        print("  p1_correction and p2 updated. Call update_reversals() to "
+              "rebuild the retreat legs before executing.")
+        return True
+
+    def update_reversals(self) -> None:
+        """(Re)build the retreat legs by reversing whatever forward segments
+        are currently in memory: p2 (→ p3), p1_correction (→
+        p1_correction_reverse, if present), and the original p1 (→ p4).
+
+        Call this once you're done (re)planning the forward segments —
+        after plan(), and again after correct_alignment_from_mocap().
+        """
+        self.p3 = self.p2.reverse()
+        print("  p3 updated (retraction, reversed from current p2).")
+
+        if getattr(self, "p1_correction", None) is not None:
+            self.p1_correction_reverse = self.p1_correction.reverse()
+            print("  p1_correction_reverse updated (undo realignment).")
+        else:
+            self.p1_correction_reverse = None
+
+        self.p4 = self.p1.reverse()
+        print("  p4 updated (retreat, reversed from original p1).")
+
+    def plan_and_execute_staged(self, max_attempts: int = 50, n_mocap_samples: int = 10) -> bool:
+        """Two-phase plan/execute with a one-shot mocap correction in between.
+
+        1. plan() then execute p1 alone (blind approach to qpg).
+        2. Average n_mocap_samples mocap readings at qpg, correct the pylone
+           pose, replan a short realignment leg (through the margined
+           _transition_approach) to a corrected qpg, and replan p2
+           (insertion) from there.
+        3. update_reversals(), then execute the full sequence: p1_correction,
+           p2, p3, p1_correction_reverse, p4.
+
+        Requires connect_mocap() to have been called beforehand. For manual,
+        step-by-step control (inspecting/replanning between stages), call
+        plan() / execute() / correct_alignment_from_mocap() /
+        update_reversals() directly instead.
+        """
+        if not self.plan(max_attempts=max_attempts):
+            return False
+
+        print("Executing p1 (approach) …")
+        self.execute([self.p1])
+
+        if not self.correct_alignment_from_mocap(n_samples=n_mocap_samples):
+            return False
+        self.update_reversals()
+
+        print("Executing correction, p2, p3, correction reverse, p4 …")
+        self.execute([
+            self.p1_correction, self.p2, self.p3,
+            self.p1_correction_reverse, self.p4,
+        ])
         return True
 
     # ── Path sampling ─────────────────────────────────────────────────────────
