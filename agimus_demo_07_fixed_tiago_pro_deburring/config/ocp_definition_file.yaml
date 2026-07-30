@@ -90,7 +90,7 @@ terminal_model:
     constraints:
       # arm_right_3_link_sc vs pylone capsules
     - name: collision_arm3_pyl0
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -99,7 +99,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_0]
     - name: collision_arm3_pyl1
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -108,7 +108,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_1]
     - name: collision_arm3_pyl2
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -117,7 +117,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_2]
     - name: collision_arm3_pyl3
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -126,7 +126,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_3]
     - name: collision_arm3_pyl4
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -135,7 +135,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_4]
     - name: collision_arm3_pyl5
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -145,7 +145,7 @@ terminal_model:
           collision_pair: [arm_right_3_link_sc_capsule_0, pylone_sc_link_capsule_5]
       # arm_right_5_link_sc vs pylone capsules
     - name: collision_arm5_pyl0
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -154,7 +154,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_0]
     - name: collision_arm5_pyl1
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -163,7 +163,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_1]
     - name: collision_arm5_pyl2
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -172,7 +172,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_2]
     - name: collision_arm5_pyl3
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -181,7 +181,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_3]
     - name: collision_arm5_pyl4
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -190,7 +190,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_4]
     - name: collision_arm5_pyl5
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -200,7 +200,7 @@ terminal_model:
           collision_pair: [arm_right_5_link_sc_capsule_0, pylone_sc_link_capsule_5]
       # arm_right_7_link_sc vs pylone capsules
     - name: collision_arm7_pyl0
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -209,7 +209,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_7_link_sc_capsule_0, pylone_sc_link_capsule_0]
     - name: collision_arm7_pyl1
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -218,7 +218,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_7_link_sc_capsule_0, pylone_sc_link_capsule_1]
     - name: collision_arm7_pyl2
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -227,7 +227,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_7_link_sc_capsule_0, pylone_sc_link_capsule_2]
     - name: collision_arm7_pyl3
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -236,7 +236,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_7_link_sc_capsule_0, pylone_sc_link_capsule_3]
     - name: collision_arm7_pyl4
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
@@ -245,7 +245,7 @@ terminal_model:
           class: ResidualDistanceCollision
           collision_pair: [arm_right_7_link_sc_capsule_0, pylone_sc_link_capsule_4]
     - name: collision_arm7_pyl5
-      active: true
+      active: false
       constraint:
         class: ConstraintModelResidual
         lower: 0.001
