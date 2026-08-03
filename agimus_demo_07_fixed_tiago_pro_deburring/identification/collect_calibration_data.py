@@ -47,8 +47,8 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from action_msgs.msg import GoalStatus
 from control_msgs.action import FollowJointTrajectory
+from control_msgs.msg import DynamicJointState
 from play_motion2_msgs.action import PlayMotion2
-from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
 
@@ -91,12 +91,31 @@ _STILL_THRESHOLD = 0.005  # rad/s
 
 # ── Utility ───────────────────────────────────────────────────────────────────
 
-def _q_from_js(model, js_msg):
-    js_map = dict(zip(js_msg.name, js_msg.position))
+def _djs_value(djs_msg, jname, interface="absolute_position"):
+    """Look up an interface value for a joint in a DynamicJointState message.
+
+    When interface='absolute_position', falls back to 'position' if
+    unavailable (e.g. torso_lift_joint, which has no absolute_position
+    interface). Other interfaces (e.g. 'velocity') are looked up as-is.
+    """
+    for candidate in (jname, f"tiago_pro/{jname}"):
+        try:
+            idx = djs_msg.joint_names.index(candidate)
+        except ValueError:
+            continue
+        iv = djs_msg.interface_values[idx]
+        imap = dict(zip(iv.interface_names, iv.values))
+        if interface == "absolute_position":
+            return imap.get("absolute_position", imap.get("position"))
+        return imap.get(interface)
+    return None
+
+
+def _q_from_js(model, djs_msg):
     q = pin.neutral(model)
     for jid in range(1, model.njoints):
         jname = model.names[jid]
-        val = js_map.get(jname) or js_map.get(f"tiago_pro/{jname}")
+        val = _djs_value(djs_msg, jname)
         if val is not None and model.joints[jid].nq == 1:
             q[model.joints[jid].idx_q] = val
     return q
@@ -248,9 +267,13 @@ class CalibrationCollector(Node):
         self._last_ee_pos = None   # guard against frozen mocap
 
         self._lock   = threading.Lock()
-        self._js_msg : JointState | None = None
+        self._js_msg : DynamicJointState | None = None
 
-        self.create_subscription(JointState, "/joint_states", self._js_cb, 10)
+        self.create_subscription(
+            DynamicJointState,
+            "/joint_torque_state_broadcaster/dynamic_joint_states",
+            self._js_cb, 10,
+        )
 
         self.get_logger().info(f"Connecting to Qualisys at {_QUALISYS_IP} ...")
         self._qc = QualisysClient(ip=_QUALISYS_IP, bodies=_MOCAP_BODIES)
@@ -272,9 +295,8 @@ class CalibrationCollector(Node):
         return (now - (stamp.sec + stamp.nanosec * 1e-9)) < _FRESHNESS_S
 
     def _is_still(self, js):
-        js_map = dict(zip(js.name, js.velocity))
         for jname in ACTIVE_JOINTS:
-            vel = js_map.get(jname, js_map.get(f"tiago_pro/{jname}", 0.0))
+            vel = _djs_value(js, jname, interface="velocity") or 0.0
             if abs(vel) > _STILL_THRESHOLD:
                 return False
         return True
@@ -355,10 +377,10 @@ class CalibrationCollector(Node):
             js = self._js_msg
 
         if js is None:
-            self.get_logger().warn("No /joint_states received — skipping sample.")
+            self.get_logger().warn("No dynamic_joint_states received — skipping sample.")
             return False
         if not self._is_fresh(js.header.stamp):
-            self.get_logger().warn("/joint_states is stale — skipping.")
+            self.get_logger().warn("dynamic_joint_states is stale — skipping.")
             return False
         if not self._is_still(js):
             self.get_logger().warn("Robot still moving — waiting 1s more ...")
@@ -380,14 +402,13 @@ class CalibrationCollector(Node):
             return False
         self._last_ee_pos = ee_pos
 
-        js_map = dict(zip(js.name, js.position))
         sample = {
             "x1": float(ee_pos[0]),
             "y1": float(ee_pos[1]),
             "z1": float(ee_pos[2]),
         }
         for jname in ACTIVE_JOINTS:
-            val = js_map.get(jname) or js_map.get(f"tiago_pro/{jname}")
+            val = _djs_value(js, jname)
             if val is None:
                 self.get_logger().warn(f"Joint '{jname}' missing — skipping.")
                 return False
