@@ -27,6 +27,7 @@ import sys
 import glob
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 import numpy as np
 import pinocchio as pin
 import yaml
@@ -166,8 +167,28 @@ class Orchestrator:
             )
         return urdf_str
 
+    @staticmethod
+    def _strip_sc_capsules(urdf_str: str) -> str:
+        """Remove the '_link_sc' simplified capsules from the URDF.
+
+        These capsules exist for the MPC's soft, distance-based collision
+        avoidance and are deliberately oversized for that purpose — they are
+        not meant to be hard pass/fail collision geometry for the HPP
+        planner, which should check against the real link geometry instead.
+        """
+        root = ET.fromstring(urdf_str)
+        for link in list(root.findall("link")):
+            if link.get("name", "").endswith("_link_sc"):
+                root.remove(link)
+        for joint in list(root.findall("joint")):
+            child = joint.find("child")
+            if child is not None and child.get("link", "").endswith("_link_sc"):
+                root.remove(joint)
+        return ET.tostring(root, encoding="unicode")
+
     def _setup_model(self):
         urdf_str = self._fetch_robot_urdf()
+        urdf_str = self._strip_sc_capsules(urdf_str)
         _tmp = tempfile.NamedTemporaryFile(suffix=".urdf", delete=False, mode="w")
         _tmp.write(urdf_str)
         _tmp.close()
@@ -353,16 +374,23 @@ class Orchestrator:
         """Generate qpg (collision-free), qg, and plan p1, p2, p3, p4."""
         shooter = self.problem.configurationShooter()
         qpg = None
+        n_ik_fail = 0
+        n_collision_fail = 0
+        collision_pair_counts = {}
         for i in range(max_attempts):
             q = shooter.shoot()
             res, q_cand, err = self.graph.generateTargetConfig(
                 self._transition_approach, self.q_init, q
             )
             if not res:
+                n_ik_fail += 1
                 continue
             pv = self._transition_approach.pathValidation()
-            res, _ = pv.validateConfiguration(q_cand)
+            res, report = pv.validateConfiguration(q_cand)
             if not res:
+                n_collision_fail += 1
+                key = str(report)
+                collision_pair_counts[key] = collision_pair_counts.get(key, 0) + 1
                 continue
             qpg = q_cand
             print(f"  qpg found at attempt {i}, err={err:.2e}")
@@ -370,6 +398,10 @@ class Orchestrator:
 
         if qpg is None:
             print(f"Failed to find collision-free qpg in {max_attempts} attempts.")
+            print(f"  IK/reachability failures: {n_ik_fail}")
+            print(f"  Collision failures:       {n_collision_fail}")
+            for key, count in sorted(collision_pair_counts.items(), key=lambda kv: -kv[1]):
+                print(f"    [{count}x] {key}")
             return False
 
         self.qpg = qpg
@@ -513,7 +545,7 @@ class Orchestrator:
         T_pylone_true = pin.XYZQUATToSE3(
             np.concatenate([self.q_init[pi:pi+3], self.q_init[pi+3:pi+7]])
         )
-        T_pylone_biased = T_bias.inverse() * T_pylone_true
+        T_pylone_biased = T_bias * T_pylone_true
         qpin = pin.Quaternion(T_pylone_biased.rotation)
         self.update_pylone_pose(
             T_pylone_biased.translation.tolist(),
