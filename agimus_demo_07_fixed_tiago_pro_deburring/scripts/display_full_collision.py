@@ -42,6 +42,7 @@ ROBOT_MAPPINGS = {
     "end_effector_left":  "pal-pro-gripper",
     "wrist_model_right":  "spherical-wrist",
     "with_sc":            "true",
+    "camera_model":       "realsense-d435",
 }
 
 _STATIC_JOINTS = [
