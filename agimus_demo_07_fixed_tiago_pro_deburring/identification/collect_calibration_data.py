@@ -277,8 +277,9 @@ class CalibrationCollector(Node):
         self._last_target = None
         self._last_ee_pos = None   # guard against frozen mocap
 
-        self._lock   = threading.Lock()
-        self._js_msg : DynamicJointState | None = None
+        self._lock    = threading.Lock()
+        self._js_msg  : DynamicJointState | None = None
+        self._last_rx = None  # local receipt time (this node's clock), not the msg's header.stamp
 
         self.create_subscription(
             DynamicJointState,
@@ -297,13 +298,21 @@ class CalibrationCollector(Node):
 
     def _js_cb(self, msg):
         with self._lock:
-            self._js_msg = msg
+            self._js_msg  = msg
+            self._last_rx = self.get_clock().now()
         if self._viser and self._model:
             self._viser.update_current(_q_from_js(self._model, msg))
 
-    def _is_fresh(self, stamp):
-        now = self.get_clock().now().nanoseconds * 1e-9
-        return (now - (stamp.sec + stamp.nanosec * 1e-9)) < _FRESHNESS_S
+    def _is_fresh(self, last_rx):
+        """True if `last_rx` (this node's clock, set in _js_cb) is recent.
+
+        Deliberately does NOT use the message's header.stamp: that's stamped
+        with the robot's own clock, so comparing it to this node's clock
+        makes the check depend on clock sync between the two machines
+        instead of on whether the subscription is actually still alive.
+        """
+        now = self.get_clock().now()
+        return (now - last_rx).nanoseconds * 1e-9 < _FRESHNESS_S
 
     def _is_still(self, js):
         for jname in ACTIVE_JOINTS:
@@ -385,12 +394,13 @@ class CalibrationCollector(Node):
         time.sleep(_SETTLE_S)
 
         with self._lock:
-            js = self._js_msg
+            js      = self._js_msg
+            last_rx = self._last_rx
 
         if js is None:
             self.get_logger().warn("No dynamic_joint_states received — skipping sample.")
             return False
-        if not self._is_fresh(js.header.stamp):
+        if last_rx is None or not self._is_fresh(last_rx):
             self.get_logger().warn("dynamic_joint_states is stale — skipping.")
             return False
         if not self._is_still(js):
