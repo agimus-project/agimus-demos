@@ -159,21 +159,32 @@ def _fk_ee(model, q, ee_id):
     return data.oMf[ee_id].copy()
 
 
-def _ee_pos_in_base(qc):
-    """EE position expressed in the tiago_base mocap frame, or None if a marker is lost.
+def _ee_pose_in_base(qc):
+    """EE pose (position + RPY) expressed in the tiago_base mocap frame,
+    or None if a marker is lost.
 
-    The EE marker is a single point (position-only calibration, known_tipframe=False
-    identifies pEEx/y/z only), so only the base's orientation is needed to rotate
-    (t_ee - t_base) into the base frame — the EE's own orientation doesn't affect
-    the result. Matches mocap_ee_publisher.py's T_ee_in_base = T_base⁻¹ · T_ee.
+    tiago_endEffector is tracked as a full 6DOF rigid body by Qualisys, same
+    as tiago_base (see qualisys.py / mocap_ee_publisher.py, which already
+    uses its orientation for the live MPC correction) — so its orientation
+    is measured directly, not derived. RPY convention (pin.rpy.matrixToRpy)
+    matches figaroh's calibration_tools.load_data/calc_updated_fkm, which
+    expects CSV columns x{i},y{i},z{i},phix{i},phiy{i},phiz{i} per marker.
+    Matches mocap_ee_publisher.py's T_ee_in_base = T_base⁻¹ · T_ee.
     """
     positions = qc.getPositions()
+    quats = qc.getOrientationQuats()
     t_ee, t_base = positions[_EE_IDX], positions[_BASE_IDX]
-    if np.any(np.isnan(t_ee)) or np.any(np.isnan(t_base)):
+    q_ee, q_base = quats[_EE_IDX], quats[_BASE_IDX]
+    if (
+        np.any(np.isnan(t_ee)) or np.any(np.isnan(t_base))
+        or np.any(np.isnan(q_ee)) or np.any(np.isnan(q_base))
+    ):
         return None
-    q_base = qc.getOrientationQuats()[_BASE_IDX]
     T_base = pin.XYZQUATToSE3(np.concatenate([t_base, q_base]))
-    return T_base.rotation.T @ (t_ee - t_base)
+    T_ee   = pin.XYZQUATToSE3(np.concatenate([t_ee, q_ee]))
+    T_ee_in_base = T_base.inverse() * T_ee
+    rpy = pin.rpy.matrixToRpy(T_ee_in_base.rotation)
+    return np.concatenate([T_ee_in_base.translation, rpy])
 
 
 def _print_error_table(target_vals, current_vals):
@@ -391,21 +402,24 @@ class CalibrationCollector(Node):
                 self.get_logger().warn("Still moving — skipping sample.")
                 return False
 
-        ee_pos = _ee_pos_in_base(self._qc)
-        if ee_pos is None:
+        ee_pose = _ee_pose_in_base(self._qc)
+        if ee_pose is None:
             self.get_logger().warn("Mocap EE or base marker not visible (NaN) — skipping.")
             return False
-        if self._last_ee_pos is not None and np.linalg.norm(ee_pos - self._last_ee_pos) < 1e-4:
+        if self._last_ee_pos is not None and np.linalg.norm(ee_pose[:3] - self._last_ee_pos) < 1e-4:
             self.get_logger().error(
                 "EE position unchanged from previous sample — mocap may be frozen! Skipping."
             )
             return False
-        self._last_ee_pos = ee_pos
+        self._last_ee_pos = ee_pose[:3]
 
         sample = {
-            "x1": float(ee_pos[0]),
-            "y1": float(ee_pos[1]),
-            "z1": float(ee_pos[2]),
+            "x1": float(ee_pose[0]),
+            "y1": float(ee_pose[1]),
+            "z1": float(ee_pose[2]),
+            "phix1": float(ee_pose[3]),
+            "phiy1": float(ee_pose[4]),
+            "phiz1": float(ee_pose[5]),
         }
         for jname in ACTIVE_JOINTS:
             val = _djs_value(js, jname)
@@ -435,7 +449,7 @@ class CalibrationCollector(Node):
             print("No samples to save.")
             return
         os.makedirs(os.path.dirname(os.path.abspath(self._output_path)), exist_ok=True)
-        fieldnames = ["x1", "y1", "z1"] + ACTIVE_JOINTS
+        fieldnames = ["x1", "y1", "z1", "phix1", "phiy1", "phiz1"] + ACTIVE_JOINTS
         with open(self._output_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
