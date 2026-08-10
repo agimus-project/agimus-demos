@@ -33,16 +33,16 @@ import pinocchio as pin
 # --- Paths ---
 TIAGO_DESC = Path(get_package_share_directory("tiago_pro_description"))
 ROBOT_XACRO = TIAGO_DESC / "robots" / "tiago_pro.urdf.xacro"
-_PKG_DIR = Path(__file__).resolve().parent.parent   # source dir, no rebuild needed
+_PKG_DIR = Path(__file__).resolve().parent.parent  # source dir, no rebuild needed
 ENV_XACRO = _PKG_DIR / "urdf" / "environment.urdf.xacro"
 PACKAGE_DIRS = [str(TIAGO_DESC.parent.parent), str(_PKG_DIR.parent)]
 
 ROBOT_MAPPINGS = {
     "end_effector_right": "pal-atc",
-    "end_effector_left":  "pal-pro-gripper",
-    "wrist_model_right":  "spherical-wrist",
-    "with_sc":            "true",
-    "camera_model":       "realsense-d435",
+    "end_effector_left": "pal-pro-gripper",
+    "wrist_model_right": "spherical-wrist",
+    "with_sc": "true",
+    "camera_model": "realsense-d435",
 }
 
 _STATIC_JOINTS = [
@@ -55,21 +55,22 @@ _DISPLAY_PERIOD = 0.05
 
 # --- Helpers ---
 
+
 def _load_pylone_pose():
     with open(_PKG_DIR / "config" / "pylone_pose.yaml") as f:
         pp = yaml.safe_load(f)
     q = pp.get("pylone_quat", [0.0, 0.0, 0.0, 1.0])
     qx, qy, qz, qw = q
-    roll  = math.atan2(2*(qw*qx + qy*qz), 1 - 2*(qx*qx + qy*qy))
-    pitch = math.asin(max(-1.0, min(1.0, 2*(qw*qy - qz*qx))))
-    yaw   = math.atan2(2*(qw*qz + qx*qy), 1 - 2*(qy*qy + qz*qz))
+    roll = math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy))
+    pitch = math.asin(max(-1.0, min(1.0, 2 * (qw * qy - qz * qx))))
+    yaw = math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
     return {
-        "pylone_x":     str(pp["pylone_x"]),
-        "pylone_y":     str(pp["pylone_y"]),
-        "pylone_z":     str(pp["pylone_z"]),
-        "pylone_roll":  str(roll),
+        "pylone_x": str(pp["pylone_x"]),
+        "pylone_y": str(pp["pylone_y"]),
+        "pylone_z": str(pp["pylone_z"]),
+        "pylone_roll": str(roll),
         "pylone_pitch": str(pitch),
-        "pylone_yaw":   str(yaw),
+        "pylone_yaw": str(yaw),
     }
 
 
@@ -95,9 +96,12 @@ def _merge(env_model, robot_model, env_geom, robot_geom):
     """Append robot model to env model at env's universe frame."""
     universe_id = env_model.getFrameId("universe")
     return pin.appendModel(
-        env_model, robot_model,
-        env_geom, robot_geom,
-        universe_id, pin.SE3.Identity(),
+        env_model,
+        robot_model,
+        env_geom,
+        robot_geom,
+        universe_id,
+        pin.SE3.Identity(),
     )
 
 
@@ -115,13 +119,20 @@ def _static_q(model):
 class _PinWrapper:
     def __init__(self, model, collision_model, visual_model):
         self._m, self._cm, self._vm = model, collision_model, visual_model
-    def model(self):       return self._m
-    def geomModel(self):   return self._cm
-    def visualModel(self): return self._vm
+
+    def model(self):
+        return self._m
+
+    def geomModel(self):
+        return self._cm
+
+    def visualModel(self):
+        return self._vm
 
 
 def _reload_viewer(viz_ref, model, sc_model, visual_model, q=None):
     from pyhpp_viser import Viewer
+
     wrapper = _PinWrapper(model, sc_model, visual_model)
     viz = Viewer(wrapper)
     open_browser = viz_ref[0] is None
@@ -175,10 +186,14 @@ def _try_ros_mode(viz_ref, sc_xml, env_model, env_sc, env_visual):
                 self.get_logger().error(f"Failed to parse /robot_description: {e}")
                 return
             robot_sc = _filter_sc(robot_collision)
-            combined_model, combined_visual = _merge(env_model, robot_model, env_visual, robot_visual)
+            combined_model, combined_visual = _merge(
+                env_model, robot_model, env_visual, robot_visual
+            )
             _, combined_sc = _merge(env_model, robot_model, env_sc, robot_sc)
             self.get_logger().info("Reloading viewer from /robot_description.")
-            _reload_viewer(viz_ref, combined_model, combined_sc, combined_visual, state["q"])
+            _reload_viewer(
+                viz_ref, combined_model, combined_sc, combined_visual, state["q"]
+            )
             state["model"] = combined_model
 
         def _js_cb(self, msg):
@@ -222,7 +237,9 @@ def main():
     # --- Environment ---
     print("Loading pylone pose …")
     pose_args = _load_pylone_pose()
-    print(f"  x={pose_args['pylone_x']}, y={pose_args['pylone_y']}, z={pose_args['pylone_z']}")
+    print(
+        f"  x={pose_args['pylone_x']}, y={pose_args['pylone_y']}, z={pose_args['pylone_z']}"
+    )
     print("Processing environment.urdf.xacro …")
     env_urdf = xacro.process_file(
         str(ENV_XACRO), mappings={"with_sc": "true", **pose_args}
@@ -232,7 +249,9 @@ def main():
 
     # --- Merge ---
     print("Merging models …")
-    combined_model, combined_visual = _merge(env_model, robot_model, env_visual, robot_visual)
+    combined_model, combined_visual = _merge(
+        env_model, robot_model, env_visual, robot_visual
+    )
     _, combined_sc = _merge(env_model, robot_model, env_sc, robot_sc)
 
     print(f"\nSC geometries ({combined_sc.ngeoms} total):")

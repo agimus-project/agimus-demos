@@ -42,29 +42,30 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import rclpy
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
-from sensor_msgs.msg import JointState
-from std_msgs.msg import String
+import rclpy  # noqa: E402
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy  # noqa: E402
+from sensor_msgs.msg import JointState  # noqa: E402
+from std_msgs.msg import String  # noqa: E402
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-_SCRIPTS_DIR   = os.path.dirname(os.path.abspath(__file__))
-_PKG_DIR       = os.path.join(_SCRIPTS_DIR, "..")
-_QUALISYS_IP   = "140.93.1.100"
-_MOCAP_BODIES  = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
-_MOCAP_BASE_IDX = 2   # tiago_base = reference frame
-_EE_IDX         = 1   # tiago_endEffector local index
-_EE_FRAME_KW   = "gripper_right_tool_holder"
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+_PKG_DIR = os.path.join(_SCRIPTS_DIR, "..")
+_QUALISYS_IP = "140.93.1.100"
+_MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
+_MOCAP_BASE_IDX = 2  # tiago_base = reference frame
+_EE_IDX = 1  # tiago_endEffector local index
+_EE_FRAME_KW = "gripper_right_tool_holder"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _rotation_mean(rotations: np.ndarray) -> np.ndarray:
     """Chordal L2 mean of a set of (3×3) rotation matrices (SVD method)."""
     R_sum = rotations.sum(axis=0)
     U, _, Vt = np.linalg.svd(R_sum)
     R_mean = U @ Vt
-    if np.linalg.det(R_mean) < 0:   # fix reflection
+    if np.linalg.det(R_mean) < 0:  # fix reflection
         U[:, -1] *= -1
         R_mean = U @ Vt
     return R_mean
@@ -73,7 +74,7 @@ def _rotation_mean(rotations: np.ndarray) -> np.ndarray:
 def _se3_to_mat4(T: pin.SE3) -> np.ndarray:
     mat = np.eye(4)
     mat[:3, :3] = T.rotation
-    mat[:3,  3] = T.translation
+    mat[:3, 3] = T.translation
     return mat
 
 
@@ -82,6 +83,7 @@ def _mat4_to_se3(mat: np.ndarray) -> pin.SE3:
 
 
 # ── Main class ────────────────────────────────────────────────────────────────
+
 
 class Calibrator:
     """
@@ -123,8 +125,10 @@ class Calibrator:
         )
         urdf_str = [None]
         sub = self._node.create_subscription(
-            String, "/robot_description",
-            lambda m: urdf_str.__setitem__(0, m.data), qos,
+            String,
+            "/robot_description",
+            lambda m: urdf_str.__setitem__(0, m.data),
+            qos,
         )
         t0 = time.time()
         while urdf_str[0] is None and time.time() - t0 < timeout:
@@ -163,6 +167,7 @@ class Calibrator:
         """Start the Qualisys mocap subprocess."""
         sys.path.insert(0, _SCRIPTS_DIR)
         from qualisys import QualisysClient  # noqa: PLC0415
+
         self._qc = QualisysClient(ip=ip, bodies=_MOCAP_BODIES)
         time.sleep(1.0)
         print(f"Mocap connected to {ip}.")
@@ -178,7 +183,7 @@ class Calibrator:
         return self._qc.getPositions(), self._qc.getOrientationQuats()
 
     def _mocap_se3(self, idx: int) -> pin.SE3:
-        pos  = self._qc.getPositions()[idx]
+        pos = self._qc.getPositions()[idx]
         quat = self._qc.getOrientationQuats()[idx]
         return pin.XYZQUATToSE3(np.concatenate([pos, quat]))
 
@@ -187,8 +192,10 @@ class Calibrator:
     def _read_joint_states(self, timeout: float = 5.0) -> dict:
         js = [None]
         sub = self._node.create_subscription(
-            JointState, "/joint_states",
-            lambda m: js.__setitem__(0, m), 10,
+            JointState,
+            "/joint_states",
+            lambda m: js.__setitem__(0, m),
+            10,
         )
         t0 = time.time()
         while js[0] is None and time.time() - t0 < timeout:
@@ -207,7 +214,7 @@ class Calibrator:
             val = js_map.get(jname) or js_map.get(jname.replace("tiago_pro/", ""))
             if val is not None:
                 nq = self._model.joints[jid].nq
-                if nq == 1:   # revolute / prismatic
+                if nq == 1:  # revolute / prismatic
                     q[self._model.joints[jid].idx_q] = val
         pin.forwardKinematics(self._model, self._data, q)
         pin.updateFramePlacements(self._model, self._data)
@@ -228,19 +235,23 @@ class Calibrator:
             print("No mocap — call connect_mocap() first.")
             return
 
-        js_map  = self._read_joint_states()
-        T_fk    = self._fk_ee(js_map)
+        js_map = self._read_joint_states()
+        T_fk = self._fk_ee(js_map)
 
         positions, quats = self._mocap_se3_bulk()
-        T_base  = pin.XYZQUATToSE3(np.concatenate([positions[_MOCAP_BASE_IDX], quats[_MOCAP_BASE_IDX]]))
-        T_mocap = T_base.inverse() * pin.XYZQUATToSE3(np.concatenate([positions[_EE_IDX], quats[_EE_IDX]]))
+        T_base = pin.XYZQUATToSE3(
+            np.concatenate([positions[_MOCAP_BASE_IDX], quats[_MOCAP_BASE_IDX]])
+        )
+        T_mocap = T_base.inverse() * pin.XYZQUATToSE3(
+            np.concatenate([positions[_EE_IDX], quats[_EE_IDX]])
+        )
 
         T_delta = T_fk.inverse() * T_mocap
         self.measurements.append((T_fk.copy(), T_mocap.copy(), T_delta.copy()))
 
-        n          = len(self.measurements)
-        t_err_mm   = np.linalg.norm(T_delta.translation) * 1e3
-        r_err_deg  = np.degrees(np.linalg.norm(pin.log3(T_delta.rotation)))
+        n = len(self.measurements)
+        t_err_mm = np.linalg.norm(T_delta.translation) * 1e3
+        r_err_deg = np.degrees(np.linalg.norm(pin.log3(T_delta.rotation)))
         print(f"  [{n:2d}]  |δt| = {t_err_mm:6.1f} mm   |δR| = {r_err_deg:.2f}°")
 
     # ── Analysis ──────────────────────────────────────────────────────────────
@@ -266,64 +277,73 @@ class Calibrator:
 
         # ── Translation ────────────────────────────────────────────────────
         translations = np.array([d.translation for d in deltas])
-        t_mean       = translations.mean(axis=0)
-        t_std_mm     = (np.linalg.norm(translations - t_mean, axis=1) * 1e3).std()
-        t_mean_mm    = np.linalg.norm(t_mean) * 1e3
+        t_mean = translations.mean(axis=0)
+        t_std_mm = (np.linalg.norm(translations - t_mean, axis=1) * 1e3).std()
+        t_mean_mm = np.linalg.norm(t_mean) * 1e3
 
         # ── Rotation ───────────────────────────────────────────────────────
-        rotations  = np.array([d.rotation for d in deltas])
-        R_mean     = _rotation_mean(rotations)
-        r_errs_deg = np.array([
-            np.degrees(np.linalg.norm(pin.log3(R_mean.T @ R)))
-            for R in rotations
-        ])
-        r_std_deg  = r_errs_deg.std()
+        rotations = np.array([d.rotation for d in deltas])
+        R_mean = _rotation_mean(rotations)
+        r_errs_deg = np.array(
+            [np.degrees(np.linalg.norm(pin.log3(R_mean.T @ R))) for R in rotations]
+        )
+        r_std_deg = r_errs_deg.std()
         r_mean_deg = np.degrees(np.linalg.norm(pin.log3(R_mean)))
-        rpy_mean   = np.degrees(pin.rpy.matrixToRpy(R_mean))
-        q_mean     = pin.Quaternion(R_mean)
+        rpy_mean = np.degrees(pin.rpy.matrixToRpy(R_mean))
+        q_mean = pin.Quaternion(R_mean)
 
         # Store T_correction for later use
         self.T_correction = pin.SE3(R_mean, t_mean)
 
         # ── Report ─────────────────────────────────────────────────────────
-        print(f"\n{'='*64}")
+        print(f"\n{'=' * 64}")
         print(f"  Mocap vs FK calibration — {n} configurations")
-        print(f"{'='*64}")
+        print(f"{'=' * 64}")
 
-        print(f"\n  Mean δT  =  T_FK⁻¹ · T_mocap  (marker offset candidate)")
-        print(f"    Translation  : {np.round(t_mean * 1e3, 2)} mm   |t| = {t_mean_mm:.1f} mm")
+        print("\n  Mean δT  =  T_FK⁻¹ · T_mocap  (marker offset candidate)")
+        print(
+            f"    Translation  : {np.round(t_mean * 1e3, 2)} mm   |t| = {t_mean_mm:.1f} mm"
+        )
         print(f"    Rotation     : |δR| = {r_mean_deg:.2f}°")
         print(f"    RPY  [°]     : {np.round(rpy_mean, 2)}")
-        print(f"    Quaternion   : xyzw = "
-              f"{np.round([q_mean.x, q_mean.y, q_mean.z, q_mean.w], 4)}")
+        print(
+            f"    Quaternion   : xyzw = "
+            f"{np.round([q_mean.x, q_mean.y, q_mean.z, q_mean.w], 4)}"
+        )
 
-        print(f"\n  Config-to-config dispersion")
+        print("\n  Config-to-config dispersion")
         print(f"    Translation σ : {t_std_mm:.2f} mm")
         print(f"    Rotation σ    : {r_std_deg:.3f}°")
 
-        print(f"\n  Per-measurement errors:")
-        print(f"    {'#':>3}  {'|δt| mm':>9}  {'|δR| °':>8}  {'σ_t mm':>8}  {'σ_R °':>7}")
+        print("\n  Per-measurement errors:")
+        print(
+            f"    {'#':>3}  {'|δt| mm':>9}  {'|δR| °':>8}  {'σ_t mm':>8}  {'σ_R °':>7}"
+        )
         for i, d in enumerate(deltas):
-            t_mm  = np.linalg.norm(d.translation) * 1e3
+            t_mm = np.linalg.norm(d.translation) * 1e3
             r_deg = np.degrees(np.linalg.norm(pin.log3(d.rotation)))
             dt_mm = np.linalg.norm((d.translation - t_mean)) * 1e3
             dr_deg = r_errs_deg[i]
-            print(f"    {i+1:>3}  {t_mm:>9.1f}  {r_deg:>8.2f}  {dt_mm:>8.2f}  {dr_deg:>7.3f}")
+            print(
+                f"    {i + 1:>3}  {t_mm:>9.1f}  {r_deg:>8.2f}  {dt_mm:>8.2f}  {dr_deg:>7.3f}"
+            )
 
-        print(f"\n  Diagnosis")
+        print("\n  Diagnosis")
         if t_std_mm < 3.0 and r_std_deg < 1.0:
-            print(f"    ✓  δT is CONSTANT across configurations.")
-            print(f"       → Error is a fixed EE marker offset.")
-            print(f"       → FK is reliable; use T_correction = c.T_correction once.")
+            print("    ✓  δT is CONSTANT across configurations.")
+            print("       → Error is a fixed EE marker offset.")
+            print("       → FK is reliable; use T_correction = c.T_correction once.")
         elif t_std_mm < 10.0 and r_std_deg < 3.0:
-            print(f"    ~  δT is MOSTLY CONSTANT (small variation).")
-            print(f"       → Marker offset dominates, small FK residuals present.")
-            print(f"       → T_correction valid; accuracy limited to ~{t_std_mm:.0f} mm.")
+            print("    ~  δT is MOSTLY CONSTANT (small variation).")
+            print("       → Marker offset dominates, small FK residuals present.")
+            print(
+                f"       → T_correction valid; accuracy limited to ~{t_std_mm:.0f} mm."
+            )
         else:
-            print(f"    !  δT VARIES SIGNIFICANTLY across configurations.")
-            print(f"       → FK errors or base-frame misalignment are significant.")
-            print(f"       → T_correction is only locally valid.")
-        print(f"{'='*64}\n")
+            print("    !  δT VARIES SIGNIFICANTLY across configurations.")
+            print("       → FK errors or base-frame misalignment are significant.")
+            print("       → T_correction is only locally valid.")
+        print(f"{'=' * 64}\n")
 
         return t_std_mm, r_std_deg
 
@@ -334,9 +354,9 @@ class Calibrator:
         os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
         np.savez(
             path,
-            T_fk    = np.array([_se3_to_mat4(m[0]) for m in self.measurements]),
-            T_mocap = np.array([_se3_to_mat4(m[1]) for m in self.measurements]),
-            T_delta = np.array([_se3_to_mat4(m[2]) for m in self.measurements]),
+            T_fk=np.array([_se3_to_mat4(m[0]) for m in self.measurements]),
+            T_mocap=np.array([_se3_to_mat4(m[1]) for m in self.measurements]),
+            T_delta=np.array([_se3_to_mat4(m[2]) for m in self.measurements]),
         )
         print(f"Saved {len(self.measurements)} measurements → {path}")
 

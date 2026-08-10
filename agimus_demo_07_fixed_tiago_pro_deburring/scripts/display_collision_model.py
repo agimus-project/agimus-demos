@@ -37,9 +37,9 @@ PACKAGE_DIRS = [str(TIAGO_DESC.parent.parent)]
 # Same xacro args as bringup.launch.py + enable simplified capsule links
 XACRO_MAPPINGS = {
     "end_effector_right": "pal-atc",
-    "end_effector_left":  "pal-pro-gripper",
-    "wrist_model_right":  "spherical-wrist",
-    "with_sc":            "true",
+    "end_effector_left": "pal-pro-gripper",
+    "wrist_model_right": "spherical-wrist",
+    "with_sc": "true",
 }
 
 # Display joint angles for the fallback static pose
@@ -55,13 +55,20 @@ _DISPLAY_PERIOD = 0.05  # s  (20 Hz max)
 
 class _PinRobotWrapper:
     """Minimal wrapper to make a Pinocchio model look like an HPP Device."""
+
     def __init__(self, model, collision_model, visual_model):
-        self._m  = model
+        self._m = model
         self._cm = collision_model
         self._vm = visual_model
-    def model(self):       return self._m
-    def geomModel(self):   return self._cm
-    def visualModel(self): return self._vm
+
+    def model(self):
+        return self._m
+
+    def geomModel(self):
+        return self._cm
+
+    def visualModel(self):
+        return self._vm
 
 
 def _build_models(urdf_string):
@@ -134,8 +141,8 @@ def _try_ros_mode(viz_ref, sc_xml, initial_model):
         return
 
     state = {
-        "model":    initial_model,
-        "q":        None,
+        "model": initial_model,
+        "q": None,
         "last_disp": 0.0,
     }
 
@@ -147,7 +154,9 @@ def _try_ros_mode(viz_ref, sc_xml, initial_model):
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
                 reliability=ReliabilityPolicy.RELIABLE,
             )
-            self.create_subscription(String, "/robot_description", self._urdf_cb, qos_latched)
+            self.create_subscription(
+                String, "/robot_description", self._urdf_cb, qos_latched
+            )
             self.create_subscription(JointState, "/joint_states", self._js_cb, 10)
 
         def _urdf_cb(self, msg):
@@ -159,7 +168,9 @@ def _try_ros_mode(viz_ref, sc_xml, initial_model):
             try:
                 model, collision_model, visual_model = _build_models(urdf)
             except Exception as e:
-                self.get_logger().error(f"Failed to build model from /robot_description: {e}")
+                self.get_logger().error(
+                    f"Failed to build model from /robot_description: {e}"
+                )
                 return
             sc_collision_model = _filter_sc(collision_model)
             self.get_logger().info(

@@ -460,7 +460,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <!-- Changed joint type to fixed joint. It is observed that the robot is loosing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
+  <!-- Changed joint type to fixed joint. It is observed that the robot is losing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
   <joint name="suspension_front_right_joint" type="fixed">
     <origin rpy="0 0 -1.5707963267948966" xyz="0.244 -0.1725 0"/>
     <parent link="base_link"/>
@@ -531,7 +531,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <!-- Changed joint type to fixed joint. It is observed that the robot is loosing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
+  <!-- Changed joint type to fixed joint. It is observed that the robot is losing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
   <joint name="suspension_front_left_joint" type="fixed">
     <origin rpy="0 0 1.5707963267948966" xyz="0.244 0.1725 0"/>
     <parent link="base_link"/>
@@ -602,7 +602,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <!-- Changed joint type to fixed joint. It is observed that the robot is loosing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
+  <!-- Changed joint type to fixed joint. It is observed that the robot is losing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
   <joint name="suspension_rear_right_joint" type="fixed">
     <origin rpy="0 0 -1.5707963267948966" xyz="-0.244 -0.1725 0"/>
     <parent link="base_link"/>
@@ -673,7 +673,7 @@
     <kinematic>0</kinematic>
     <gravity>1</gravity>
   </link>
-  <!-- Changed joint type to fixed joint. It is observed that the robot is loosing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
+  <!-- Changed joint type to fixed joint. It is observed that the robot is losing contact points due to some issues with the Gazebo Physics Engine. This makes the robot drift in localization when static due to added noise -->
   <joint name="suspension_rear_left_joint" type="fixed">
     <origin rpy="0 0 1.5707963267948966" xyz="-0.244 0.1725 0"/>
     <parent link="base_link"/>

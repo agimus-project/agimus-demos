@@ -37,29 +37,28 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import rclpy
-from rclpy.node import Node
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+import rclpy  # noqa: E402
+from rclpy.node import Node  # noqa: E402
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy  # noqa: E402
 
-from agimus_msgs.msg import MpcInput
-from control_msgs.msg import DynamicJointState
-from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import String
+from agimus_msgs.msg import MpcInput  # noqa: E402
+from control_msgs.msg import DynamicJointState  # noqa: E402
+from geometry_msgs.msg import PoseStamped  # noqa: E402
+from std_msgs.msg import String  # noqa: E402
 
 _EE_FRAME_KW = "gripper_right_tool_holder"
 
 
 class MocapMpcCorrectorNode(Node):
-
     def __init__(self):
         super().__init__("mocap_mpc_corrector")
 
         self._model = None
-        self._data  = None
+        self._data = None
         self._ee_id = None
         self._q_current: np.ndarray | None = None
-        self._mocap_se3: pin.SE3 | None = None   # latest EE pose from mocap
-        self._mocap_new: bool = False             # True when a new mocap msg arrived
+        self._mocap_se3: pin.SE3 | None = None  # latest EE pose from mocap
+        self._mocap_new: bool = False  # True when a new mocap msg arrived
         self._last_valid_correction: pin.SE3 | None = None  # frozen when mocap lost
 
         qos_latched = QoSProfile(
@@ -73,14 +72,17 @@ class MocapMpcCorrectorNode(Node):
         self.create_subscription(
             DynamicJointState,
             "/joint_torque_state_broadcaster/dynamic_joint_states",
-            self._js_cb, 10,
+            self._js_cb,
+            10,
         )
         self.create_subscription(PoseStamped, "/mocap_ee_pose", self._mocap_cb, 10)
         _qos_mpc = QoSProfile(depth=1000, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(MpcInput, "mpc_input", self._mpc_input_cb, _qos_mpc)
         self._pub = self.create_publisher(MpcInput, "mpc_input_corrected", _qos_mpc)
 
-        self.get_logger().info("Mocap MPC corrector ready — waiting for robot_description …")
+        self.get_logger().info(
+            "Mocap MPC corrector ready — waiting for robot_description …"
+        )
 
     # ── Model loading ─────────────────────────────────────────────────────────
 
@@ -92,8 +94,8 @@ class MocapMpcCorrectorNode(Node):
             tmp = f.name
         model = pin.buildModelFromUrdf(tmp)
         os.unlink(tmp)
-        data   = model.createData()
-        ee_id  = None
+        data = model.createData()
+        ee_id = None
         for i, frame in enumerate(model.frames):
             if _EE_FRAME_KW in frame.name:
                 ee_id = i
@@ -102,7 +104,7 @@ class MocapMpcCorrectorNode(Node):
             self.get_logger().error(f"Frame '{_EE_FRAME_KW}' not found in model.")
             return
         self._model = model
-        self._data  = data
+        self._data = data
         self._ee_id = ee_id
         self.get_logger().info(
             f"Model loaded — EE frame: '{model.frames[ee_id].name}' (id={ee_id})"
@@ -134,8 +136,14 @@ class MocapMpcCorrectorNode(Node):
 
     def _mocap_cb(self, msg: PoseStamped) -> None:
         t = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
-        q = np.array([msg.pose.orientation.x, msg.pose.orientation.y,
-                      msg.pose.orientation.z, msg.pose.orientation.w])
+        q = np.array(
+            [
+                msg.pose.orientation.x,
+                msg.pose.orientation.y,
+                msg.pose.orientation.z,
+                msg.pose.orientation.w,
+            ]
+        )
         self._mocap_se3 = pin.XYZQUATToSE3(np.concatenate([t, q]))
         self._mocap_new = True
 
@@ -181,20 +189,28 @@ class MocapMpcCorrectorNode(Node):
         T_correction = self._last_valid_correction
 
         for ee_input in msg.ee_inputs:
-            t = np.array([ee_input.pose.position.x,
-                          ee_input.pose.position.y,
-                          ee_input.pose.position.z])
-            q = np.array([ee_input.pose.orientation.x,
-                          ee_input.pose.orientation.y,
-                          ee_input.pose.orientation.z,
-                          ee_input.pose.orientation.w])
-            T_target    = pin.XYZQUATToSE3(np.concatenate([t, q]))
+            t = np.array(
+                [
+                    ee_input.pose.position.x,
+                    ee_input.pose.position.y,
+                    ee_input.pose.position.z,
+                ]
+            )
+            q = np.array(
+                [
+                    ee_input.pose.orientation.x,
+                    ee_input.pose.orientation.y,
+                    ee_input.pose.orientation.z,
+                    ee_input.pose.orientation.w,
+                ]
+            )
+            T_target = pin.XYZQUATToSE3(np.concatenate([t, q]))
             T_corrected = T_correction * T_target
-            q_out       = pin.Quaternion(T_corrected.rotation)
+            q_out = pin.Quaternion(T_corrected.rotation)
 
-            ee_input.pose.position.x    = float(T_corrected.translation[0])
-            ee_input.pose.position.y    = float(T_corrected.translation[1])
-            ee_input.pose.position.z    = float(T_corrected.translation[2])
+            ee_input.pose.position.x = float(T_corrected.translation[0])
+            ee_input.pose.position.y = float(T_corrected.translation[1])
+            ee_input.pose.position.z = float(T_corrected.translation[2])
             ee_input.pose.orientation.x = float(q_out.x)
             ee_input.pose.orientation.y = float(q_out.y)
             ee_input.pose.orientation.z = float(q_out.z)

@@ -56,16 +56,16 @@ import pinocchio as pin
 
 _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(_SCRIPTS_DIR))
-from qualisys import QualisysClient
+from qualisys import QualisysClient  # noqa: E402
 
-_QUALISYS_IP  = "140.93.1.100"
+_QUALISYS_IP = "140.93.1.100"
 _MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
-_EE_IDX       = 1  # local index of tiago_endEffector in _MOCAP_BODIES
-_BASE_IDX     = 2  # local index of tiago_base in _MOCAP_BODIES
+_EE_IDX = 1  # local index of tiago_endEffector in _MOCAP_BODIES
+_BASE_IDX = 2  # local index of tiago_base in _MOCAP_BODIES
 
-_IDENTIFICATION  = Path(__file__).parent
+_IDENTIFICATION = Path(__file__).parent
 _CONFIGS_DEFAULT = _IDENTIFICATION / "optimal_configs.yaml"
-_OUTPUT_DEFAULT  = _IDENTIFICATION / "calibration_samples.csv"
+_OUTPUT_DEFAULT = _IDENTIFICATION / "calibration_samples.csv"
 
 ARM_JOINTS = [
     "arm_right_1_joint",
@@ -76,20 +76,21 @@ ARM_JOINTS = [
     "arm_right_6_joint",
     "arm_right_7_joint",
 ]
-TORSO_JOINTS  = ["torso_lift_joint"]
+TORSO_JOINTS = ["torso_lift_joint"]
 ACTIVE_JOINTS = TORSO_JOINTS + ARM_JOINTS
 
-_ARM_ACTION         = "/arm_right_controller/follow_joint_trajectory"
-_TORSO_ACTION       = "/torso_controller/follow_joint_trajectory"
+_ARM_ACTION = "/arm_right_controller/follow_joint_trajectory"
+_TORSO_ACTION = "/torso_controller/follow_joint_trajectory"
 _PLAY_MOTION_ACTION = "play_motion2"
-_VIA_MOTION_NAME    = "horizontal_right"
+_VIA_MOTION_NAME = "horizontal_right"
 
-_SETTLE_S        = 5.0
-_FRESHNESS_S     = 0.5
+_SETTLE_S = 5.0
+_FRESHNESS_S = 0.5
 _STILL_THRESHOLD = 0.005  # rad/s
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────
+
 
 def _djs_value(djs_msg, jname, interface="absolute_position"):
     """Look up an interface value for a joint in a DynamicJointState message.
@@ -176,12 +177,14 @@ def _ee_pose_in_base(qc):
     t_ee, t_base = positions[_EE_IDX], positions[_BASE_IDX]
     q_ee, q_base = quats[_EE_IDX], quats[_BASE_IDX]
     if (
-        np.any(np.isnan(t_ee)) or np.any(np.isnan(t_base))
-        or np.any(np.isnan(q_ee)) or np.any(np.isnan(q_base))
+        np.any(np.isnan(t_ee))
+        or np.any(np.isnan(t_base))
+        or np.any(np.isnan(q_ee))
+        or np.any(np.isnan(q_base))
     ):
         return None
     T_base = pin.XYZQUATToSE3(np.concatenate([t_base, q_base]))
-    T_ee   = pin.XYZQUATToSE3(np.concatenate([t_ee, q_ee]))
+    T_ee = pin.XYZQUATToSE3(np.concatenate([t_ee, q_ee]))
     T_ee_in_base = T_base.inverse() * T_ee
     rpy = pin.rpy.matrixToRpy(T_ee_in_base.rotation)
     return np.concatenate([T_ee_in_base.translation, rpy])
@@ -193,16 +196,18 @@ def _print_error_table(target_vals, current_vals):
     for jname, tgt, cur in zip(ACTIVE_JOINTS, target_vals, current_vals):
         err = np.degrees(cur - tgt)
         flag = "✓" if abs(err) < 1.0 else ("~" if abs(err) < 3.0 else "✗")
-        print(f"  {jname:<30} {np.degrees(tgt):>8.2f}° {np.degrees(cur):>8.2f}°  {err:>+7.2f}°  {flag}")
+        print(
+            f"  {jname:<30} {np.degrees(tgt):>8.2f}° {np.degrees(cur):>8.2f}°  {err:>+7.2f}°  {flag}"
+        )
 
 
 def _make_trajectory(joint_names, positions, duration_sec):
     traj = JointTrajectory()
     traj.joint_names = joint_names
     pt = JointTrajectoryPoint()
-    pt.positions  = [float(p) for p in positions]
+    pt.positions = [float(p) for p in positions]
     pt.velocities = [0.0] * len(positions)
-    secs  = int(duration_sec)
+    secs = int(duration_sec)
     nsecs = int((duration_sec - secs) * 1e9)
     pt.time_from_start = Duration(sec=secs, nanosec=nsecs)
     traj.points = [pt]
@@ -211,17 +216,23 @@ def _make_trajectory(joint_names, positions, duration_sec):
 
 # ── Viser display ─────────────────────────────────────────────────────────────
 
-class ViserDisplay:
 
+class ViserDisplay:
     def __init__(self, model, visual_model, collision_model):
         from pyhpp_viser import Viewer
 
         class _Wrap:
             def __init__(self, m, cm, vm):
                 self._m, self._cm, self._vm = m, cm, vm
-            def model(self):       return self._m
-            def geomModel(self):   return self._cm
-            def visualModel(self): return self._vm
+
+            def model(self):
+                return self._m
+
+            def geomModel(self):
+                return self._cm
+
+            def visualModel(self):
+                return self._vm
 
         self._model = model
         self.viz = Viewer(_Wrap(model, collision_model, visual_model))
@@ -232,10 +243,16 @@ class ViserDisplay:
         self._server = self.viz.viewer
 
         self._current_frame = self._server.scene.add_frame(
-            "calib/current_ee", show_axes=True, axes_length=0.10, axes_radius=0.004,
+            "calib/current_ee",
+            show_axes=True,
+            axes_length=0.10,
+            axes_radius=0.004,
         )
         self._target_frame = self._server.scene.add_frame(
-            "calib/target_ee", show_axes=True, axes_length=0.14, axes_radius=0.007,
+            "calib/target_ee",
+            show_axes=True,
+            axes_length=0.14,
+            axes_radius=0.007,
         )
         self._last_upd = 0.0
 
@@ -255,36 +272,39 @@ class ViserDisplay:
         self.viz.display(q)
         pos, wxyz = self._se3_to_viser(_fk_ee(self._model, q, self._ee_id))
         self._current_frame.position = pos
-        self._current_frame.wxyz     = wxyz
+        self._current_frame.wxyz = wxyz
 
     def update_target(self, q_target):
         pos, wxyz = self._se3_to_viser(_fk_ee(self._model, q_target, self._ee_id))
         self._target_frame.position = pos
-        self._target_frame.wxyz     = wxyz
+        self._target_frame.wxyz = wxyz
 
 
 # ── ROS 2 node ────────────────────────────────────────────────────────────────
 
-class CalibrationCollector(Node):
 
+class CalibrationCollector(Node):
     def __init__(self, output_path, viser, model, duration_sec):
         super().__init__("calibration_collector")
         self._output_path = output_path
-        self._viser       = viser
-        self._model       = model
-        self._duration    = duration_sec
-        self._samples     = []
+        self._viser = viser
+        self._model = model
+        self._duration = duration_sec
+        self._samples = []
         self._last_target = None
-        self._last_ee_pos = None   # guard against frozen mocap
+        self._last_ee_pos = None  # guard against frozen mocap
 
-        self._lock    = threading.Lock()
-        self._js_msg  : DynamicJointState | None = None
-        self._last_rx = None  # local receipt time (this node's clock), not the msg's header.stamp
+        self._lock = threading.Lock()
+        self._js_msg: DynamicJointState | None = None
+        self._last_rx = (
+            None  # local receipt time (this node's clock), not the msg's header.stamp
+        )
 
         self.create_subscription(
             DynamicJointState,
             "/joint_torque_state_broadcaster/dynamic_joint_states",
-            self._js_cb, 10,
+            self._js_cb,
+            10,
         )
 
         self.get_logger().info(f"Connecting to Qualisys at {_QUALISYS_IP} ...")
@@ -292,13 +312,13 @@ class CalibrationCollector(Node):
         time.sleep(1.0)
         self.get_logger().info("Qualisys connected.")
 
-        self._arm_client         = ActionClient(self, FollowJointTrajectory, _ARM_ACTION)
-        self._torso_client       = ActionClient(self, FollowJointTrajectory, _TORSO_ACTION)
+        self._arm_client = ActionClient(self, FollowJointTrajectory, _ARM_ACTION)
+        self._torso_client = ActionClient(self, FollowJointTrajectory, _TORSO_ACTION)
         self._play_motion_client = ActionClient(self, PlayMotion2, _PLAY_MOTION_ACTION)
 
     def _js_cb(self, msg):
         with self._lock:
-            self._js_msg  = msg
+            self._js_msg = msg
             self._last_rx = self.get_clock().now()
         if self._viser and self._model:
             self._viser.update_current(_q_from_js(self._model, msg))
@@ -347,14 +367,16 @@ class CalibrationCollector(Node):
         timeout = duration_sec + 15.0
         rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
         if not result_future.done():
-            self.get_logger().warn(f"Goal execution timed out after {timeout:.0f}s — skipping.")
+            self.get_logger().warn(
+                f"Goal execution timed out after {timeout:.0f}s — skipping."
+            )
             return False
         return result_future.result().status == GoalStatus.STATUS_SUCCEEDED
 
     def _run_play_motion(self, motion_name, skip_planning=False, timeout=60.0):
         """Send a play_motion2 goal and block until completion. Returns True on success."""
         goal = PlayMotion2.Goal()
-        goal.motion_name   = motion_name
+        goal.motion_name = motion_name
         goal.skip_planning = skip_planning
         future = self._play_motion_client.send_goal_async(goal)
         rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
@@ -378,15 +400,17 @@ class CalibrationCollector(Node):
 
     def move_to(self, target_vals):
         torso_vals = [target_vals[ACTIVE_JOINTS.index(j)] for j in TORSO_JOINTS]
-        arm_vals   = [target_vals[ACTIVE_JOINTS.index(j)] for j in ARM_JOINTS]
+        arm_vals = [target_vals[ACTIVE_JOINTS.index(j)] for j in ARM_JOINTS]
 
         self.get_logger().info(f"Via pose: {_VIA_MOTION_NAME} ...")
         self._run_play_motion(_VIA_MOTION_NAME)
 
         self.get_logger().info("Moving torso ...")
-        ok_t = self._send_goal(self._torso_client, TORSO_JOINTS, torso_vals, self._duration)
+        ok_t = self._send_goal(
+            self._torso_client, TORSO_JOINTS, torso_vals, self._duration
+        )
         self.get_logger().info("Moving arm ...")
-        ok_a = self._send_goal(self._arm_client,   ARM_JOINTS,   arm_vals,   self._duration)
+        ok_a = self._send_goal(self._arm_client, ARM_JOINTS, arm_vals, self._duration)
         return ok_t and ok_a
 
     def wait_and_record(self):
@@ -394,11 +418,13 @@ class CalibrationCollector(Node):
         time.sleep(_SETTLE_S)
 
         with self._lock:
-            js      = self._js_msg
+            js = self._js_msg
             last_rx = self._last_rx
 
         if js is None:
-            self.get_logger().warn("No dynamic_joint_states received — skipping sample.")
+            self.get_logger().warn(
+                "No dynamic_joint_states received — skipping sample."
+            )
             return False
         if last_rx is None or not self._is_fresh(last_rx):
             self.get_logger().warn("dynamic_joint_states is stale — skipping.")
@@ -414,9 +440,14 @@ class CalibrationCollector(Node):
 
         ee_pose = _ee_pose_in_base(self._qc)
         if ee_pose is None:
-            self.get_logger().warn("Mocap EE or base marker not visible (NaN) — skipping.")
+            self.get_logger().warn(
+                "Mocap EE or base marker not visible (NaN) — skipping."
+            )
             return False
-        if self._last_ee_pos is not None and np.linalg.norm(ee_pose[:3] - self._last_ee_pos) < 1e-4:
+        if (
+            self._last_ee_pos is not None
+            and np.linalg.norm(ee_pose[:3] - self._last_ee_pos) < 1e-4
+        ):
             self.get_logger().error(
                 "EE position unchanged from previous sample — mocap may be frozen! Skipping."
             )
@@ -469,16 +500,22 @@ class CalibrationCollector(Node):
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Automatic calibration data collection for Tiago Pro."
     )
-    parser.add_argument("--configs",  default=str(_CONFIGS_DEFAULT))
-    parser.add_argument("--output",   default=str(_OUTPUT_DEFAULT))
-    parser.add_argument("--urdf",     default=None,
-                        help="Path to robot URDF for Viser display (optional)")
-    parser.add_argument("--duration", type=float, default=5.0,
-                        help="Trajectory duration per config in seconds (default: 5)")
+    parser.add_argument("--configs", default=str(_CONFIGS_DEFAULT))
+    parser.add_argument("--output", default=str(_OUTPUT_DEFAULT))
+    parser.add_argument(
+        "--urdf", default=None, help="Path to robot URDF for Viser display (optional)"
+    )
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=5.0,
+        help="Trajectory duration per config in seconds (default: 5)",
+    )
     parser.add_argument("--no-viser", action="store_true")
     parsed, ros_args = parser.parse_known_args()
 
@@ -492,21 +529,28 @@ def main():
     if not parsed.no_viser:
         try:
             if parsed.urdf:
-                model, collision_model, visual_model = pin.buildModelsFromUrdf(parsed.urdf)
+                model, collision_model, visual_model = pin.buildModelsFromUrdf(
+                    parsed.urdf
+                )
             else:
                 from ament_index_python.packages import get_package_share_directory
-                import xacro, tempfile
+                import xacro
+                import tempfile
+
                 tiago_desc = Path(get_package_share_directory("tiago_pro_description"))
                 urdf_str = xacro.process_file(
                     str(tiago_desc / "robots" / "tiago_pro.urdf.xacro"),
                     mappings={
                         "end_effector_right": "pal-atc",
-                        "end_effector_left":  "pal-pro-gripper",
-                        "wrist_model_right":  "spherical-wrist",
-                    }
+                        "end_effector_left": "pal-pro-gripper",
+                        "wrist_model_right": "spherical-wrist",
+                    },
                 ).toxml()
-                with tempfile.NamedTemporaryFile(suffix=".urdf", delete=False, mode="w") as f_:
-                    f_.write(urdf_str); tmp = f_.name
+                with tempfile.NamedTemporaryFile(
+                    suffix=".urdf", delete=False, mode="w"
+                ) as f_:
+                    f_.write(urdf_str)
+                    tmp = f_.name
                 model, collision_model, visual_model = pin.buildModelsFromUrdf(
                     tmp, package_dirs=[str(tiago_desc.parent.parent)]
                 )
@@ -522,9 +566,11 @@ def main():
     node._wait_for_servers()
 
     spin_done = threading.Event()
+
     def _spin():
         while not spin_done.is_set():
             rclpy.spin_once(node, timeout_sec=0.02)
+
     threading.Thread(target=_spin, daemon=True).start()
 
     time.sleep(1.0)
@@ -536,9 +582,9 @@ def main():
         while idx < len(all_configs):
             target_vals = all_configs[idx]
 
-            print(f"\n{'='*60}")
-            print(f"Configuration {idx+1}/{len(all_configs)}")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print(f"Configuration {idx + 1}/{len(all_configs)}")
+            print(f"{'=' * 60}")
             for jname, val in zip(ACTIVE_JOINTS, target_vals):
                 print(f"  {jname:<30}  {np.degrees(val):>+8.2f}°")
 

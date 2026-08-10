@@ -105,9 +105,16 @@ def launch_setup(
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-name", "table",
-            "-file", PathJoinSubstitution([FindPackageShare(PKG), "urdf", "table.urdf"]),
-            "-x", str(TABLE_X), "-y", str(TABLE_Y), "-z", str(TABLE_Z),
+            "-name",
+            "table",
+            "-file",
+            PathJoinSubstitution([FindPackageShare(PKG), "urdf", "table.urdf"]),
+            "-x",
+            str(TABLE_X),
+            "-y",
+            str(TABLE_Y),
+            "-z",
+            str(TABLE_Z),
         ],
         output="screen",
     )
@@ -116,9 +123,16 @@ def launch_setup(
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-name", "pylone",
-            "-file", PathJoinSubstitution([FindPackageShare(PKG), "urdf", "pylone.urdf"]),
-            "-x", str(PYLONE_X), "-y", str(PYLONE_Y), "-z", str(PYLONE_Z),
+            "-name",
+            "pylone",
+            "-file",
+            PathJoinSubstitution([FindPackageShare(PKG), "urdf", "pylone.urdf"]),
+            "-x",
+            str(PYLONE_X),
+            "-y",
+            str(PYLONE_Y),
+            "-z",
+            str(PYLONE_Z),
         ],
         output="screen",
     )
@@ -137,7 +151,11 @@ def launch_setup(
 
     hpp_bridge_node = ExecuteProcess(
         cmd=[
-            "xterm", "-hold", "-T", "HPP orchestrator", "-e",
+            "xterm",
+            "-hold",
+            "-T",
+            "HPP orchestrator",
+            "-e",
             "bash -c '"
             "source /opt/ros/humble/setup.bash && "
             "source /home/gepetto/agimus_deps_ws/install/setup.bash && "

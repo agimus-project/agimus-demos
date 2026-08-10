@@ -62,9 +62,11 @@ banner = (
 
 try:
     import IPython
+
     IPython.embed(banner1=banner, user_ns={"o": o, "rclpy": rclpy})
 except ImportError:
     import code
+
     code.interact(banner=banner, local={"o": o, "rclpy": rclpy})
 
 if o._ros_node is not None:

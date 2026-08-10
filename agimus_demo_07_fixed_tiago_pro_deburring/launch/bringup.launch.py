@@ -50,13 +50,16 @@ PYLONE_X = _pp["pylone_x"]
 PYLONE_Y = _pp["pylone_y"]
 PYLONE_Z = _pp["pylone_z"]
 
+
 # Convert quaternion [qx, qy, qz, qw] → roll/pitch/yaw for Gazebo spawn
 def _quat_to_rpy(q):
     qx, qy, qz, qw = q
-    roll  = math.atan2(2*(qw*qx + qy*qz), 1 - 2*(qx*qx + qy*qy))
-    pitch = math.asin( 2*(qw*qy - qz*qx))
-    yaw   = math.atan2(2*(qw*qz + qx*qy), 1 - 2*(qy*qy + qz*qz))
+    roll = math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy))
+    pitch = math.asin(2 * (qw * qy - qz * qx))
+    yaw = math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
     return roll, pitch, yaw
+
+
 _quat = _pp.get("pylone_quat", [0.0, 0.0, 0.0, 1.0])
 PYLONE_ROLL, PYLONE_PITCH, PYLONE_YAW = _quat_to_rpy(_quat)
 
@@ -88,17 +91,29 @@ def launch_setup(
         parameters=[
             {
                 "topic_name": "environment_description",
-                "string_value": ParameterValue(Command([
-                    FindExecutable(name="xacro"), " ",
-                    PathJoinSubstitution([FindPackageShare(PKG), "urdf", "environment.urdf.xacro"]),
-                    " with_sc:=true",
-                    f" pylone_x:={PYLONE_X}",
-                    f" pylone_y:={PYLONE_Y}",
-                    f" pylone_z:={PYLONE_Z}",
-                    f" pylone_roll:={PYLONE_ROLL}",
-                    f" pylone_pitch:={PYLONE_PITCH}",
-                    f" pylone_yaw:={PYLONE_YAW}",
-                ]), value_type=str),
+                "string_value": ParameterValue(
+                    Command(
+                        [
+                            FindExecutable(name="xacro"),
+                            " ",
+                            PathJoinSubstitution(
+                                [
+                                    FindPackageShare(PKG),
+                                    "urdf",
+                                    "environment.urdf.xacro",
+                                ]
+                            ),
+                            " with_sc:=true",
+                            f" pylone_x:={PYLONE_X}",
+                            f" pylone_y:={PYLONE_Y}",
+                            f" pylone_z:={PYLONE_Z}",
+                            f" pylone_roll:={PYLONE_ROLL}",
+                            f" pylone_pitch:={PYLONE_PITCH}",
+                            f" pylone_yaw:={PYLONE_YAW}",
+                        ]
+                    ),
+                    value_type=str,
+                ),
             }
         ],
     )
@@ -116,9 +131,16 @@ def launch_setup(
         ],
         remappings=[
             ("robot_description_semantic", "robot_srdf_description"),
-            ("mpc_input", PythonExpression([
-                "'mpc_input_corrected' if '", correction, "' != 'none' else 'mpc_input'"
-            ])),
+            (
+                "mpc_input",
+                PythonExpression(
+                    [
+                        "'mpc_input_corrected' if '",
+                        correction,
+                        "' != 'none' else 'mpc_input'",
+                    ]
+                ),
+            ),
         ],
         output="screen",
     )
@@ -147,17 +169,30 @@ def launch_setup(
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-name", "pylone",
-            "-string", Command([
-                FindExecutable(name="xacro"), " ",
-                PathJoinSubstitution([FindPackageShare(PKG), "urdf", "pylone.urdf.xacro"]),
-            ]),
-            "-x", str(PYLONE_X),
-            "-y", str(PYLONE_Y),
-            "-z", str(PYLONE_Z),
-            "-R", str(PYLONE_ROLL),
-            "-P", str(PYLONE_PITCH),
-            "-Y", str(PYLONE_YAW),
+            "-name",
+            "pylone",
+            "-string",
+            Command(
+                [
+                    FindExecutable(name="xacro"),
+                    " ",
+                    PathJoinSubstitution(
+                        [FindPackageShare(PKG), "urdf", "pylone.urdf.xacro"]
+                    ),
+                ]
+            ),
+            "-x",
+            str(PYLONE_X),
+            "-y",
+            str(PYLONE_Y),
+            "-z",
+            str(PYLONE_Z),
+            "-R",
+            str(PYLONE_ROLL),
+            "-P",
+            str(PYLONE_PITCH),
+            "-Y",
+            str(PYLONE_YAW),
         ],
         output="screen",
         condition=IfCondition(LaunchConfiguration("use_gazebo")),
@@ -177,7 +212,11 @@ def launch_setup(
 
     hpp_bridge_node = ExecuteProcess(
         cmd=[
-            "xterm", "-hold", "-T", "HPP orchestrator", "-e",
+            "xterm",
+            "-hold",
+            "-T",
+            "HPP orchestrator",
+            "-e",
             "bash -c '"
             "source /opt/ros/humble/setup.bash && "
             "source /home/gepetto/agimus_deps_ws/install/setup.bash && "

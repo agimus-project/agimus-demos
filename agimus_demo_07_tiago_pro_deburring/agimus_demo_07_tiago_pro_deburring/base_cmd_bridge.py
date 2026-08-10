@@ -9,10 +9,12 @@ from geometry_msgs.msg import Twist
 class BaseCmdBridge(Node):
     def __init__(self):
         super().__init__("base_cmd_bridge")
-        qos_in  = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        qos_in = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         qos_out = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         self._pub = self.create_publisher(Twist, "/cmd_vel", qos_out)
-        self._sub = self.create_subscription(Twist, "/base_cmd_vel", self._callback, qos_in)
+        self._sub = self.create_subscription(
+            Twist, "/base_cmd_vel", self._callback, qos_in
+        )
 
     def _callback(self, msg: Twist) -> None:
         self._pub.publish(msg)

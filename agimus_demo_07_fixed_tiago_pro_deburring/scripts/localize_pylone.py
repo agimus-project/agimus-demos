@@ -58,8 +58,7 @@ def get_urdf(node: Node, timeout: float = 10.0) -> str:
     )
     result = [None]
     sub = node.create_subscription(
-        String, "/robot_description",
-        lambda msg: result.__setitem__(0, msg.data), qos
+        String, "/robot_description", lambda msg: result.__setitem__(0, msg.data), qos
     )
     t0 = time.time()
     while result[0] is None and time.time() - t0 < timeout:
@@ -73,8 +72,7 @@ def get_urdf(node: Node, timeout: float = 10.0) -> str:
 def get_joint_state(node: Node, timeout: float = 5.0):
     result = [None]
     sub = node.create_subscription(
-        JointState, "/joint_states",
-        lambda msg: result.__setitem__(0, msg), 10
+        JointState, "/joint_states", lambda msg: result.__setitem__(0, msg), 10
     )
     t0 = time.time()
     while result[0] is None and time.time() - t0 < timeout:
@@ -83,7 +81,9 @@ def get_joint_state(node: Node, timeout: float = 5.0):
     return result[0]
 
 
-def fk_ee(urdf_str: str, joint_state: JointState, tool_offset: float = DEFAULT_TOOL_OFFSET) -> np.ndarray:
+def fk_ee(
+    urdf_str: str, joint_state: JointState, tool_offset: float = DEFAULT_TOOL_OFFSET
+) -> np.ndarray:
     model = pin.buildModelFromXML(urdf_str)
     data = model.createData()
     q = pin.neutral(model)
@@ -116,16 +116,22 @@ def estimate_pose_svd(p_base: np.ndarray, p_pylone: np.ndarray):
 def main():
     parser = argparse.ArgumentParser(description="Localize pylone via manual pointing.")
     parser.add_argument(
-        "--holes", nargs=3, default=DEFAULT_HOLES, metavar="HOLE",
-        help=f"3 hole names from pylone SRDF (default: {DEFAULT_HOLES})"
+        "--holes",
+        nargs=3,
+        default=DEFAULT_HOLES,
+        metavar="HOLE",
+        help=f"3 hole names from pylone SRDF (default: {DEFAULT_HOLES})",
     )
     parser.add_argument(
-        "--output", default=DEFAULT_OUTPUT,
-        help=f"Path to write result YAML (default: {DEFAULT_OUTPUT})"
+        "--output",
+        default=DEFAULT_OUTPUT,
+        help=f"Path to write result YAML (default: {DEFAULT_OUTPUT})",
     )
     parser.add_argument(
-        "--tool-offset", type=float, default=DEFAULT_TOOL_OFFSET,
-        help=f"Tool length along Z of {EE_LINK} (default: {DEFAULT_TOOL_OFFSET} m)"
+        "--tool-offset",
+        type=float,
+        default=DEFAULT_TOOL_OFFSET,
+        help=f"Tool length along Z of {EE_LINK} (default: {DEFAULT_TOOL_OFFSET} m)",
     )
     args = parser.parse_args()
 
@@ -151,7 +157,9 @@ def main():
     p_base = np.zeros((3, 3))
     for i, hole_name in enumerate(args.holes):
         xyz = all_holes[hole_name]
-        print(f"[{i+1}/3] Point gripper at hole '{hole_name}'  (pylone frame: {np.round(xyz, 3).tolist()})")
+        print(
+            f"[{i + 1}/3] Point gripper at hole '{hole_name}'  (pylone frame: {np.round(xyz, 3).tolist()})"
+        )
         input("      → Press Enter when ready …")
         js = get_joint_state(node)
         if js is None:
@@ -166,7 +174,9 @@ def main():
 
     print("\n=== Pylone pose in base_link frame ===")
     print(f"position (x, y, z):  {np.round(t, 4).tolist()}")
-    print(f"quaternion (x,y,z,w): {[round(v, 6) for v in [quat.x, quat.y, quat.z, quat.w]]}")
+    print(
+        f"quaternion (x,y,z,w): {[round(v, 6) for v in [quat.x, quat.y, quat.z, quat.w]]}"
+    )
     print(f"residuals (m):        {[round(r, 5) for r in residuals]}")
     print(f"mean residual (m):    {np.mean(residuals):.5f}")
 
@@ -183,7 +193,7 @@ def main():
 
     t_list = [round(float(v), 4) for v in t]
     print("To visualize in Viser, run in the HPP orchestrator IPython shell:")
-    print(f"    o.init_viewer()  # if not already open")
+    print("    o.init_viewer()  # if not already open")
     print(f"    o.update_pylone_pose({t_list}, {q_list})")
 
     node.destroy_node()

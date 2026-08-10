@@ -37,16 +37,16 @@ def _load_pylone_pose():
         pp = yaml.safe_load(f)
     q = pp.get("pylone_quat", [0.0, 0.0, 0.0, 1.0])
     qx, qy, qz, qw = q
-    roll  = math.atan2(2*(qw*qx + qy*qz), 1 - 2*(qx*qx + qy*qy))
-    pitch = math.asin(max(-1.0, min(1.0, 2*(qw*qy - qz*qx))))
-    yaw   = math.atan2(2*(qw*qz + qx*qy), 1 - 2*(qy*qy + qz*qz))
+    roll = math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy))
+    pitch = math.asin(max(-1.0, min(1.0, 2 * (qw * qy - qz * qx))))
+    yaw = math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
     return {
-        "pylone_x":     str(pp["pylone_x"]),
-        "pylone_y":     str(pp["pylone_y"]),
-        "pylone_z":     str(pp["pylone_z"]),
-        "pylone_roll":  str(roll),
+        "pylone_x": str(pp["pylone_x"]),
+        "pylone_y": str(pp["pylone_y"]),
+        "pylone_z": str(pp["pylone_z"]),
+        "pylone_roll": str(roll),
         "pylone_pitch": str(pitch),
-        "pylone_yaw":   str(yaw),
+        "pylone_yaw": str(yaw),
     }
 
 
@@ -71,15 +71,23 @@ def _filter_sc(collision_model):
 class _PinWrapper:
     def __init__(self, model, collision_model, visual_model):
         self._m, self._cm, self._vm = model, collision_model, visual_model
-    def model(self):       return self._m
-    def geomModel(self):   return self._cm
-    def visualModel(self): return self._vm
+
+    def model(self):
+        return self._m
+
+    def geomModel(self):
+        return self._cm
+
+    def visualModel(self):
+        return self._vm
 
 
 def main():
     print("Loading pylone pose from config/pylone_pose.yaml …")
     pose_args = _load_pylone_pose()
-    print(f"  position: x={pose_args['pylone_x']}, y={pose_args['pylone_y']}, z={pose_args['pylone_z']}")
+    print(
+        f"  position: x={pose_args['pylone_x']}, y={pose_args['pylone_y']}, z={pose_args['pylone_z']}"
+    )
 
     print("Processing environment.urdf.xacro …")
     env_urdf = xacro.process_file(

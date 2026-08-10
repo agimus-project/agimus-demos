@@ -27,30 +27,30 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from pyhpp.manipulation import Device, urdf
-from pyhpp.manipulation import Graph, Problem, TransitionPlanner
-from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory
-from pyhpp.manipulation.security_margins import SecurityMargins
-from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint
-from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3
+from pyhpp.manipulation import Device, urdf  # noqa: E402
+from pyhpp.manipulation import Graph, Problem, TransitionPlanner  # noqa: E402
+from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory  # noqa: E402
+from pyhpp.manipulation.security_margins import SecurityMargins  # noqa: E402
+from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint  # noqa: E402
+from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3  # noqa: E402
 
-import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
-from agimus_msgs.msg import MpcInput
-from sensor_msgs.msg import JointState
-from nav_msgs.msg import Odometry
+import rclpy  # noqa: E402
+from rclpy.node import Node  # noqa: E402
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy  # noqa: E402
+from agimus_msgs.msg import MpcInput  # noqa: E402
+from sensor_msgs.msg import JointState  # noqa: E402
+from nav_msgs.msg import Odometry  # noqa: E402
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-_HPP_DIR    = os.path.dirname(os.path.abspath(__file__))
-_PKG_DIR    = os.path.join(_HPP_DIR, "..")
-ROBOT_SRDF  = os.path.join(_HPP_DIR, "tiago_pro.srdf")
+_HPP_DIR = os.path.dirname(os.path.abspath(__file__))
+_PKG_DIR = os.path.join(_HPP_DIR, "..")
+ROBOT_SRDF = os.path.join(_HPP_DIR, "tiago_pro.srdf")
 PYLONE_SRDF = os.path.join(_HPP_DIR, "pylone.srdf")
 PYLONE_URDF = os.path.join(_PKG_DIR, "urdf", "pylone.urdf")
-TABLE_SRDF  = os.path.join(_HPP_DIR, "table.srdf")
-TABLE_URDF  = os.path.join(_PKG_DIR, "urdf", "table.urdf")
+TABLE_SRDF = os.path.join(_HPP_DIR, "table.srdf")
+TABLE_URDF = os.path.join(_PKG_DIR, "urdf", "table.urdf")
 GROUND_SRDF = os.path.join(_HPP_DIR, "ground.srdf")
 GROUND_URDF = os.path.join(_PKG_DIR, "urdf", "ground.urdf")
 
@@ -58,31 +58,31 @@ _CFG_FILE = os.path.join(_PKG_DIR, "config", "hpp_orchestrator_params.yaml")
 with open(_CFG_FILE) as _f:
     _cfg = yaml.safe_load(_f)
 
-DT         = _cfg["trajectory"]["dt"]
+DT = _cfg["trajectory"]["dt"]
 TIME_SCALE = _cfg["trajectory"]["time_scale"]
 
-_s        = _cfg["scene"]
-TABLE_X   = _s["table_x"]
-TABLE_Y   = _s["table_y"]
-TABLE_Z   = _s["table_z"]
-PYLONE_X  = TABLE_X
-PYLONE_Y  = TABLE_Y
-PYLONE_Z  = _s["pylone_z_offset"]
+_s = _cfg["scene"]
+TABLE_X = _s["table_x"]
+TABLE_Y = _s["table_y"]
+TABLE_Z = _s["table_z"]
+PYLONE_X = TABLE_X
+PYLONE_Y = TABLE_Y
+PYLONE_Z = _s["pylone_z_offset"]
 
-_h           = _cfg["handle"]
-HANDLE_LINK  = _h["link"]
-HANDLE_NAME  = _h["name"]
-HANDLE_POS   = np.array(_h["position"])
+_h = _cfg["handle"]
+HANDLE_LINK = _h["link"]
+HANDLE_NAME = _h["name"]
+HANDLE_POS = np.array(_h["position"])
 HANDLE_CLEAR = _h["clearance"]
 
-LEFT_ARM_TUCK  = _cfg["tuck"]["left_arm"]
+LEFT_ARM_TUCK = _cfg["tuck"]["left_arm"]
 RIGHT_ARM_TUCK = _cfg["tuck"]["right_arm"]
 
-_w          = _cfg["weights"]
-W_Q         = np.array(_w["w_q"])
-W_QDOT      = np.array(_w["w_qdot"])
-W_QDDOT     = np.array(_w["w_qddot"])
-W_EFFORT    = np.array(_w["w_effort"])
+_w = _cfg["weights"]
+W_Q = np.array(_w["w_q"])
+W_QDOT = np.array(_w["w_qdot"])
+W_QDDOT = np.array(_w["w_qddot"])
+W_EFFORT = np.array(_w["w_effort"])
 W_COLLISION = _w["w_collision"]
 
 
@@ -97,7 +97,7 @@ class _TrajectoryPublisherNode(Node):
         self._pub = self.create_publisher(MpcInput, "mpc_input", qos)
         self._timer = self.create_timer(DT, self._publish_next)
         self.get_logger().info(
-            f"Publishing {len(self._messages)} trajectory points at {1/DT:.0f} Hz …"
+            f"Publishing {len(self._messages)} trajectory points at {1 / DT:.0f} Hz …"
         )
         self._done = False
 
@@ -139,6 +139,7 @@ class Orchestrator:
     def _fetch_robot_urdf(timeout: float = 10.0) -> str:
         """Return the URDF string from /robot_description (transient_local topic)."""
         from std_msgs.msg import String
+
         node = rclpy.create_node("_hpp_urdf_fetcher")
         qos = QoSProfile(
             depth=1,
@@ -172,26 +173,38 @@ class Orchestrator:
 
         robot = Device("tiago_pro")
         urdf.loadModel(
-            robot, 0, "tiago_pro", "planar",
+            robot,
+            0,
+            "tiago_pro",
+            "planar",
             f"file://{_tmp.name}",
             ROBOT_SRDF,
             pin.SE3.Identity(),
         )
         os.unlink(_tmp.name)
         urdf.loadModel(
-            robot, 0, "ground", "anchor",
+            robot,
+            0,
+            "ground",
+            "anchor",
             GROUND_URDF,
             GROUND_SRDF,
             pin.SE3.Identity(),
         )
         urdf.loadModel(
-            robot, 0, "table", "anchor",
+            robot,
+            0,
+            "table",
+            "anchor",
             TABLE_URDF,
             TABLE_SRDF,
             pin.SE3(np.eye(3), np.array([TABLE_X, TABLE_Y, TABLE_Z])),
         )
         urdf.loadModel(
-            robot, 0, "pylone", "freeflyer",
+            robot,
+            0,
+            "pylone",
+            "freeflyer",
             PYLONE_URDF,
             PYLONE_SRDF,
             pin.SE3.Identity(),
@@ -204,29 +217,49 @@ class Orchestrator:
         def _idx(name):
             return model.joints[model.getJointId(name)].idx_q
 
-        self._base_idx      = _idx("tiago_pro/root_joint")
-        self._left_arm_idx  = _idx("tiago_pro/arm_left_1_joint")
+        self._base_idx = _idx("tiago_pro/root_joint")
+        self._left_arm_idx = _idx("tiago_pro/arm_left_1_joint")
         self._right_arm_idx = _idx("tiago_pro/arm_right_1_joint")
-        self._pylone_idx    = _idx("pylone/root_joint")
+        self._pylone_idx = _idx("pylone/root_joint")
 
-        robot.setJointBounds("tiago_pro/root_joint", [
-            -3.0, 3.0, -3.0, 3.0,
-            -float("Inf"), float("Inf"), -float("Inf"), float("Inf"),
-        ])
-        robot.setJointBounds("pylone/root_joint", [
-            PYLONE_X - 0.01, PYLONE_X + 0.01,
-            PYLONE_Y - 0.01, PYLONE_Y + 0.01,
-            PYLONE_Z - 0.01, PYLONE_Z + 0.01,
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-            -float("Inf"), float("Inf"),
-        ])
+        robot.setJointBounds(
+            "tiago_pro/root_joint",
+            [
+                -3.0,
+                3.0,
+                -3.0,
+                3.0,
+                -float("Inf"),
+                float("Inf"),
+                -float("Inf"),
+                float("Inf"),
+            ],
+        )
+        robot.setJointBounds(
+            "pylone/root_joint",
+            [
+                PYLONE_X - 0.01,
+                PYLONE_X + 0.01,
+                PYLONE_Y - 0.01,
+                PYLONE_Y + 0.01,
+                PYLONE_Z - 0.01,
+                PYLONE_Z + 0.01,
+                -float("Inf"),
+                float("Inf"),
+                -float("Inf"),
+                float("Inf"),
+                -float("Inf"),
+                float("Inf"),
+                -float("Inf"),
+                float("Inf"),
+            ],
+        )
 
         # Add handle: Rx(-90°) so handle Z = world +Y (into the hole)
         _R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
         robot.addHandle(
-            HANDLE_LINK, HANDLE_NAME,
+            HANDLE_LINK,
+            HANDLE_NAME,
             pin.SE3(_R, HANDLE_POS),
             HANDLE_CLEAR,
             6 * [True],
@@ -239,9 +272,9 @@ class Orchestrator:
 
         self.q_init = pin.neutral(model).copy()
         self._left_arm_lock_values = list(LEFT_ARM_TUCK)
-        self.q_init[li:li+7] = LEFT_ARM_TUCK
-        self.q_init[ri:ri+7] = RIGHT_ARM_TUCK
-        self.q_init[pi:pi+7] = [PYLONE_X, PYLONE_Y, PYLONE_Z, 0., 0., 0., 1.]
+        self.q_init[li : li + 7] = LEFT_ARM_TUCK
+        self.q_init[ri : ri + 7] = RIGHT_ARM_TUCK
+        self.q_init[pi : pi + 7] = [PYLONE_X, PYLONE_Y, PYLONE_Z, 0.0, 0.0, 0.0, 1.0]
 
     # ── Constraint graph setup ─────────────────────────────────────────────────
 
@@ -250,7 +283,7 @@ class Orchestrator:
         model = self.model
 
         problem = Problem(robot)
-        graph   = Graph("robot", robot, problem)
+        graph = Graph("robot", robot, problem)
         factory = ConstraintGraphFactory(graph)
         graph.maxIterations(40)
         graph.errorThreshold(1e-3)
@@ -278,23 +311,29 @@ class Orchestrator:
 
         locked = []
         locked.append(_lock("tiago_pro/torso_lift_joint", 0.0))
-        for wheel in ["wheel_front_left_joint", "wheel_front_right_joint",
-                      "wheel_rear_left_joint",  "wheel_rear_right_joint"]:
+        for wheel in [
+            "wheel_front_left_joint",
+            "wheel_front_right_joint",
+            "wheel_rear_left_joint",
+            "wheel_rear_right_joint",
+        ]:
             locked.append(_lock(f"tiago_pro/{wheel}", 0.0))
         for i, val in enumerate(self._left_arm_lock_values):
-            locked.append(_lock(f"tiago_pro/arm_left_{i+1}_joint", val))
-        for name in ["gripper_left_finger_joint",
-                     "gripper_left_inner_finger_left_joint",
-                     "gripper_left_fingertip_left_joint",
-                     "gripper_left_inner_finger_right_joint",
-                     "gripper_left_fingertip_right_joint",
-                     "gripper_left_outer_finger_right_joint",
-                     "gripper_right_finger_joint",
-                     "gripper_right_inner_finger_left_joint",
-                     "gripper_right_fingertip_left_joint",
-                     "gripper_right_inner_finger_right_joint",
-                     "gripper_right_fingertip_right_joint",
-                     "gripper_right_outer_finger_right_joint"]:
+            locked.append(_lock(f"tiago_pro/arm_left_{i + 1}_joint", val))
+        for name in [
+            "gripper_left_finger_joint",
+            "gripper_left_inner_finger_left_joint",
+            "gripper_left_fingertip_left_joint",
+            "gripper_left_inner_finger_right_joint",
+            "gripper_left_fingertip_right_joint",
+            "gripper_left_outer_finger_right_joint",
+            "gripper_right_finger_joint",
+            "gripper_right_inner_finger_left_joint",
+            "gripper_right_fingertip_left_joint",
+            "gripper_right_inner_finger_right_joint",
+            "gripper_right_fingertip_right_joint",
+            "gripper_right_outer_finger_right_joint",
+        ]:
             locked.append(_lock(f"tiago_pro/{name}", 0.0))
         locked.append(_lock("tiago_pro/head_1_joint", 0.0))
         locked.append(_lock("tiago_pro/head_2_joint", 0.0))
@@ -315,7 +354,7 @@ class Orchestrator:
         graph.initialize()
 
         self.problem = problem
-        self.graph   = graph
+        self.graph = graph
 
     # ── Planning ──────────────────────────────────────────────────────────────
 
@@ -355,13 +394,13 @@ class Orchestrator:
         planner.maxIterations(1000)
 
         planner.setTransition(self._transition_approach)
-        q_goal = np.zeros((1, self.robot.configSize()), order='F')
+        q_goal = np.zeros((1, self.robot.configSize()), order="F")
         q_goal[0, :] = qpg
         print("Planning p1 (approach) …")
         p1 = planner.planPath(self.q_init, q_goal, True)
         print("  p1 found.")
 
-        shortcut   = RandomShortcut(self.problem)
+        shortcut = RandomShortcut(self.problem)
         spline_opt = SplineGradientBased_bezier3(self.problem)
 
         # p1: shortcut first, then smooth with Bezier splines
@@ -369,10 +408,14 @@ class Orchestrator:
             for i in range(3):
                 p1_new = shortcut.optimize(p1)
                 tr_before = p1.timeRange()
-                tr_after  = p1_new.timeRange()
-                dt = (tr_before.second - tr_before.first) - (tr_after.second - tr_after.first)
+                tr_after = p1_new.timeRange()
+                dt = (tr_before.second - tr_before.first) - (
+                    tr_after.second - tr_after.first
+                )
                 p1 = p1_new
-                print(f"  p1 shortcut pass {i+1}/3: {tr_after.second - tr_after.first:.2f} s  (−{dt:.2f} s)")
+                print(
+                    f"  p1 shortcut pass {i + 1}/3: {tr_after.second - tr_after.first:.2f} s  (−{dt:.2f} s)"
+                )
                 if dt < 1e-3:
                     break
         except Exception as e:
@@ -407,11 +450,11 @@ class Orchestrator:
         p3 = p2.reverse()
         print("  p3 ready (retraction, reversed from optimised p2).")
 
-        self.p1  = p1
-        self.p2  = p2
-        self.p3  = p3
+        self.p1 = p1
+        self.p2 = p2
+        self.p3 = p3
         self.qpg = qpg
-        self.qg  = qg
+        self.qg = qg
         return True
 
     # ── Path sampling ─────────────────────────────────────────────────────────
@@ -420,7 +463,7 @@ class Orchestrator:
         q = np.array(q_full)
         bi = self._base_idx
         ri = self._right_arm_idx
-        return np.concatenate([q[bi:bi+4], q[ri:ri+7]])
+        return np.concatenate([q[bi : bi + 4], q[ri : ri + 7]])
 
     def _active_velocity(self, q1, q2, dt):
         vx = (q2[0] - q1[0]) / dt
@@ -434,18 +477,19 @@ class Orchestrator:
     def _sample_path(self, path):
         tr = path.timeRange()
         t_min, t_max = tr.first, tr.second
-        n     = max(2, int((t_max - t_min) * TIME_SCALE / DT))
+        n = max(2, int((t_max - t_min) * TIME_SCALE / DT))
         times = np.linspace(t_min, t_max, n)
         q_list = [self._extract_active_q(path.eval(t)[0]) for t in times]
-        q_arr  = np.array(q_list)
+        q_arr = np.array(q_list)
 
-        dq_list = [self._active_velocity(q_arr[i], q_arr[i+1], DT)
-                   for i in range(len(q_arr) - 1)]
+        dq_list = [
+            self._active_velocity(q_arr[i], q_arr[i + 1], DT)
+            for i in range(len(q_arr) - 1)
+        ]
         dq_list.append(dq_list[-1])
         dq_arr = np.array(dq_list)
 
-        ddq_list = [(dq_arr[i+1] - dq_arr[i]) / DT
-                    for i in range(len(dq_arr) - 1)]
+        ddq_list = [(dq_arr[i + 1] - dq_arr[i]) / DT for i in range(len(dq_arr) - 1)]
         ddq_list.append(ddq_list[-1])
         ddq_arr = np.array(ddq_list)
 
@@ -453,15 +497,15 @@ class Orchestrator:
 
     def _build_msg(self, q, dq, ddq, msg_id):
         msg = MpcInput()
-        msg.id           = msg_id
-        msg.q            = q.tolist()
-        msg.qdot         = dq.tolist()
-        msg.qddot        = ddq.tolist()
+        msg.id = msg_id
+        msg.q = q.tolist()
+        msg.qdot = dq.tolist()
+        msg.qddot = ddq.tolist()
         msg.robot_effort = np.zeros(10).tolist()
-        msg.w_q                   = W_Q.tolist()
-        msg.w_qdot                = W_QDOT.tolist()
-        msg.w_qddot               = W_QDDOT.tolist()
-        msg.w_robot_effort        = W_EFFORT.tolist()
+        msg.w_q = W_Q.tolist()
+        msg.w_qdot = W_QDOT.tolist()
+        msg.w_qddot = W_QDDOT.tolist()
+        msg.w_robot_effort = W_EFFORT.tolist()
         msg.w_collision_avoidance = W_COLLISION
         return msg
 
@@ -480,11 +524,13 @@ class Orchestrator:
                 idx += 1
         # Append hold points at the final position (zero velocity/acceleration)
         # so the MPC has time to converge after the trajectory ends.
-        q_final  = msgs[-1].q
-        dq_zero  = np.zeros(len(msgs[-1].qdot)).tolist()
+        q_final = msgs[-1].q
+        dq_zero = np.zeros(len(msgs[-1].qdot)).tolist()
         ddq_zero = np.zeros(len(msgs[-1].qddot)).tolist()
         for _ in range(n_hold):
-            msg = self._build_msg(np.array(q_final), np.array(dq_zero), np.array(ddq_zero), idx)
+            msg = self._build_msg(
+                np.array(q_final), np.array(dq_zero), np.array(ddq_zero), idx
+            )
             msgs.append(msg)
             idx += 1
         print(f"  {len(msgs)} MpcInput messages total ({n_hold} hold points appended).")
@@ -506,12 +552,14 @@ class Orchestrator:
             print("No path available — run plan() first.")
             return
 
-        _labels = {id(self.p1): "p1 (approach)",
-                   id(self.p2): "p2 (insertion)",
-                   id(self.p3): "p3 (retraction)"}
+        _labels = {
+            id(self.p1): "p1 (approach)",
+            id(self.p2): "p2 (insertion)",
+            id(self.p3): "p3 (retraction)",
+        }
         if paths is None:
             paths = [self.p1, self.p2, self.p3]
-        named = [(p, _labels.get(id(p), f"path_{i+1}")) for i, p in enumerate(paths)]
+        named = [(p, _labels.get(id(p), f"path_{i + 1}")) for i, p in enumerate(paths)]
 
         print("Sampling trajectories …")
         self._messages = self._build_messages(named)
@@ -520,9 +568,9 @@ class Orchestrator:
             self._ros_node = _TrajectoryPublisherNode(self._messages)
         else:
             self._ros_node._messages = self._messages
-            self._ros_node._idx      = 0
-            self._ros_node._done     = False
-            self._ros_node._timer    = self._ros_node.create_timer(
+            self._ros_node._idx = 0
+            self._ros_node._done = False
+            self._ros_node._timer = self._ros_node.create_timer(
                 DT, self._ros_node._publish_next
             )
 
@@ -538,6 +586,7 @@ class Orchestrator:
 
     def init_viewer(self, open: bool = True):
         from pyhpp_viser import Viewer
+
         self._viewer = Viewer(self.robot)
         self._viewer.initViewer(open=open, loadModel=True)
         self._viewer.setProblem(self.problem)
@@ -553,6 +602,7 @@ class Orchestrator:
     def play(self, path, n=100, dt=0.05):
         """Play a path in Viser by sampling n configurations."""
         import time as _time
+
         if not hasattr(self, "_viewer"):
             self.init_viewer()
         try:
@@ -578,15 +628,13 @@ class Orchestrator:
             _own_node = False
 
         joint_state = [None]
-        odom_state  = [None]
+        odom_state = [None]
 
         joint_sub = self._ros_node.create_subscription(
-            JointState, "/joint_states",
-            lambda msg: joint_state.__setitem__(0, msg), 10
+            JointState, "/joint_states", lambda msg: joint_state.__setitem__(0, msg), 10
         )
         odom_sub = self._ros_node.create_subscription(
-            Odometry, "/odom",
-            lambda msg: odom_state.__setitem__(0, msg), 10
+            Odometry, "/odom", lambda msg: odom_state.__setitem__(0, msg), 10
         )
 
         deadline = time.time() + timeout
@@ -603,42 +651,48 @@ class Orchestrator:
 
         if joint_state[0] is None or odom_state[0] is None:
             missing = []
-            if joint_state[0] is None: missing.append("/joint_states")
-            if odom_state[0] is None:  missing.append("/odom")
+            if joint_state[0] is None:
+                missing.append("/joint_states")
+            if odom_state[0] is None:
+                missing.append("/odom")
             print(f"sync_from_robot: timeout — could not receive {', '.join(missing)}")
             return
 
-        odom   = odom_state[0]
-        bx     = odom.pose.pose.position.x
-        by     = odom.pose.pose.position.y
+        odom = odom_state[0]
+        bx = odom.pose.pose.position.x
+        by = odom.pose.pose.position.y
         q_odom = odom.pose.pose.orientation
         siny_cosp = 2.0 * (q_odom.w * q_odom.z + q_odom.x * q_odom.y)
         cosy_cosp = 1.0 - 2.0 * (q_odom.y * q_odom.y + q_odom.z * q_odom.z)
-        theta  = np.arctan2(siny_cosp, cosy_cosp)
+        theta = np.arctan2(siny_cosp, cosy_cosp)
 
-        js     = joint_state[0]
+        js = joint_state[0]
         js_map = dict(zip(js.name, js.position))
 
         def _read_arm(side):
-            return np.array([
-                js_map.get(f"tiago_pro/arm_{side}_{i}_joint",
-                           js_map.get(f"arm_{side}_{i}_joint", 0.0))
-                for i in range(1, 8)
-            ])
+            return np.array(
+                [
+                    js_map.get(
+                        f"tiago_pro/arm_{side}_{i}_joint",
+                        js_map.get(f"arm_{side}_{i}_joint", 0.0),
+                    )
+                    for i in range(1, 8)
+                ]
+            )
 
         bi = self._base_idx
         ri = self._right_arm_idx
         li = self._left_arm_idx
 
-        left_arm  = _read_arm("left")
+        left_arm = _read_arm("left")
         right_arm = _read_arm("right")
 
-        self.q_init[bi]      = bx
-        self.q_init[bi + 1]  = by
-        self.q_init[bi + 2]  = np.cos(theta)
-        self.q_init[bi + 3]  = np.sin(theta)
-        self.q_init[ri:ri+7] = right_arm
-        self.q_init[li:li+7] = left_arm
+        self.q_init[bi] = bx
+        self.q_init[bi + 1] = by
+        self.q_init[bi + 2] = np.cos(theta)
+        self.q_init[bi + 3] = np.sin(theta)
+        self.q_init[ri : ri + 7] = right_arm
+        self.q_init[li : li + 7] = left_arm
 
         # Rebuild locked joints with the synced left arm values so the
         # constraint graph stays consistent with q_init.
@@ -663,13 +717,13 @@ class Orchestrator:
             _own = False
 
         joint_state = [None]
-        odom_state  = [None]
+        odom_state = [None]
         js_sub = self._ros_node.create_subscription(
-            JointState, "/joint_states",
-            lambda m: joint_state.__setitem__(0, m), 10)
+            JointState, "/joint_states", lambda m: joint_state.__setitem__(0, m), 10
+        )
         od_sub = self._ros_node.create_subscription(
-            Odometry, "/odom",
-            lambda m: odom_state.__setitem__(0, m), 10)
+            Odometry, "/odom", lambda m: odom_state.__setitem__(0, m), 10
+        )
 
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -698,20 +752,24 @@ class Orchestrator:
         js_map = dict(zip(js.name, js.position))
 
         def _arm(side):
-            return np.array([
-                js_map.get(f"arm_{side}_{i}_joint",
-                           js_map.get(f"tiago_pro/arm_{side}_{i}_joint", 0.0))
-                for i in range(1, 8)
-            ])
+            return np.array(
+                [
+                    js_map.get(
+                        f"arm_{side}_{i}_joint",
+                        js_map.get(f"tiago_pro/arm_{side}_{i}_joint", 0.0),
+                    )
+                    for i in range(1, 8)
+                ]
+            )
 
         q = pin.neutral(self.model).copy()
         bi = self._base_idx
         li = self._left_arm_idx
         ri = self._right_arm_idx
-        q[bi], q[bi+1] = bx, by
-        q[bi+2], q[bi+3] = np.cos(theta), np.sin(theta)
-        q[li:li+7] = _arm("left")
-        q[ri:ri+7] = _arm("right")
+        q[bi], q[bi + 1] = bx, by
+        q[bi + 2], q[bi + 3] = np.cos(theta), np.sin(theta)
+        q[li : li + 7] = _arm("left")
+        q[ri : ri + 7] = _arm("right")
         return q
 
     def compare_pose(self, q_ref=None, timeout: float = 5.0):
@@ -750,22 +808,24 @@ class Orchestrator:
         T_act = data_act.oMf[frame_id] * offset
 
         delta = T_ref.inverse() * T_act
-        pos_err_mm  = np.linalg.norm(delta.translation) * 1000.0
+        pos_err_mm = np.linalg.norm(delta.translation) * 1000.0
         rot_err_deg = np.degrees(np.linalg.norm(pin.log3(delta.rotation)))
 
         ri = self._right_arm_idx
-        print(f"\n{'='*58}")
-        print(f"  Pose comparison  (reference vs actual robot state)")
-        print(f"{'='*58}")
+        print(f"\n{'=' * 58}")
+        print("  Pose comparison  (reference vs actual robot state)")
+        print(f"{'=' * 58}")
         print(f"  Gripper planned [m] : {np.round(T_ref.translation, 4)}")
         print(f"  Gripper actual  [m] : {np.round(T_act.translation, 4)}")
         print(f"  Position error      : {pos_err_mm:.1f} mm")
         print(f"  Rotation error      : {rot_err_deg:.2f} °")
-        print(f"\n  Per-joint error — right arm [rad / °]:")
+        print("\n  Per-joint error — right arm [rad / °]:")
         for i in range(7):
-            e = q_ref[ri+i] - q_actual[ri+i]
-            print(f"    arm_right_{i+1}_joint : {e:+.4f} rad  ({np.degrees(e):+.2f}°)")
-        print(f"{'='*58}\n")
+            e = q_ref[ri + i] - q_actual[ri + i]
+            print(
+                f"    arm_right_{i + 1}_joint : {e:+.4f} rad  ({np.degrees(e):+.2f}°)"
+            )
+        print(f"{'=' * 58}\n")
 
     # ── Combined ──────────────────────────────────────────────────────────────
 
