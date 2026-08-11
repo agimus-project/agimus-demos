@@ -527,16 +527,22 @@ class Orchestrator:
     def correct_alignment_from_mocap(
         self, n_samples: int = 10, sample_dt: float = 0.05
     ) -> bool:
-        """Measure the FK-vs-real bias at the end effector via mocap, replan
-        a short realignment leg (through _transition_approach) from the
-        current qpg to a bias-compensated qpg, then replan p2 (insertion)
-        from that corrected qpg.
+        """Measure the HPP-predicted-vs-real bias at the end effector via
+        mocap, replan a short realignment leg (through _transition_approach)
+        from the current qpg to a bias-compensated qpg, then replan p2
+        (insertion) from that corrected qpg.
+
+        The bias is computed against the *planned* qpg (what HPP expected
+        the EE pose to be), not against the robot's own encoder-based FK —
+        we want the tracking error of the whole pipeline (planning +
+        execution + mechanical flex), not just re-measure the joints the
+        robot already reports.
 
         Call this after executing p1 — the robot must be stationary at qpg
-        for both the mocap reading and the FK-of-actual-joints reading to be
-        valid. Updates self.qpg, self.qg, self.p1_correction (new leg: old
-        qpg → corrected qpg), self.p2 (insertion, corrected). Leaves the
-        original self.p1 and self.p4 untouched.
+        for the mocap reading to be meaningful. Updates self.qpg, self.qg,
+        self.p1_correction (new leg: old qpg → corrected qpg), self.p2
+        (insertion, corrected). Leaves the original self.p1 and self.p4
+        untouched.
         """
         if not hasattr(self, "_qc"):
             print("No mocap client — call connect_mocap() first.")
@@ -547,13 +553,8 @@ class Orchestrator:
 
         qpg_old = self.qpg
 
-        # ── FK-vs-real EE bias at the current (stationary) configuration ────
-        try:
-            q_actual = self._read_robot_config()
-        except RuntimeError as e:
-            print(f"correct_alignment_from_mocap: {e}")
-            return False
-        T_fk_ee = self._fk_ee(self._extract_active_q(q_actual))
+        # ── HPP-predicted vs real EE bias, at the planned qpg ───────────────
+        T_fk_ee = self._fk_ee(self._extract_active_q(qpg_old))
 
         samples = []
         for _ in range(n_samples):
