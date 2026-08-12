@@ -104,6 +104,10 @@ class HPPPathGenerator:
             f"{robot_name}/root_joint",
             [-5.0, 5.0, -5.0, 5.0, -1, 1, -1, 1],
         )
+        self.robot.setJointBounds(
+            f"{robot_name}/torso_lift_joint",
+            [-1e-3, 0.33],
+        )
 
         def _set_vel_bounds(joint_name, bounds):
             jid = self._pin_model.getJointId(joint_name)
@@ -347,7 +351,6 @@ class HPPPathGenerator:
         obj_name = self._handle_object.name
         table_name = self._table_object.name
         plate_name = self._plate_object.name
-        ground_name = self._ground_object.name
 
         gripper_names = list(self._handles_config.keys())
         primary_gripper = gripper_names[0]
