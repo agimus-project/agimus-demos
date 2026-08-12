@@ -312,41 +312,42 @@ class HPPActionServer(Node):
         action_label: list[str],
         timeout: list[float] = {5.0, 5.0},
     ) -> tuple:
-        node = rclpy.create_node(f"hpp_gripper_client_{time.monotonic_ns()}")
-        try:
-            client_left = node.create_client(Empty, service_name[0])
-            client_right = node.create_client(Empty, service_name[1])
 
-            deadline = time.time() + timeout
-            while time.time() < deadline:
-                if client_left.wait_for_service(
-                    timeout_sec=min(0.2, self._ocp_dt)
-                ) and client_right.wait_for_service(timeout_sec=min(0.2, self._ocp_dt)):
-                    break
-            else:
-                print(f"One of the Gripper service '{service_name}' is not available.")
-                return False, False
+        client_left = self.create_client(Empty, service_name[0])
+        client_right = self.create_client(Empty, service_name[1])
 
-            future_left = client_left.call_async(Empty.Request())
-            future_right = client_right.call_async(Empty.Request())
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if client_left.wait_for_service(
+                timeout_sec=min(0.2, self._ocp_dt)
+            ) and client_right.wait_for_service(timeout_sec=min(0.2, self._ocp_dt)):
+                break
+        else:
+            self.get_logger().info(
+                f"One of the Gripper service '{service_name}' is not available."
+            )
+            return False, False
 
-            while not future_left.done() and future_right.done():
-                rclpy.spin_once(node, timeout_sec=0.1)
+        future_left = client_left.call_async(Empty.Request())
+        future_right = client_right.call_async(Empty.Request())
 
-            if future_left.cancelled():
-                print(
-                    f"Gripper {action_label} request to '{service_name}' was cancelled."
-                )
-                return False
+        while not future_left.done() and future_right.done():
+            time.sleep(0.0001)
 
-            exc = future_left.exception()
-            if exc is not None:
-                print(f"Gripper {action_label} failed via '{service_name}': {exc}")
-                return False
+        if future_left.cancelled():
+            self.get_logger().info(
+                f"Gripper {action_label} request to '{service_name}' was cancelled."
+            )
+            return False
 
-            return True, True
-        finally:
-            node.destroy_node()
+        exc = future_left.exception()
+        if exc is not None:
+            self.get_logger().info(
+                f"Gripper {action_label} failed via '{service_name}': {exc}"
+            )
+            return False
+
+        return True, True
 
     def open_gripper(
         self,
@@ -371,7 +372,7 @@ class HPPActionServer(Node):
         """Close the left gripper in Gazebo."""
         del position, duration
         return self._call_grasper_service(
-            [LEFT_GRIPPER_RELEASE_SERVICE, RIGHT_GRIPPER_RELEASE_SERVICE],
+            [LEFT_GRIPPER_GRASP_SERVICE, RIGHT_GRIPPER_GRASP_SERVICE],
             ["close", "close"],
             timeout=timeout,
         )
@@ -513,6 +514,8 @@ class HPPActionServer(Node):
                 task=task,
                 gripper_action=gripper_action,
             )
+            self.get_logger().info("Waiting 5 sec between segments ")
+            time.sleep(5)
 
             if not ok:
                 message = f"Segment {seg_id} failed"
@@ -535,9 +538,9 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 15.0,
+        timeout_margin: float = 60.0,
         position_control: bool = False,
-        ee_tol: float = 0.015,
+        ee_tol: float = 0.004,
     ) -> bool:
         weighted_trajectory = self._convert_path(traj, task)
         num_points = len(weighted_trajectory)
@@ -570,7 +573,9 @@ class HPPActionServer(Node):
 
             q_current = self._build_q_init()
             q_target = traj[-1]
+
             err = self._get_ee_pose_error(q_current, q_target)
+            self.get_logger().info(f"err : {err}")
 
             if err < ee_tol:
                 self.get_logger().info(f"EE Pose converged (err={err:.4f})")
@@ -598,11 +603,8 @@ class HPPActionServer(Node):
         for joint_name in self._robot_model.names:
             if joint_name == "universe":
                 continue
-
-            # Map native name to HPP prefixed name
-            full_name = f"tiago_pro/{joint_name}"
-            if full_name in robot.rankInConfiguration:
-                rank = robot.rankInConfiguration[full_name]
+            if joint_name in robot.rankInConfiguration:
+                rank = robot.rankInConfiguration[joint_name]
                 joint_id = self._robot_model.getJointId(joint_name)
                 idx_q = self._robot_model.joints[joint_id].idx_q
                 nq = self._robot_model.joints[joint_id].nq
@@ -618,6 +620,8 @@ class HPPActionServer(Node):
         # 1. Extract purely the robot joints (bypasses HPP entirely)
         q_cur_rob = self._extract_q_robot(q_current)
         q_tgt_rob = self._extract_q_robot(q_target)
+        # self.get_logger().info(f"q_cur_rob: {q_cur_rob}")
+        # self.get_logger().info(f"q_tgt_rob: {q_tgt_rob}")
 
         # 2. Use the standard pure Pinocchio model built from URDF in _buildRobot
         pin_model = self._robot_model
