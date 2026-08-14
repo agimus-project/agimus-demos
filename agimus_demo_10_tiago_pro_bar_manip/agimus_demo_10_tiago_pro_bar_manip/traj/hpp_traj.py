@@ -106,7 +106,7 @@ class HPPPathGenerator:
         )
         self.robot.setJointBounds(
             f"{robot_name}/torso_lift_joint",
-            [-1e-3, 0.33],
+            [0.04, 0.33],
         )
 
         def _set_vel_bounds(joint_name, bounds):

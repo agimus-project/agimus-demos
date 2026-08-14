@@ -514,8 +514,8 @@ class HPPActionServer(Node):
                 task=task,
                 gripper_action=gripper_action,
             )
-            self.get_logger().info("Waiting 5 sec between segments ")
-            time.sleep(5)
+            # self.get_logger().info("Waiting 1 sec between segments ")
+            # time.sleep(1)
 
             if not ok:
                 message = f"Segment {seg_id} failed"
@@ -538,9 +538,9 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 60.0,
+        timeout_margin: float = 120.0,
         position_control: bool = False,
-        ee_tol: float = 0.004,
+        ee_tol: float = 0.07,
     ) -> bool:
         weighted_trajectory = self._convert_path(traj, task)
         num_points = len(weighted_trajectory)
@@ -575,7 +575,7 @@ class HPPActionServer(Node):
             q_target = traj[-1]
 
             err = self._get_ee_pose_error(q_current, q_target)
-            self.get_logger().info(f"err : {err}")
+            # self.get_logger().info(f"err : {err}")
 
             if err < ee_tol:
                 self.get_logger().info(f"EE Pose converged (err={err:.4f})")
