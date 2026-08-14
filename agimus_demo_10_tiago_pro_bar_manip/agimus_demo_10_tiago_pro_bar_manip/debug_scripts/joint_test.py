@@ -26,7 +26,7 @@ from agimus_controller.trajectory import (
 )
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 
-POS_END = 0.1
+POS_END = 0.3
 TRAJ_DURATION = 10.0
 OCP_DT = 0.01
 
@@ -55,7 +55,7 @@ RIGHT_TOOL_NAME = "gripper_right_grasping_link"
 
 _W = {
     "w_q": [
-        10.0,
+        50.0,
         10.0,
         10.0,
         10.0,
