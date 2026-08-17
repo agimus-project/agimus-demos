@@ -1,8 +1,7 @@
-import torch.nn as nn
-from torch import Tensor
 from agimus_demo_07_deburring.planner.diffusion.positional_encoding import (
     PositionalEncoding,
 )
+from torch import Tensor, nn
 
 
 class TransformerDiffusionEncoderDecoder(nn.Module):

@@ -1,6 +1,6 @@
-import torch
-from torch import nn, Tensor
 import numpy as np
+import torch
+from torch import Tensor, nn
 
 
 class PositionalEncoding(nn.Module):

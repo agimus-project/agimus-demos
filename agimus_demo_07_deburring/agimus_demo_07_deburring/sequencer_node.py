@@ -1,20 +1,18 @@
 import sys
 import time
-from tqdm import tqdm
 from typing import Any
 
 import rclpy
-from rclpy.client import Client
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from rclpy.exceptions import ParameterException
-from rclpy.parameter import Parameter
-
-from rcl_interfaces.srv import SetParametersAtomically
-from std_srvs.srv import SetBool, Trigger
-
 from action_msgs.msg import GoalStatus
 from agimus_msgs.action import DeburringPlanner
+from rcl_interfaces.srv import SetParametersAtomically
+from rclpy.action import ActionClient
+from rclpy.client import Client
+from rclpy.exceptions import ParameterException
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+from std_srvs.srv import SetBool, Trigger
+from tqdm import tqdm
 
 try:
     from bigpose_msgs.srv import GetTransformStamped
@@ -382,7 +380,7 @@ def main(args=None) -> int:
                         handle_name, do_insertion=True
                     )
             except RuntimeError as err:
-                print(f"Error. {str(err)}. Skipping the handle!")
+                print(f"Error. {err!s}. Skipping the handle!")
 
         print("Sequencing done, stopping the node")
 

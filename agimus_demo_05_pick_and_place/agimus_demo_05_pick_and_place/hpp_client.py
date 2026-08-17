@@ -24,28 +24,28 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import time
 import typing as T
 from math import sqrt
-from agimus_demo_05_pick_and_place.corba import CorbaServer
-from hpp.corbaserver import shrinkJointRange
-from hpp.corbaserver.manipulation import Robot, newProblem, ProblemSolver
-from hpp.gepetto.manipulation import ViewerFactory
-from agimus_demo_05_pick_and_place.bin_picking import BinPicking
-from agimus_demo_05_pick_and_place.utils import concatenatePaths, split_path
+
 import numpy as np
+import pinocchio
+from hpp.corbaserver import shrinkJointRange
+from hpp.corbaserver.manipulation import ProblemSolver, Robot, newProblem
+from hpp.gepetto.manipulation import ViewerFactory
+from hpp.rostools import process_xacro, retrieve_resource
 from hpp_idl.hpp.core_idl import Path as HPPPath
 
-import time
-
+from agimus_demo_05_pick_and_place.bin_picking import BinPicking
+from agimus_demo_05_pick_and_place.corba import CorbaServer
 from agimus_demo_05_pick_and_place.utils import (
     BaseObject,
+    concatenatePaths,
     get_obj_goal_handles,
+    split_path,
 )
-from hpp.rostools import process_xacro, retrieve_resource
-import pinocchio
 
-
-XYZQuatType: T.TypeAlias = T.Tuple[float, float, float, float, float, float, float]
+XYZQuatType: T.TypeAlias = tuple[float, float, float, float, float, float, float]
 
 
 def hack_for_ros2_support_in_hpp():
@@ -135,7 +135,7 @@ class HPPInterface:
         self.setup_problem()
 
     def set_relative_start_obj_pose(
-        self, obj_pose_in_frame: XYZQuatType, q_robot: T.List[float], frame_name: str
+        self, obj_pose_in_frame: XYZQuatType, q_robot: list[float], frame_name: str
     ):
         # kz: in base of hpp robot ( i guess)
         frame_pose = pinocchio.XYZQUATToSE3(
@@ -152,7 +152,7 @@ class HPPInterface:
         )
 
     @property
-    def goal_obj_pose(self) -> T.Tuple[float, float, float, float, float, float, float]:
+    def goal_obj_pose(self) -> tuple[float, float, float, float, float, float, float]:
         """Returns a list of size 7 contains the pose of the goal,
         defined in the destination box frame.
 
@@ -160,7 +160,7 @@ class HPPInterface:
         """
         return self._goal_obj_pose
 
-    def set_goal_obj_pose(self, frame_name: str, pose: T.Tuple[float, float, float]):
+    def set_goal_obj_pose(self, frame_name: str, pose: tuple[float, float, float]):
         """Sets the position of the goal wrt `frame_name`.
 
         Only the translation can be changed so only the 3 first element of the input
@@ -273,9 +273,9 @@ class HPPInterface:
 
     def get_robot_link_position(
         self,
-        q_robot: T.List[float],
+        q_robot: list[float],
         frame_name: str,
-    ) -> T.List[float]:
+    ) -> list[float]:
         """Get the position of a robot frame"""
         # TODO don't assume q_robot is of right size.
         q = self.robot.getCurrentConfig()
@@ -287,10 +287,10 @@ class HPPInterface:
 
     def set_point_cloud(
         self,
-        q_robot: T.List[float],
+        q_robot: list[float],
         camera_frame_name: str,
-        points: T.List[T.Tuple[float, float, float]],
-        colors: T.Optional[T.List[T.Tuple[float, float, float, float]]] = None,
+        points: list[tuple[float, float, float]],
+        colors: list[tuple[float, float, float, float]] | None = None,
     ):
         frame_position = self.get_robot_link_position(q_robot, camera_frame_name)
 
@@ -375,7 +375,7 @@ class HPPInterface:
         self,
         q_init: list[float],
         enable_collision_between_box_and_part: bool = True,
-        q_above_source_bin: T.Optional[list[float]] = None,
+        q_above_source_bin: list[float] | None = None,
     ):
         assert self._goal_obj_pose is not None, (
             "Goal object pose should have been set before."
@@ -519,7 +519,7 @@ class HPPInterface:
 
     def plan_calib_motion(
         self, q_init: list[float], box_handles: list[str], n_samples: int = 0
-    ) -> list[T.Optional[HPPPath]]:
+    ) -> list[HPPPath | None]:
         """Calculates a set of motion to calibrate the position of the bins.
 
         It returns a list of either a HPP path or None. None marks the time when the

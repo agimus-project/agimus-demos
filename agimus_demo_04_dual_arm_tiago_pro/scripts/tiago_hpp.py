@@ -28,7 +28,7 @@
 # DAMAGE.
 
 from math import sqrt
-from rostools import process_xacro
+
 from helper import Helper
 from hpp.corbaserver import loadServerPlugin
 from hpp.corbaserver.manipulation import (
@@ -40,6 +40,7 @@ from hpp.corbaserver.manipulation import (
     Robot,
 )
 from hpp.gepetto.manipulation import ViewerFactory
+from rostools import process_xacro
 
 
 # Load Tiago pro robot and Reinforcment bar
