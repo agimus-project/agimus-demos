@@ -3,7 +3,7 @@ repositories:
   vcs_tiago_pro/play_motion2:
     type: git
     url: https://github.com/pal-robotics/play_motion2.git
-    version: 1.8.5
+    version: 1.8.6
 
   vcs_tiago_pro/pal_sea_arm_moveit_config:
     type: git
@@ -28,17 +28,17 @@ repositories:
   vcs_tiago_pro/pal_urdf_utils:
     type: git
     url: https://github.com/pal-robotics/pal_urdf_utils.git
-    version: 2.6.1
+    version: 2.9.2
 
   vcs_tiago_pro/tiago_pro_head_robot:
     type: git
     url: https://github.com/pal-robotics/tiago_pro_head_robot.git
-    version: 1.10.0
+    version: 1.12.0
 
   vcs_tiago_pro/pal_pro_gripper:
     type: git
     url: https://github.com/pal-robotics/pal_pro_gripper.git
-    version: 1.12.4
+    version: 1.12.5
 
   vcs_tiago_pro/omni_base_robot:
     type: git
@@ -63,4 +63,4 @@ repositories:
   vcs_tiago_pro/launch_pal:
     type: git
     url: https://github.com/pal-robotics/launch_pal.git
-    version: 0.21.0
+    version: 0.21.1

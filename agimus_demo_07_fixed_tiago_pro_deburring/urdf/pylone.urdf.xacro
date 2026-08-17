@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="pylone" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="with_sc" default="false"/>
+
+  <material name="grey">
+    <color rgba="0.0 0.9 0.9 1.0"/>
+  </material>
+
+  <link name="pylone_link">
+    <visual>
+      <geometry>
+        <mesh filename="file://$(find agimus_demo_07_fixed_tiago_pro_deburring)/urdf/visual/pylone.stl"
+              scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="file://$(find agimus_demo_07_fixed_tiago_pro_deburring)/urdf/collision/pylone.stl"
+              scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.1"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+
+  <!-- Simplified capsule collision geometry for MPC — same geometry as Panda pylone -->
+  <xacro:if value="${'$(arg with_sc)' == 'true'}">
+    <link name="pylone_sc_link">
+
+      <!-- Side edges of the hole (vertical, capsule_0 and capsule_1) -->
+      <collision>
+        <origin xyz="0.03 0.1 -0.045" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.004" length="0.6"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 0.1 0.255" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 0.1 -0.345" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <collision>
+        <origin xyz="0.03 -0.1 -0.045" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.004" length="0.6"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 -0.1 0.255" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 -0.1 -0.345" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <!-- Top and bottom bars of the hole (horizontal, capsule_2 and capsule_3) -->
+      <collision>
+        <origin xyz="0.03 0.0 0.105" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="0.004" length="0.4"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 0.2 0.105" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 -0.2 0.105" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <collision>
+        <origin xyz="0.03 0.0 -0.195" rpy="1.5708 0 0"/>
+        <geometry><cylinder radius="0.004" length="0.4"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 0.2 -0.195" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.03 -0.2 -0.195" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <!-- Main vertical edges of the pylone (capsule_4 and capsule_5) -->
+      <collision>
+        <origin xyz="0.0 0.205 0.0" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.004" length="1.3"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.0 0.205 0.65" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.0 0.205 -0.65" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <collision>
+        <origin xyz="0.0 -0.205 0.0" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.004" length="1.3"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.0 -0.205 0.65" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0.0 -0.205 -0.65" rpy="0 0 0"/>
+        <geometry><sphere radius="0.004"/></geometry>
+      </collision>
+
+      <!-- Flat face box -->
+      <collision>
+        <origin rpy="0 0 0" xyz="0.25 0.2025 0.0"/>
+        <geometry><box size="0.5 0.005 0.55"/></geometry>
+      </collision>
+
+    </link>
+    <joint name="pylone_sc_link_joint" type="fixed">
+      <origin rpy="0 0.0873 0" xyz="-0.171 0.0 0.03"/>
+      <parent link="pylone_link"/>
+      <child link="pylone_sc_link"/>
+    </joint>
+  </xacro:if>
+
+  <gazebo>
+    <static>true</static>
+  </gazebo>
+
+</robot>
