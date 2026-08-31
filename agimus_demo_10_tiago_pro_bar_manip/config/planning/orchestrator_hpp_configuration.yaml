@@ -3,18 +3,18 @@
 
 # HPP variables
 # Association grippers <-> handles avec placement de la barre
-# Format placement : [x, y, z, qx, qy, qz, qw] dans le repère monde
+# Format placement : [x, y, z, qx, qy, qz, qw] dans le du handle
 
 grippers:
   tiago_pro/left:
     handles:
     - name: reinforcement_bar/left
-      placement: [0., 0.1, 0.25, 0.0, 0.0, -0.707, 0.707]
+      placement: [0., 0.012, -0.25, 0.0, 0.0, -0.707, 0.707]
 
   tiago_pro/right:
     handles:
     - name: reinforcement_bar/right
-      placement: [0., -0.1, 0.25, 0.0, 0.0, -0.707, 0.707]
+      placement: [0., 0.012, 0.25, 0.0, 0.0, -0.707, 0.707]
 
 # Path Variables
 trajectory:
@@ -30,14 +30,17 @@ robot_configuration:
 
 weights:
   pick:
-    w_q: [50.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    w_dq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    w_effort: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
-      0.05, 0.05]
+    w_q: [500.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+      10.0]
+    w_dq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001]
+    w_ddq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001]
+    w_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001, 0.001]
 
-    w_frame_translation: [0.0, 0.0, 0.0]                           # task priority
-    w_frame_rotation: [00.0, 0.0, 0.0]
+    w_frame_translation: [100.0, 100.0, 100.0]                               # task priority
+    w_frame_rotation: [5.0, 5.0, 5.0]
     w_desired_force: [0.0, 0.0, 0.0]
     w_collision_avoidance: 0.0
 

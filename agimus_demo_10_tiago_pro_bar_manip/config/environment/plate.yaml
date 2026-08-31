@@ -13,3 +13,4 @@ plate:
     stride: 0.05
     xyz: [0., 0., 0.03]
     rpy: [0., 0., 0.]
+  mass: 4.0   # kg

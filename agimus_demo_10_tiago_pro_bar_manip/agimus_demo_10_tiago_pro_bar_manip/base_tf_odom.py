@@ -12,7 +12,7 @@ class TfBasePub(Node):
 
         # Parameters
         self.declare_parameter("odom_topic", "/mobile_base_controller/odom")
-        self.declare_parameter("parent_frame", "world")
+        self.declare_parameter("parent_frame", "odom")
         self.declare_parameter("child_frame", "base_footprint")
 
         self.odom_topic = self.get_parameter("odom_topic").value

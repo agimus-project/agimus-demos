@@ -1,4 +1,3 @@
-from math import sqrt
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +19,12 @@ class BaseObject:
         self.urdfFilename = urdf_path
         self.srdfFilename = srdf_path
         self.name = name
+
+
+def handle_pose_from_config(config, gripper_name: str) -> tuple[str, pin.SE3]:
+    handle_cfg = config[gripper_name][0]
+    placement = np.array(handle_cfg["placement"], dtype=float)  # [x,y,z,qx,qy,qz,qw]
+    return handle_cfg["name"], pin.XYZQUATToSE3(placement)
 
 
 class HPPPathGenerator:
@@ -148,15 +153,14 @@ class HPPPathGenerator:
         self._locked_handle = self._locked_handle()
 
         # == Grippers & handles ================================================
-        c = sqrt(2) / 2
         pose_gripper = pin.XYZQUATToSE3(
             np.array([0.015, 0, 0, 0, 0, 0, 1], dtype=float)
         )
-        pose_hd_left = pin.XYZQUATToSE3(
-            np.array([0, 0.01, -0.25, 0, 0, -c, c], dtype=float)
+        left_handle_name, pose_hd_left = handle_pose_from_config(
+            self._handles_config, f"{robot_name}/left"
         )
-        pose_hd_right = pin.XYZQUATToSE3(
-            np.array([0, 0.01, 0.25, 0, 0, -c, c], dtype=float)
+        right_handle_name, pose_hd_right = handle_pose_from_config(
+            self._handles_config, f"{robot_name}/right"
         )
         self.define_gripper(
             self.robot,

@@ -567,6 +567,7 @@ class HPPActionServer(Node):
         self.get_logger().info("Waiting for EE pose convergence...")
         traj_done = False
         while not traj_done and time.time() < deadline:
+            traj_done = True
             if self._joint_state is None:
                 time.sleep(0.1)
                 continue
@@ -842,12 +843,12 @@ class HPPActionServer(Node):
             if joint_name in self._r_config["moving_joints"]:
                 rank = robot.rankInConfiguration[full]
                 value = q_env[rank]
-                nq = len(robot.getJointConfig(full))
-                if nq == 2:
-                    q_robot.append(np.cos(value))
-                    q_robot.append(np.sin(value))
-                elif nq == 1:
-                    q_robot.append(value)
+                # nq = len(robot.getJointConfig(full))
+                # if nq == 2:
+                #     q_robot.append(np.cos(value))
+                #     q_robot.append(np.sin(value))
+                # elif nq == 1:
+                q_robot.append(value)
 
         # ! Kept the way to add the base root when we'll add it
         # r = robot.rankInConfiguration["tiago_pro/root_joint"]

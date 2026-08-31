@@ -9,7 +9,7 @@
   <xacro:property name="plate_length" value="${setup_file['plate']['length']}" /> <!-- Dimension sur l'axe X -->
   <xacro:property name="plate_width"  value="${setup_file['plate']['width']}"  /> <!-- Dimension sur l'axe Y -->
   <xacro:property name="plate_height" value="${setup_file['plate']['height']}" /> <!-- Épaisseur de la plaque -->
-
+  <xacro:property name="plate_mass" value="${setup_file['plate']['mass']}"/>
   <xacro:property name="border_height"    value="${setup_file['plate']['border_height']}" />    <!-- Hauteur des bordures -->
   <xacro:property name="border_thickness" value="${setup_file['plate']['border_thickness']}" /> <!-- Épaisseur des bordures -->
 
@@ -58,6 +58,14 @@
 
     <!-- Le maillon de base (la surface de la plaque) -->
     <link name="${name}_base_link">
+      <inertial>
+        <mass value="${plate_mass}"/>
+        <inertia
+          ixx="${plate_mass/12.0 * (plate_width*plate_width + plate_height*plate_height)}"
+          iyy="${plate_mass/12.0 * (plate_length*plate_length + plate_height*plate_height)}"
+          izz="${plate_mass/12.0 * (plate_length*plate_length + plate_width*plate_width)}"
+          ixy="0" ixz="0" iyz="0"/>
+      </inertial>
       <visual>
         <geometry><box size="${plate_length} ${plate_width} ${plate_height}"/></geometry>
         <material name="grey"/>

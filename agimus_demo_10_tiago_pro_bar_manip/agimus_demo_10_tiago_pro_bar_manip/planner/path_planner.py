@@ -8,7 +8,7 @@ from pyhpp.core import (
 from pyhpp.manipulation import TransitionPlanner
 from pyhpp.core.path import Vector as PathVector
 
-_DIST_MIN = 0.40  # m  — closest approach to handle
+_DIST_MIN = 0.50  # m  — closest approach to handle
 _DIST_MAX = 0.90  # m  — furthest approach
 _ANGLE_SPREAD = 0.35  # rad ≈ 20°  — lateral angular jitter around the ideal axis
 _TORSO_MIN = 0.00  # m

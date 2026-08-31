@@ -2,7 +2,15 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:macro name="reinforcement_bar" params="prefix:=''">
+    <material name="Light-Grey">
+      <color rgba="0.8 0.8 0.8 1.0"/>
+    </material>
     <link name="${prefix}bar_base_link">
+      <inertial>
+        <origin xyz="0.025 0 0"/>
+        <mass value="2.5"/>
+        <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.04"/>
+      </inertial>
       <collision>
         <origin xyz="0 0 -0.48"/>
         <geometry>
@@ -16,8 +24,8 @@
           <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/reinforcment_bar.stl"
                 scale="0.001 0.001 0.001"/>
         </geometry>
+        <material name="Light-Grey"/>
       </visual>
     </link>
   </xacro:macro>
-
 </robot>

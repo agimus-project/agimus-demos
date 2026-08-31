@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot name="plate" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/plate.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/plate_macro.urdf.xacro"/>
   <xacro:bordered_plate name="plate">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:bordered_plate>
