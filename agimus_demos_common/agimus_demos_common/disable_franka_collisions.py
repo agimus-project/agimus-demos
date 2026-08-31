@@ -1,13 +1,12 @@
 import sys
 
 import rclpy
-
-from franka_msgs.srv import SetFullCollisionBehavior  # noqa: I001
+from franka_msgs.srv import SetFullCollisionBehavior
 
 # Automatically generated file
 from agimus_demos_common.disable_franka_collisions_parameters import (
     disable_franka_collisions,
-)  # noqa: E402
+)
 
 
 def main(args=None) -> int:

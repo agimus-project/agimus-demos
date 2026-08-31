@@ -1,19 +1,19 @@
-import numpy as np
 import json
-import yaml
-import pinocchio as pin
-import numpy.typing as npt
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
-    GenericTrajectorySmoother,
+import numpy as np
+import numpy.typing as npt
+import pinocchio as pin
+import yaml
+from agimus_demo_07_deburring.planner.ocp.trajectory_optimizer import (
+    TrajecotryOptimizer,
 )
 from agimus_demo_07_deburring.planner.trajecory_smoothers.basic_interpolation import (
     BasicInterpolationSmoother,
 )
-from agimus_demo_07_deburring.planner.ocp.trajectory_optimizer import (
-    TrajecotryOptimizer,
+from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
+    GenericTrajectorySmoother,
 )
 
 
@@ -215,8 +215,7 @@ class OCPSmoother(GenericTrajectorySmoother):
         out = "".join(["_" + c.lower() if c.isupper() else c for c in text])
 
         # Remove leading underscore if present
-        if out.startswith("_"):
-            out = out[1:]
+        out = out.removeprefix("_")
         return out
 
     def _create_cost(self, cost_params_data: str) -> str:

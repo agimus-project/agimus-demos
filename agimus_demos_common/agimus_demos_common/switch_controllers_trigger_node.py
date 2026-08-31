@@ -1,6 +1,7 @@
+import subprocess
+
 import rclpy
 from rclpy.node import Node
-import subprocess
 
 
 class SwitchControllersTriggerNode(Node):
