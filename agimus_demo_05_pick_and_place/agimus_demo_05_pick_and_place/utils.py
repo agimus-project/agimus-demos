@@ -1,5 +1,6 @@
-import numpy as np
 import xml.etree.ElementTree as ET
+
+import numpy as np
 
 
 def concatenatePaths(paths, c_robot=None):
@@ -52,7 +53,7 @@ def path_move_object(path):
         return True
 
 
-class BaseObject(object):
+class BaseObject:
     rootJointType = "freeflyer"
 
     def __init__(self, urdf_path: str, srdf_path: str, name: str):

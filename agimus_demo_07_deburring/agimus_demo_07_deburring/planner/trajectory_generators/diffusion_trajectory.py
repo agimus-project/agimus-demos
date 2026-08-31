@@ -6,15 +6,13 @@ import numpy.typing as npt
 import pinocchio as pin
 import torch
 from agimus_controller.trajectory import TrajectoryPoint
-
-from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
-    JointSpaceMotionGenerator,
-)
+from agimus_demo_07_deburring.planner.diffusion.model import Model
 from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
     GenericTrajectorySmoother,
 )
-
-from agimus_demo_07_deburring.planner.diffusion.model import Model
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
+    JointSpaceMotionGenerator,
+)
 
 
 class DiffusionPathGenerator(JointSpaceMotionGenerator):
