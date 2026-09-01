@@ -37,7 +37,7 @@ def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
     ref_frame = LaunchConfiguration("ref_frame").perform(context)
-    plotjuggler_config = LaunchConfiguration("plotjuggler_config")
+    # plotjuggler_config = LaunchConfiguration("plotjuggler_config")
 
     # ==========================================================================
     # Tiago pro simulation
@@ -318,15 +318,15 @@ def launch_setup(
         ],
     )
 
-    plotjuggler = Node(
-        package="plotjuggler",
-        executable="plotjuggler",
-        arguments=[
-            "--layout",
-            plotjuggler_config,
-        ],
-        output="screen",
-    )
+    # plotjuggler = Node(
+    #     package="plotjuggler",
+    #     executable="plotjuggler",
+    #     arguments=[
+    #         "--layout",
+    #         plotjuggler_config,
+    #     ],
+    #     output="screen",
+    # )
 
     set_gz_resource_path = SetEnvironmentVariable(
         name="GZ_SIM_RESOURCE_PATH",
@@ -379,7 +379,7 @@ def launch_setup(
         robot_srdf_publisher_node,
         agimus_controller_node,
         bar_tf_bridge,
-        plotjuggler,
+        # plotjuggler,
         world_to_gazebo_bridge,
         gz_bridge_odom,
     ]

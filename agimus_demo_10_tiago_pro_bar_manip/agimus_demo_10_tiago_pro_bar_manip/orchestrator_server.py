@@ -19,8 +19,6 @@ After the action is call the server will launch the plan with HPP, sample the tr
 
 Launched with the bringup.launch.py file of the same package
 
-# TODO : Move the HPP to its own python file
-
 """
 
 import os
@@ -30,7 +28,7 @@ import yaml
 import threading
 import numpy as np
 import pinocchio as pin
-from pathlib import Path
+from pathlib import Path as FilePath
 from collections import deque
 from ament_index_python.packages import get_package_share_directory
 import rclpy
@@ -44,6 +42,8 @@ from std_msgs.msg import String
 from std_srvs.srv import Empty
 from rclpy.action import ActionClient
 from control_msgs.action import FollowJointTrajectory
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
 from tf2_ros import (
     Buffer,
     ConnectivityException,
@@ -75,6 +75,9 @@ LEFT_GRIPPER_RELEASE_SERVICE = "/gripper_left_grasper_srv/release"
 LEFT_GRIPPER_GRASP_SERVICE = "/gripper_left_grasper_srv/grasp"
 RIGHT_GRIPPER_RELEASE_SERVICE = "/gripper_right_grasper_srv/release"
 RIGHT_GRIPPER_GRASP_SERVICE = "/gripper_right_grasper_srv/grasp"
+
+BASE_TRAJECTORY_TOPIC = "/trajectory"
+BASE_TRAJECTORY_FRAME = "world"
 
 
 def _patch_srdf(srdf_str: str) -> str:
@@ -124,7 +127,7 @@ class HPPActionServer(Node):
         self._nv = None
 
         self.declare_parameter("orchestrator_hpp_config", "Unconfigured path")
-        config_file_path = Path(self.get_parameter("orchestrator_hpp_config").value)
+        config_file_path = FilePath(self.get_parameter("orchestrator_hpp_config").value)
 
         with open(config_file_path, "r") as f:
             _config_file = yaml.load(f, Loader=yaml.SafeLoader)
@@ -182,6 +185,12 @@ class HPPActionServer(Node):
         self._mpc_input_publisher_timer = self.create_timer(
             self._ocp_dt,
             self._publish_mpc_input_cb,  # TODO change ocp_dt to be from a yaml
+        )
+
+        self._base_traj_pub = self.create_publisher(
+            Path,
+            BASE_TRAJECTORY_TOPIC,
+            10,
         )
 
         # self._traj_pub = self.create_publisher(
@@ -538,54 +547,94 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 120.0,
-        position_control: bool = False,
-        ee_tol: float = 0.07,
+        timeout_margin: float = 20.0,
+        ee_tol_pos: float = 0.10,
+        ee_tol_rot: float = 0.2,
+        poll_period: float = 0.02,
     ) -> bool:
         weighted_trajectory = self._convert_path(traj, task)
+        base_traj = self._base_trajectory(traj)
         num_points = len(weighted_trajectory)
 
         self.get_logger().info(f"Sending {num_points} points to MPC buffer...")
         with self._trajectory_buffer_lock:
             self._trajectory_buffer.extend(weighted_trajectory)
 
+        self.send_base_traj(base_traj)
+
         traj_duration = num_points * self._ocp_dt
         deadline = time.time() + traj_duration + timeout_margin
 
-        # Wait until buffer empty
-        self.get_logger().info("Waiting for MPC to consume buffer...")
+        q_target = traj[-1]
+        frames_to_check = [
+            self._left_tool_frame_id_pin_frame,
+            self._right_tool_frame_id_pin_frame,
+        ]
+
+        self.get_logger().info("Waiting for buffer drain + EE convergence...")
+
+        frames_to_check = [
+            self._left_tool_frame_id_pin_frame,
+            self._right_tool_frame_id_pin_frame,
+        ]
+        traj_done = [False] * len(frames_to_check)
+
+        last_log_state = [{"pos": None, "rot": None} for _ in frames_to_check]
+
+        log_delta_pos = 0.001
+        log_delta_rot = 0.01
+
         while time.time() < deadline:
             with self._trajectory_buffer_lock:
                 buf_len = len(self._trajectory_buffer)
 
-            # If it remain 1 the buffer is empty because we hold the last traj pose
-            if buf_len <= 1:
-                break
-            time.sleep(0.1)
+            if buf_len <= 1 and self._joint_state is not None:
+                q_current = self._build_q_init()
 
-        # Wait the robot has execute the traj
-        self.get_logger().info("Waiting for EE pose convergence...")
-        traj_done = False
-        while not traj_done and time.time() < deadline:
-            traj_done = True
-            if self._joint_state is None:
-                time.sleep(0.1)
-                continue
+                pos_errs, rot_errs = self._get_ee_pose_error(
+                    q_current, q_target, frames_to_check
+                )
 
-            q_current = self._build_q_init()
-            q_target = traj[-1]
+                for i in range(len(frames_to_check)):
+                    pos_c = pos_errs[i]
+                    rot_c = rot_errs[i]
+                    frame_name = frames_to_check[i]
 
-            err = self._get_ee_pose_error(q_current, q_target)
-            # self.get_logger().info(f"err : {err}")
+                    if pos_c <= ee_tol_pos and rot_c <= ee_tol_rot:
+                        traj_done[i] = True
+                    else:
+                        traj_done[i] = False
 
-            if err < ee_tol:
-                self.get_logger().info(f"EE Pose converged (err={err:.4f})")
-                traj_done = True
-                break
-            time.sleep(0.1)
+                        last_pos = last_log_state[i]["pos"]
+                        last_rot = last_log_state[i]["rot"]
 
-        if not traj_done:
-            self.get_logger().warn("Timeout: EE pose did not converge")
+                        if (
+                            last_pos is None
+                            or abs(pos_c - last_pos) > log_delta_pos
+                            or abs(rot_c - last_rot) > log_delta_rot
+                        ):
+                            self.get_logger().info(
+                                f"Waiting for [{frame_name}] -> "
+                                f"Pos Err: {pos_c:.3f}m (tol: {ee_tol_pos}) | "
+                                f"Rot Err: {rot_c:.3f}rad (tol: {ee_tol_rot})"
+                            )
+
+                            last_log_state[i]["pos"] = pos_c
+                            last_log_state[i]["rot"] = rot_c
+
+                if all(traj_done):
+                    self.get_logger().info("Target reached for all EE")
+                    break
+
+            time.sleep(poll_period)
+
+        if not all(traj_done):
+            for i in range(len(frames_to_check)):
+                if not traj_done[i]:
+                    self.get_logger().warn(
+                        f"Timeout sur [{frames_to_check[i]}] : bloqué à "
+                        f"Pos={pos_errs[i]:.3f}m, Rot={rot_errs[i]:.3f}rad"
+                    )
             return False
 
         # Action gripper
@@ -614,35 +663,42 @@ class HPPActionServer(Node):
 
         return q_robot
 
-    def _get_ee_pose_error(self, q_current, q_target) -> float:
+    def _get_ee_pose_error(self, q_current, q_target, list_frame_id: list) -> tuple:
         """
         Compute pose Error between 2 config
         """
-        # 1. Extract purely the robot joints (bypasses HPP entirely)
         q_cur_rob = self._extract_q_robot(q_current)
         q_tgt_rob = self._extract_q_robot(q_target)
-        # self.get_logger().info(f"q_cur_rob: {q_cur_rob}")
-        # self.get_logger().info(f"q_tgt_rob: {q_tgt_rob}")
 
-        # 2. Use the standard pure Pinocchio model built from URDF in _buildRobot
         pin_model = self._robot_model
-        pin_data = pin_model.createData()  # This will now perfectly work!
+        pin_data = pin_model.createData()
 
-        frame_id = self._left_tool_frame_id_pin_frame
+        M_current = []
+        M_target = []
 
-        # 3. Compute Current Pose
+        pos_err_list = []
+        rot_err_list = []
+
         pin.forwardKinematics(pin_model, pin_data, q_cur_rob)
         pin.updateFramePlacements(pin_model, pin_data)
-        M_current = pin_data.oMf[frame_id].copy()  # .copy() prevents memory overwrite
+        for frame_id in list_frame_id:
+            M_current.append(pin_data.oMf[frame_id].copy())
 
-        # 4. Compute Target Pose
         pin.forwardKinematics(pin_model, pin_data, q_tgt_rob)
         pin.updateFramePlacements(pin_model, pin_data)
-        M_target = pin_data.oMf[frame_id].copy()  # .copy() prevents memory overwrite
+        for frame_id in list_frame_id:
+            M_target.append(pin_data.oMf[frame_id].copy())
 
-        # 5. Calculate 6D error
-        err = pin.log6(M_current.inverse() * M_target)
-        return float(np.linalg.norm(err.vector))
+        for idx in range(len(list_frame_id)):
+            err = pin.log6(M_current[idx].inverse() * M_target[idx])
+
+            pos_err = np.linalg.norm(err.linear)
+            rot_err = np.linalg.norm(err.angular)
+
+            pos_err_list.append(float(pos_err))
+            rot_err_list.append(float(rot_err))
+
+        return pos_err_list, rot_err_list
 
     # == Planning helpers ======================================================
 
@@ -817,6 +873,55 @@ class HPPActionServer(Node):
         ]
 
         return converted_trajectory
+
+    def _base_trajectory(self, trajectory):
+        robot = self._hpp.robot
+        base_joint_name = "tiago_pro/root_joint"
+        rank = robot.rankInConfiguration[base_joint_name]
+        q_base = []
+        for i in range(len(trajectory)):
+            q_base.append(trajectory[i][rank : rank + 4])  # x,y,cos(theta),sin(theta)
+        return q_base
+
+    def send_base_traj(self, base_traj: list) -> None:
+        if not base_traj:
+            self.get_logger().warn("send_base_traj: traj empty")
+            return
+
+        stamp = self.get_clock().now().to_msg()
+
+        path_msg = Path()
+        path_msg.header.frame_id = BASE_TRAJECTORY_FRAME
+        path_msg.header.stamp = stamp
+
+        for q_base in base_traj:
+            assert len(q_base) == 4
+
+            x, y, cos_t, sin_t = (
+                float(q_base[0]),
+                float(q_base[1]),
+                float(q_base[2]),
+                float(q_base[3]),
+            )
+            theta = float(np.arctan2(sin_t, cos_t))
+
+            pose = PoseStamped()
+            pose.header.frame_id = BASE_TRAJECTORY_FRAME
+            pose.header.stamp = stamp
+            pose.pose.position.x = x
+            pose.pose.position.y = y
+            pose.pose.position.z = 0.0
+            R = pin.rpy.rpyToMatrix(0.0, 0.0, theta)
+            quat = pin.Quaternion(R)
+
+            pose.pose.orientation.x = quat.x
+            pose.pose.orientation.y = quat.y
+            pose.pose.orientation.z = quat.z
+            pose.pose.orientation.w = quat.w
+
+            path_msg.poses.append(pose)
+
+        self._base_traj_pub.publish(path_msg)
 
     def _convert_point(
         self, id: int, q_env: list, weights: TrajectoryPointWeights

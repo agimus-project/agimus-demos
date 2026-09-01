@@ -561,6 +561,28 @@ class HPPPathGenerator:
                 self.graph.getTransition(edge_name), self._locked_base_mobility
             )
 
+        # locked_torso on grasp/approach sub-transitions except loops
+        for edge_name in [
+            f"{prefix_fwd}_01",
+            f"{prefix_fwd}_12",
+            f"{prefix_fwd}_23",
+            f"{prefix_bwd}_32",
+            f"{prefix_bwd}_21",
+            f"{prefix_bwd}_10",
+            "Loop | f",
+        ]:
+            self.graph.addNumericalConstraintsToTransition(
+                self.graph.getTransition(edge_name), self._locked_torso
+            )
+
+        # locked_arms on loop only
+        for edge_name in [
+            "Loop | 0-0",
+        ]:
+            self.graph.addNumericalConstraintsToTransition(
+                self.graph.getTransition(edge_name), self._locked_arms
+            )
+
         self.graph.setWeight(self.graph.getTransition("Loop | f"), 1)
         self.graph.setWeight(self.graph.getTransition("Loop | 0-0"), 1)
 
