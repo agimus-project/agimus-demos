@@ -134,6 +134,7 @@ class HPPActionServer(Node):
 
         self._r_config = _config_file["robot_configuration"]
         self._weights_dict = _config_file["weights"]
+        self._ee_placement_tolerances = _config_file["ee_placement_tolerances"]
         self._left_tool_frame_id_name = self._r_config["left_tool"]
         self._left_tool_frame_id_pin_frame = None
         self._right_tool_frame_id_name = self._r_config["right_tool"]
@@ -522,9 +523,9 @@ class HPPActionServer(Node):
                 traj=segment,
                 task=task,
                 gripper_action=gripper_action,
+                ee_tol_pos=self._ee_placement_tolerances["position"],
+                ee_tol_rot=self._ee_placement_tolerances["rotation"],
             )
-            # self.get_logger().info("Waiting 1 sec between segments ")
-            # time.sleep(1)
 
             if not ok:
                 message = f"Segment {seg_id} failed"
@@ -547,10 +548,10 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 20.0,
-        ee_tol_pos: float = 0.10,
-        ee_tol_rot: float = 0.2,
-        poll_period: float = 0.02,
+        timeout_margin: float = 120.0,
+        ee_tol_pos: float = 0.04,
+        ee_tol_rot: float = 0.06,
+        poll_period: float = 0.1,
     ) -> bool:
         weighted_trajectory = self._convert_path(traj, task)
         base_traj = self._base_trajectory(traj)

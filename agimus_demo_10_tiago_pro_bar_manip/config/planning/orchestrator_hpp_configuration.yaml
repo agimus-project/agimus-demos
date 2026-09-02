@@ -18,7 +18,7 @@ grippers:
 
 # Path Variables
 trajectory:
-  slowdown_rate: 1.5 # slows the trajectory by a N factor
+  slowdown_rate: 2 # slows the trajectory by a N factor
 
 robot_configuration:
   left_tool: gripper_left_grasping_link #gripper_right_finger_joint
@@ -28,19 +28,21 @@ robot_configuration:
     arm_right_2_joint, arm_right_3_joint, arm_right_4_joint, arm_right_5_joint, arm_right_6_joint,
     arm_right_7_joint]
 
+ee_placement_tolerances:
+  position: 0.04
+  rotation: 0.07
+
 weights:
   pick:
-    w_q: [500.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-      10.0]
-    w_dq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
-      0.001, 0.001, 0.001]
-    w_ddq: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
-      0.001, 0.001, 0.001]
-    w_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+    w_q: [5000.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,
+      40.0, 40.0]
+    w_dq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_effort: [0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
       0.001, 0.001, 0.001, 0.001]
 
-    w_frame_translation: [100.0, 100.0, 100.0]                               # task priority
-    w_frame_rotation: [5.0, 5.0, 5.0]
+    w_frame_translation: [100.0, 100.0, 100.0]                           # task priority
+    w_frame_rotation: [50.0, 50.0, 50.0]
     w_desired_force: [0.0, 0.0, 0.0]
     w_collision_avoidance: 0.0
 

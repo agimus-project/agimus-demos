@@ -175,7 +175,7 @@ def launch_setup(
         output="screen",
     )
 
-    spawn_bar = Node(
+    spawn_bar_sim = Node(
         package="ros_gz_sim",
         executable="create",
         arguments=[
@@ -328,6 +328,15 @@ def launch_setup(
     #     output="screen",
     # )
 
+    # NAVIGATION:
+
+    nav_node = Node(
+        package="agimus_demo_10_tiago_pro_bar_manip",
+        executable="nav_controller_node",
+        name="nav_node",
+        output="screen",
+    )
+
     set_gz_resource_path = SetEnvironmentVariable(
         name="GZ_SIM_RESOURCE_PATH",
         value=os.pathsep.join(
@@ -364,12 +373,13 @@ def launch_setup(
     return [
         set_gz_resource_path,
         tiago_robot_launch,
+        nav_node,
         rviz,
         # wait_for_non_zero_joints_node,
         env_publisher,
         spawn_environment,
         bar_publisher,
-        spawn_bar,
+        spawn_bar_sim,
         environment_pose_bridge,
         bar_pose_bridge,
         tf_odom,
