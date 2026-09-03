@@ -1,0 +1,11 @@
+---
+qualisys_ip: 192.168.75.4
+publishing_freq: 300      # Hz, must be in [1, 300]
+ref_frame: world_mocap
+
+bodies:
+- name: cube
+  base_frame: bar_base_link_mocap
+    # publish_odometry defaults to false
+- name: tiago_base
+  base_frame: base_link_mocap
