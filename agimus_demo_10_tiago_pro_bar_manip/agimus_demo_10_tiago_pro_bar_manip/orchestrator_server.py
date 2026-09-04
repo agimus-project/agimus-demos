@@ -601,10 +601,10 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 20.0,
-        ee_tol_pos: float = 0.10,
-        ee_tol_rot: float = 0.2,
-        poll_period: float = 0.02,
+        timeout_margin: float = 120.0,
+        ee_tol_pos: float = 0.04,
+        ee_tol_rot: float = 0.06,
+        poll_period: float = 0.1,
         cancel_check=None,
         goal_handle=None,
     ) -> bool:
