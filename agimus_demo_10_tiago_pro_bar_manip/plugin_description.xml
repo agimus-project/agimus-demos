@@ -1,0 +1,6 @@
+<library path="hpp_plugin">
+  <class type="hpp_plugin::OrchestratorPannel"
+         base_class_type="rviz_common::Panel">
+    <description>Panel to send PlanBarGrasp action goals to the demo-10 Orchestrator</description>
+  </class>
+</library>

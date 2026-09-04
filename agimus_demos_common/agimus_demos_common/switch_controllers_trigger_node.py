@@ -22,6 +22,8 @@ class SwitchControllersTriggerNode(Node):
                     "switch_controllers",
                     "--deactivate",
                     "arm_right_controller",
+                    "arm_left_controller",
+                    "torso_controller",
                     "--activate",
                     "linear_feedback_controller",
                     "joint_state_estimator",

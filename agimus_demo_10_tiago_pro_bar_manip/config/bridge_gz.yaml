@@ -1,0 +1,17 @@
+---
+# bridge_config.yaml
+
+# Commande de vitesse : ROS 2 -> Gazebo
+- ros_topic_name: mobile_base_controller/cmd_vel_unstamped
+  gz_topic_name: mobile_base_controller/cmd_vel_unstamped
+  ros_type_name: geometry_msgs/msg/Twist
+  gz_type_name: gz.msgs.Twist
+  direction: ROS_TO_GZ
+  lazy: true
+
+# Odométrie : Gazebo -> ROS 2
+- ros_topic_name: mobile_base_controller/odom
+  gz_topic_name: mobile_base_controller/odom
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS

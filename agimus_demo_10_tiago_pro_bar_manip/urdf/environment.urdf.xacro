@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot name="environment_static" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/ground_macro.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/table_macro.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/plate_macro.urdf.xacro"/>
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/support_macro.urdf.xacro"/>
+
+  <link name="world"/>
+
+  <xacro:ground/>
+  <joint name="ground_world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="ground_link"/>
+    <origin xyz="0 0 -0.005" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:table/>
+  <joint name="table_world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="table_link"/>
+    <origin xyz="2.3 0 0.74" rpy="0 0 3.14"/>
+  </joint>
+
+  <xacro:bordered_plate name="plate">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:bordered_plate>
+  <joint name="plate_world_joint" type="fixed">
+    <parent link="table_link"/>
+    <child link="plate_base_link"/>
+    <origin xyz="-0.2 0 0" rpy="0 0 0"/>
+  </joint>
+  <xacro:support_bar spacing="0.95"/>
+  <joint name="support_world_joint" type="fixed">
+    <parent link="table_link"/>
+    <child link="support_base_link"/>
+    <origin xyz="0.60 0 0" rpy="0 0 ${pi/2}"/>
+  </joint>
+
+
+  <gazebo>
+    <static>true</static>
+  </gazebo>
+
+</robot>

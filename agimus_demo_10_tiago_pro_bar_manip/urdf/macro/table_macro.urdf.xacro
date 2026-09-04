@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="table" params="prefix:=''">
+
+    <material name="Blue">
+      <color rgba="0.0 0.0 0.4 1.0"/>
+    </material>
+
+    <link name="${prefix}table_link">
+
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="25.5"/>
+        <inertia ixx="0.02" ixy="0" ixz="0"
+                 iyy="0.05" iyz="0" izz="0.04"/>
+      </inertial>
+
+      <visual>
+        <origin rpy="0 0 0" xyz="0.35 0 0"/>
+        <geometry>
+          <mesh
+            filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl"
+            scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Blue"/>
+      </visual>
+
+      <visual>
+        <origin rpy="0 0 0" xyz="-0.35 0 0"/>
+        <geometry>
+          <mesh
+            filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/table.stl"
+            scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Blue"/>
+      </visual>
+
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 -0.37"/>
+        <geometry>
+          <box size="1.4 1.4 0.74"/>
+        </geometry>
+      </collision>
+
+    </link>
+
+  </xacro:macro>
+
+</robot>

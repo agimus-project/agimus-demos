@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot name="reinforcement_bar" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 1. Ton object géométrique et physique -->
+  <xacro:include filename="$(find agimus_demo_10_tiago_pro_bar_manip)/urdf/macro/reinforcement_bar_macro.urdf.xacro"/>
+  <xacro:reinforcement_bar prefix=""/>
+
+  <!-- 2. Le plugin Gazebo indispensable pour faire le point avec /tf -->
+  <gazebo>
+    <plugin filename="libgz-sim-pose-publisher-system.so" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>true</publish_link_pose>
+
+      <publish_model_pose>true</publish_model_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+
+      <use_pose_vector_msg>true</use_pose_vector_msg>
+      <update_frequency>50</update_frequency>
+    </plugin>
+  </gazebo>
+
+</robot>

@@ -1,0 +1,86 @@
+---
+# hpp_configuration.yaml
+
+# HPP variables
+# Association grippers <-> handles avec placement de la barre
+# Format placement : [x, y, z, qx, qy, qz, qw] dans le du handle
+
+grippers:
+  tiago_pro/left:
+    handles:
+    - name: reinforcement_bar/left
+      placement: [0., 0.012, -0.25, 0.0, 0.0, -0.707, 0.707]
+
+  tiago_pro/right:
+    handles:
+    - name: reinforcement_bar/right
+      placement: [0., 0.012, 0.25, 0.0, 0.0, -0.707, 0.707]
+
+# Path Variables
+trajectory:
+  slowdown_rate: 2 # slows the trajectory by a N factor
+
+robot_configuration:
+  left_tool: gripper_left_grasping_link #gripper_right_finger_joint
+  right_tool: gripper_right_grasping_link #gripper_left_finger_joint
+  moving_joints: [torso_lift_joint, arm_left_1_joint, arm_left_2_joint, arm_left_3_joint,
+    arm_left_4_joint, arm_left_5_joint, arm_left_6_joint, arm_left_7_joint, arm_right_1_joint,
+    arm_right_2_joint, arm_right_3_joint, arm_right_4_joint, arm_right_5_joint, arm_right_6_joint,
+    arm_right_7_joint]
+
+ee_placement_tolerances:
+  position: 0.04
+  rotation: 0.07
+
+weights:
+  pick:
+    w_q: [5000.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0,
+      40.0, 40.0]
+    w_dq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_effort: [0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001, 0.001]
+
+    w_frame_translation: [100.0, 100.0, 100.0]                           # task priority
+    w_frame_rotation: [50.0, 50.0, 50.0]
+    w_desired_force: [0.0, 0.0, 0.0]
+    w_collision_avoidance: 0.0
+
+  place:
+    w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    w_dq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_ddq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    w_effort: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
+      0.05, 0.05]
+    # w_effort: [0.05, 0.05, 0.1, 0.001, 0.001, 0.001, 0.001,
+    #            0.05, 0.05, 0.1, 0.001, 0.001, 0.001, 0.001]
+
+    w_frame_translation: [10.0, 10.0, 10.0]                               # task priority
+    w_frame_rotation: [15.0, 15.0, 15.0]
+    w_desired_force: [0.0, 0.0, 0.0]
+    w_collision_avoidance: 0.0
+
+
+# Collision to deactivate
+disabled_collisions:
+- [tiago_pro/base_link_0, ground/ground_link_0]
+- [tiago_pro/base_link_1, ground/ground_link_0]
+- [tiago_pro/base_link_2, ground/ground_link_0]
+- [tiago_pro/base_antenna_left_link_0, ground/ground_link_0]
+- [tiago_pro/base_antenna_right_link_0, ground/ground_link_0]
+- [tiago_pro/base_dock_link_0, ground/ground_link_0]
+- [tiago_pro/suspension_front_left_link_0, ground/ground_link_0]
+- [tiago_pro/suspension_front_right_link_0, ground/ground_link_0]
+- [tiago_pro/suspension_rear_left_link_0, ground/ground_link_0]
+- [tiago_pro/suspension_rear_right_link_0, ground/ground_link_0]
+- [tiago_pro/torso_base_link_0, ground/ground_link_0]
+- [tiago_pro/wheel_front_left_link_0, ground/ground_link_0]
+- [tiago_pro/wheel_front_right_link_0, ground/ground_link_0]
+- [tiago_pro/wheel_rear_left_link_0, ground/ground_link_0]
+- [tiago_pro/wheel_rear_right_link_0, ground/ground_link_0]
+- [tiago_pro/torso_lift_link_0, ground/ground_link_0]
+- [tiago_pro/torso_lift_link_1, ground/ground_link_0]
+- [tiago_pro/torso_head_link_0, ground/ground_link_0]
+- [tiago_pro/head_1_link_0, ground/ground_link_0]
+- [tiago_pro/head_2_link_0, ground/ground_link_0]
+- [tiago_pro/head_front_camera_link_0, ground/ground_link_0]

@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="support_bar" params="spacing:=1.0">
+    <material name="Grey">
+      <color rgba="0.5 0.5 0.5 1.0"/>
+    </material>
+    <link name="support_1_link">
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="0.5"/>
+        <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.04"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 -${pi/2}" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/support_1.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Grey"/>
+      </visual>
+      <collision>
+        <origin rpy="0  0 -${pi/2}" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/support_1.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </link>
+    <link name="support_2_link">
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="0.5"/>
+        <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.04"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 ${pi/2}" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/support_2.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Grey"/>
+      </visual>
+      <collision>
+        <origin rpy="0 0 ${pi/2}" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://agimus_demo_10_tiago_pro_bar_manip/meshes/support_2.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </link>
+    <link name="support_base_link"/>
+
+    <joint name="joint_support_1" type="fixed">
+        <parent link="support_base_link"/>
+        <child link="support_1_link"/>
+        <origin xyz="${spacing/2} 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="joint_support_2" type="fixed">
+        <parent link="support_base_link"/>
+        <child link="support_2_link"/>
+        <origin xyz="-${spacing/2} 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

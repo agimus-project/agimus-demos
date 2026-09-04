@@ -1,0 +1,12 @@
+<robot name="table">
+    <contact name="top">
+        <link name="table_link"/>
+        <point>
+            0.7 -0.7 0
+            0.7  0.7 0
+            -0.7  0.7 0
+            -0.7 -0.7 0
+        </point>
+        <shape> 4 0 1 2 3 </shape>
+    </contact>
+</robot>
