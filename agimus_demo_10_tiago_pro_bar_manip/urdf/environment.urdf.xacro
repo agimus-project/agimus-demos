@@ -19,22 +19,22 @@
   <joint name="table_world_joint" type="fixed">
     <parent link="world"/>
     <child link="table_link"/>
-    <origin xyz="2.9 0 0" rpy="0 0 3.14"/>
+    <origin xyz="2.3 0 0.74" rpy="0 0 3.14"/>
   </joint>
 
   <xacro:bordered_plate name="plate">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:bordered_plate>
   <joint name="plate_world_joint" type="fixed">
-    <parent link="world"/>
+    <parent link="table_link"/>
     <child link="plate_base_link"/>
-    <origin xyz="2.3 0 0.66" rpy="0 0 0"/>
+    <origin xyz="-0.2 0 0" rpy="0 0 0"/>
   </joint>
   <xacro:support_bar spacing="0.95"/>
   <joint name="support_world_joint" type="fixed">
     <parent link="table_link"/>
     <child link="support_base_link"/>
-    <origin xyz="1.32 0 0.7" rpy="0 0 ${pi/2}"/>
+    <origin xyz="0.60 0 0" rpy="0 0 ${pi/2}"/>
   </joint>
 
 

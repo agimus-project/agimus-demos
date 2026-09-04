@@ -5,6 +5,8 @@ Usage:
   ros2 launch agimus_demo_10_tiago_pro_bar_manip bringup.launch.py use_gazebo:=true use_sim_time:=True
 """
 
+import os
+
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction
 from launch.launch_description_entity import LaunchDescriptionEntity
@@ -14,7 +16,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.substitutions import Command, FindExecutable
-
+from launch.actions import GroupAction
 from agimus_demos_common.launch_utils import (
     generate_default_tiago_pro_args,
     generate_include_launch,
@@ -28,7 +30,6 @@ import pinocchio as pin
 from launch.actions import DeclareLaunchArgument
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import SetEnvironmentVariable
-import os
 
 PKG_NAME = "agimus_demo_10_tiago_pro_bar_manip"
 
@@ -38,6 +39,7 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     ref_frame = LaunchConfiguration("ref_frame").perform(context)
     # plotjuggler_config = LaunchConfiguration("plotjuggler_config")
+    use_gazebo = LaunchConfiguration("use_gazebo")
 
     # ==========================================================================
     # Tiago pro simulation
@@ -87,6 +89,7 @@ def launch_setup(
     #     parameters=[get_use_sim_time()],
     #     output="screen",
     # )
+
     # ==========================================================================
     # Rviz config and executable
     # ==========================================================================
@@ -167,15 +170,18 @@ def launch_setup(
         remappings=[("robot_description", "bar_description")],
     )
 
+    # ====================================================================
+    # Gazebo-only nodes: spawning + ground-truth pose bridges
+    # ====================================================================
     spawn_environment = Node(
         package="ros_gz_sim",
         executable="create",
         arguments=["-name", "environment", "-topic", "environment_description"],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
-    spawn_bar_sim = Node(
+    spawn_bar = Node(
         package="ros_gz_sim",
         executable="create",
         arguments=[
@@ -184,11 +190,11 @@ def launch_setup(
             "-topic",
             "bar_description",
             "-x",
-            "1.56",
+            "1.68",
             "-y",
             "0.0",
             "-z",
-            "0.76",
+            "0.96",
             "-R",
             "1.5708",  # roll
             "-P",
@@ -196,7 +202,7 @@ def launch_setup(
             "-Y",
             "0",  # yaw
         ],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
@@ -205,7 +211,7 @@ def launch_setup(
         executable="parameter_bridge",
         arguments=["/model/environment/pose@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V"],
         remappings=[("/model/environment/pose", "/tf")],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
@@ -216,7 +222,7 @@ def launch_setup(
             "/model/reinforcement_bar/pose@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V"
         ],
         remappings=[("/model/reinforcement_bar/pose", "/tf")],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
     bar_tf_bridge = Node(
@@ -230,34 +236,42 @@ def launch_setup(
             "0",
             "0",
             "0",
-            "reinforcement_bar/bar_base_link",  # Parent (Gazebo)
-            "bar_base_link",  # Enfant (URDF)
+            "reinforcement_bar/bar_base_link",
+            "bar_base_link",
         ],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
-    # # ==========================================================================
-    # # Static TF fallback (real robot / no Gazebo): only used when use_gazebo
-    # # is false, since in simulation these frames are now driven by the
-    # # Gazebo ground-truth pose bridge above.
-    # # ==========================================================================
+    # ==========================================================================
+    # Static TF
+    # ==========================================================================
 
-    quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([np.pi / 2, 0, 0])))
+    quat_values = pin.Quaternion(
+        pin.rpy.rpyToMatrix(np.array([np.pi / 2, 0, np.pi / 2]))
+    )
 
-    tf_goal_bar = static_transform_publisher_node(
-        frame_id="table_link",
-        child_frame_id="bar_goal_pose",
-        xyz=["-1.3", "0.", "0.7"],
-        rot_xyzw=quat_values.coeffs().tolist(),  # [x, y, z, w]
+    tf_goal_bar = GroupAction(
+        actions=[
+            static_transform_publisher_node(
+                frame_id="table_link",
+                child_frame_id="bar_goal_pose",
+                xyz=["0", "-0.65", "0."],
+                rot_xyzw=quat_values.coeffs().tolist(),
+            )
+        ],
     )
 
     quat_values = pin.Quaternion(pin.rpy.rpyToMatrix(np.array([0, 0, 0])))
-    world_odom = static_transform_publisher_node(
-        frame_id=f"{ref_frame}",
-        child_frame_id="odom",
-        xyz=["0", "0", "0."],
-        rot_xyzw=quat_values.coeffs().tolist(),
+    world_odom = GroupAction(
+        actions=[
+            static_transform_publisher_node(
+                frame_id=f"{ref_frame}",
+                child_frame_id="odom",
+                xyz=["0", "0", "0."],
+                rot_xyzw=quat_values.coeffs().tolist(),
+            )
+        ],
     )
 
     tf_odom = Node(
@@ -322,21 +336,15 @@ def launch_setup(
     #     package="plotjuggler",
     #     executable="plotjuggler",
     #     arguments=[
-    #         "--layout",
+    #         "==layout",
     #         plotjuggler_config,
     #     ],
     #     output="screen",
     # )
 
-    # NAVIGATION:
-
-    nav_node = Node(
-        package="agimus_demo_10_tiago_pro_bar_manip",
-        executable="nav_controller_node",
-        name="nav_node",
-        output="screen",
-    )
-
+    # ====================================================================
+    # Gazebo-only: resource path env var + odom bridge from Gazebo
+    # ====================================================================
     set_gz_resource_path = SetEnvironmentVariable(
         name="GZ_SIM_RESOURCE_PATH",
         value=os.pathsep.join(
@@ -345,13 +353,14 @@ def launch_setup(
                 os.path.join(get_package_share_directory(PKG_NAME), ".."),
             ]
         ),
+        condition=IfCondition(use_gazebo),
     )
     world_to_gazebo_bridge = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="world_to_gazebo_bridge",
         arguments=["0", "0", "0", "0", "0", "0", "world", "empty"],
-        condition=IfCondition(LaunchConfiguration("use_gazebo")),
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
@@ -367,19 +376,36 @@ def launch_setup(
                 "use_sim_time": True,
             }
         ],
+        condition=IfCondition(use_gazebo),
+        output="screen",
+    )
+
+    # ==========================================================================
+    # External-controller
+    # ==========================================================================
+
+    nav_node = Node(
+        package=PKG_NAME,
+        executable="nav_controller_node",
+        name="nav_controller_node",
+        parameters=[
+            {
+                "use_sim_time": use_gazebo,
+            }
+        ],
+        condition=IfCondition(use_gazebo),
         output="screen",
     )
 
     return [
         set_gz_resource_path,
         tiago_robot_launch,
-        nav_node,
         rviz,
         # wait_for_non_zero_joints_node,
         env_publisher,
         spawn_environment,
         bar_publisher,
-        spawn_bar_sim,
+        spawn_bar,
         environment_pose_bridge,
         bar_pose_bridge,
         tf_odom,
@@ -392,6 +418,7 @@ def launch_setup(
         # plotjuggler,
         world_to_gazebo_bridge,
         gz_bridge_odom,
+        nav_node,
     ]
 
 

@@ -66,6 +66,7 @@ from agimus_demo_10_tiago_pro_bar_manip.traj.hpp_traj import (
     BaseObject,
     HPPPathGenerator,
 )
+from agimus_demo_10_tiago_pro_bar_manip.planner.path_planner import PlanningCancelled
 from agimus_demo_10_tiago_pro_bar_manip.rostools import process_xacro
 
 GRIPPER_OPEN_POSITION = 0.07
@@ -97,6 +98,16 @@ def _patch_srdf(srdf_str: str) -> str:
         for l1, l2 in pairs
     )
     return srdf_str[:i] + insert + "</robot>"
+
+
+class GoalCancelled(Exception):
+    """Raised internally when the action goal is cancelled while a planned
+    trajectory is being drained to the MPC / while waiting for EE
+    convergence — as opposed to PlanningCancelled, which covers the HPP
+    planning phase.
+    """
+
+    pass
 
 
 class HPPActionServer(Node):
@@ -448,13 +459,18 @@ class HPPActionServer(Node):
         handle_name = goal_handle.request.handle
 
         self.get_logger().info(f"Executing '{task}' — {gripper_name} / {handle_name}")
-
-        if not self._wait_for_state(timeout=5.0):
+        if not self._wait_for_state(goal_handle, timeout=5.0):
             result_msg.success = False
-            result_msg.message = "Timeout waiting for robot state."
-            goal_handle.abort()
+            result_msg.message = "Timeout waiting for robot state or cancelled."
+            if goal_handle.is_cancel_requested:
+                goal_handle.canceled()
+            else:
+                goal_handle.abort()
             self._planning = False
             return result_msg
+
+        def cancel_check():
+            return goal_handle.is_cancel_requested
 
         # Feedback: planning
         feedback_msg = PlanBarPick.Feedback()
@@ -469,13 +485,28 @@ class HPPActionServer(Node):
         try:
             match task:
                 case "pick":
-                    success, message, traj = self._plan_pick(gripper_name, handle_name)
+                    success, message, traj = self._plan_pick(
+                        gripper_name, handle_name, cancel_check=cancel_check
+                    )
                 case "place":
-                    success, message, traj = self._plan_place(gripper_name, handle_name)
+                    success, message, traj = self._plan_place(
+                        gripper_name, handle_name, cancel_check=cancel_check
+                    )
                 case _:
                     success = False
                     message = f"task '{task}' not in ['pick', 'place']"
                     self.get_logger().error(message)
+
+        except PlanningCancelled as e:
+            self.get_logger().info(f"Planning cancelled: {e}")
+            if hasattr(self._hpp, "reset"):
+                self._hpp.reset()  # Clean HPP
+            self._q_after_pick = None  # Impossible to do a place after a cancel pick
+            result_msg.success = False
+            result_msg.message = "Cancelled by user request"
+            goal_handle.canceled()
+            self._planning = False
+            return result_msg
 
         except RuntimeError as e:
             self.get_logger().warn(f"Plan failed: {str(e)}")
@@ -507,34 +538,56 @@ class HPPActionServer(Node):
 
         self.get_logger().info(f"Planning succeeded — executing {len(traj)} segments")
 
-        for seg_id, segment in enumerate(traj):
-            gripper_action = gripper_actions[task][seg_id]
+        try:
+            for seg_id, segment in enumerate(traj):
+                if goal_handle.is_cancel_requested:
+                    result_msg.success = False
+                    result_msg.message = "Cancelled before segment start"
+                    raise GoalCancelled(result_msg.message)
+                    return result_msg
 
-            feedback_msg = PlanBarPick.Feedback()
-            feedback_msg.current_action = "execute"
-            feedback_msg.message = (
-                f"Segment {seg_id}/{len(traj) - 1} — gripper={gripper_action}"
-            )
-            goal_handle.publish_feedback(feedback_msg)
+                gripper_action = gripper_actions[task][seg_id]
 
-            self.get_logger().info(f"Segment {seg_id}: gripper={gripper_action}")
+                feedback_msg = PlanBarPick.Feedback()
+                feedback_msg.current_action = "execute"
+                feedback_msg.message = (
+                    f"Segment {seg_id}/{len(traj) - 1} — gripper={gripper_action}"
+                )
+                goal_handle.publish_feedback(feedback_msg)
 
-            ok = self._execute_segment_and_wait_ee(
-                traj=segment,
-                task=task,
-                gripper_action=gripper_action,
-                ee_tol_pos=self._ee_placement_tolerances["position"],
-                ee_tol_rot=self._ee_placement_tolerances["rotation"],
-            )
+                self.get_logger().info(f"Segment {seg_id}: gripper={gripper_action}")
 
-            if not ok:
-                message = f"Segment {seg_id} failed"
-                self.get_logger().error(message)
-                result_msg.success = False
-                result_msg.message = message
-                goal_handle.abort()
-                self._planning = False
-                return result_msg
+                ok = self._execute_segment_and_wait_ee(
+                    traj=segment,
+                    task=task,
+                    gripper_action=gripper_action,
+                    ee_tol_pos=self._ee_placement_tolerances["position"],
+                    ee_tol_rot=self._ee_placement_tolerances["rotation"],
+                    cancel_check=cancel_check,
+                )
+                # self.get_logger().info("Waiting 1 sec between segments ")
+                # time.sleep(1)
+
+                if not ok:
+                    message = f"Segment {seg_id} failed"
+                    self.get_logger().error(message)
+                    result_msg.success = False
+                    result_msg.message = message
+                    goal_handle.abort()
+                    self._planning = False
+                    return result_msg
+
+        except GoalCancelled as e:
+            self.get_logger().info(f"Execution cancelled: {e}")
+            self._purge_trajectories()  # Stopping MPC and Base
+            if hasattr(self._hpp, "reset"):
+                self._hpp.reset()  # Clean HPP
+            self._q_after_pick = None  # Restart sequence
+            result_msg.success = False
+            result_msg.message = "Cancelled by user request"
+            goal_handle.canceled()
+            self._planning = False
+            return result_msg
 
         self.get_logger().info("All segments completed successfully")
         result_msg.success = True
@@ -548,10 +601,12 @@ class HPPActionServer(Node):
         traj: list,
         task: str,
         gripper_action: str | None,  # "open" | "close" | None
-        timeout_margin: float = 120.0,
-        ee_tol_pos: float = 0.04,
-        ee_tol_rot: float = 0.06,
-        poll_period: float = 0.1,
+        timeout_margin: float = 20.0,
+        ee_tol_pos: float = 0.10,
+        ee_tol_rot: float = 0.2,
+        poll_period: float = 0.02,
+        cancel_check=None,
+        goal_handle=None,
     ) -> bool:
         weighted_trajectory = self._convert_path(traj, task)
         base_traj = self._base_trajectory(traj)
@@ -586,6 +641,13 @@ class HPPActionServer(Node):
         log_delta_rot = 0.01
 
         while time.time() < deadline:
+            if cancel_check is not None and cancel_check():
+                self.get_logger().info(
+                    "Cancel requested — freezing trajectory buffer and stopping wait."
+                )
+                self._freeze_trajectory_buffer()
+                raise GoalCancelled("Segment execution cancelled by user request")
+
             with self._trajectory_buffer_lock:
                 buf_len = len(self._trajectory_buffer)
 
@@ -703,12 +765,14 @@ class HPPActionServer(Node):
 
     # == Planning helpers ======================================================
 
-    def _plan_pick(self, gripper, handle):
+    def _plan_pick(self, gripper, handle, cancel_check=None):
         """Plans the pick trajectory using the self._hpp object
 
         Args:
             gripper (str): name of the gripper
             handle (str): name of the handle on the picked object
+            cancel_check: optional zero-arg callable; if it returns True during
+                planning, PlanningCancelled is raised (propagated from HPP).
 
         Returns:
             Bool, str, List: success, message, trajectory
@@ -717,19 +781,23 @@ class HPPActionServer(Node):
         if q_init is None:
             return False, "Failed to build q_init", None
 
-        traj = self._hpp.plan_pick(gripper=gripper, handle=handle, q_init=q_init)
+        traj = self._hpp.plan_pick(
+            gripper=gripper, handle=handle, q_init=q_init, cancel_check=cancel_check
+        )
         if traj is None or any(seg is None for seg in traj):
             return False, "Pick planning failed", None
 
         self._q_after_pick = list(traj[-1][-1])
         return True, "Pick planned successfully", traj
 
-    def _plan_place(self, gripper, handle):
+    def _plan_place(self, gripper, handle, cancel_check=None):
         """Plans the place trajectory using the self._hpp object
 
         Args:
             gripper (str): name of the gripper
             handle (str): name of the handle on the placed object
+            cancel_check: optional zero-arg callable; if it returns True during
+                planning, PlanningCancelled is raised (propagated from HPP).
 
         Returns:
             Bool, str, List: success, message, trajectory
@@ -749,6 +817,7 @@ class HPPActionServer(Node):
             handle=handle,
             q_init=q_init_place,
             target_bar_pose=target_bar_pose,
+            cancel_check=cancel_check,
         )
         if traj is None or any(seg is None for seg in traj):
             return False, "Place planning failed.", None
@@ -781,9 +850,12 @@ class HPPActionServer(Node):
 
     # == State helpers ========================================================
 
-    def _wait_for_state(self, timeout=5.0):
+    def _wait_for_state(self, goal_handle=None, timeout=5.0):
         deadline = time.time() + timeout
         while time.time() < deadline:
+            # ---> Check for cancel <---
+            if goal_handle and goal_handle.is_cancel_requested:
+                return False
             if all(
                 m is not None
                 for m in [
@@ -883,6 +955,16 @@ class HPPActionServer(Node):
         for i in range(len(trajectory)):
             q_base.append(trajectory[i][rank : rank + 4])  # x,y,cos(theta),sin(theta)
         return q_base
+
+    def _freeze_trajectory_buffer(self) -> None:
+        """Collapse the pending MPC buffer down to a single 'hold position' point
+        instead of emptying it.
+        """
+        with self._trajectory_buffer_lock:
+            if self._trajectory_buffer:
+                hold_point = self._trajectory_buffer[0]
+                self._trajectory_buffer.clear()
+                self._trajectory_buffer.append(hold_point)
 
     def send_base_traj(self, base_traj: list) -> None:
         if not base_traj:
@@ -1014,6 +1096,19 @@ class HPPActionServer(Node):
             w_forces={},
             w_collision_avoidance=self._weights_dict[task]["w_collision_avoidance"],
         )
+
+    def _purge_trajectories(self):
+        """Purge all trajectory buffers to immediately stop the robot."""
+        self.get_logger().info("Purging trajectory buffers (Cancel requested)...")
+
+        # 1. Freeze the MPC buffer instead of clearing completely to avoid crash
+        self._freeze_trajectory_buffer()
+
+        # 2. Stop the base by sending an empty path
+        empty_path = Path()
+        empty_path.header.frame_id = BASE_TRAJECTORY_FRAME
+        empty_path.header.stamp = self.get_clock().now().to_msg()
+        self._base_traj_pub.publish(empty_path)
 
 
 def main():

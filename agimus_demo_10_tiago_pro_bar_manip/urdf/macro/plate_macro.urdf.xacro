@@ -65,13 +65,22 @@
           iyy="${plate_mass/12.0 * (plate_length*plate_length + plate_height*plate_height)}"
           izz="${plate_mass/12.0 * (plate_length*plate_length + plate_width*plate_width)}"
           ixy="0" ixz="0" iyz="0"/>
+        <origin xyz="0 0 ${plate_height/2}" rpy="0 0 0"/>
       </inertial>
+
       <visual>
-        <geometry><box size="${plate_length} ${plate_width} ${plate_height}"/></geometry>
+        <geometry>
+          <box size="${plate_length} ${plate_width} ${plate_height}"/>
+        </geometry>
         <material name="grey"/>
+        <origin xyz="0 0 ${plate_height/2}" rpy="0 0 0"/>
       </visual>
+
       <collision>
-        <geometry><box size="${plate_length} ${plate_width} ${plate_height}"/></geometry>
+        <geometry>
+          <box size="${plate_length} ${plate_width} ${plate_height}"/>
+        </geometry>
+        <origin xyz="0 0 ${plate_height/2}" rpy="0 0 0"/>
       </collision>
     </link>
 
@@ -79,26 +88,26 @@
 
     <!-- Bordure Avant (+X) -->
     <xacro:single_border name="${name}_border_front" parent_link="${name}_base_link"
-                         size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
-      <origin xyz="${plate_length/2 - border_thickness/2} 0 ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+                        size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
+      <origin xyz="${plate_length/2 - border_thickness/2} 0 ${plate_height + border_height/2}" rpy="0 0 0"/>
     </xacro:single_border>
 
     <!-- Bordure Arrière (-X) -->
     <xacro:single_border name="${name}_border_back" parent_link="${name}_base_link"
-                         size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
-      <origin xyz="-${plate_length/2 - border_thickness/2} 0 ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+                        size_x="${border_thickness}" size_y="${plate_width}" size_z="${border_height}">
+      <origin xyz="-${plate_length/2 - border_thickness/2} 0 ${plate_height + border_height/2}" rpy="0 0 0"/>
     </xacro:single_border>
 
     <!-- Bordure Gauche (+Y) -->
     <xacro:single_border name="${name}_border_left" parent_link="${name}_base_link"
-                         size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
-      <origin xyz="0 ${plate_width/2 - border_thickness/2} ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+                        size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
+      <origin xyz="0 ${plate_width/2 - border_thickness/2} ${plate_height + border_height/2}" rpy="0 0 0"/>
     </xacro:single_border>
 
     <!-- Bordure Droite (-Y) -->
     <xacro:single_border name="${name}_border_right" parent_link="${name}_base_link"
-                         size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
-      <origin xyz="0 -${plate_width/2 - border_thickness/2} ${border_height/2 + plate_height/2}" rpy="0 0 0"/>
+                        size_x="${plate_length}" size_y="${border_thickness}" size_z="${border_height}">
+      <origin xyz="0 -${plate_width/2 - border_thickness/2} ${plate_height + border_height/2}" rpy="0 0 0"/>
     </xacro:single_border>
 
   </xacro:macro>

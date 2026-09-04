@@ -383,15 +383,15 @@ class HPPPathGenerator:
             f"place_{obj_name}",
             [f"{obj_name}/bottom"],
             [
-                f"{table_name}/reinforcment_bar_support",
-                f"{plate_name}/bottom",
+                f"{table_name}/top",
+                f"{plate_name}/top",
             ],
         )
         preplace_c = self.graph.createPrePlacementConstraint(
             f"preplace_{obj_name}",
             [f"{obj_name}/bottom"],
             [
-                f"{table_name}/reinforcment_bar_support",
+                f"{table_name}/top",
                 f"{plate_name}/top",
             ],
             0.1,  # width (approach distance)
@@ -640,11 +640,11 @@ class HPPPathGenerator:
         times = np.arange(t_min, t_max, self._ocp_dt / self.slowdown_rate)
         return [np.asarray(path_obj.eval(t)[0], dtype=np.float64) for t in times]
 
-    def plan_pick(self, gripper: str, handle: str, q_init: list):
+    def plan_pick(self, gripper: str, handle: str, q_init: list, cancel_check=None):
         q = np.asarray(q_init, dtype=np.float64)
         self.view(q)
         result = self._path_planner.planPathtoBarHandling(
-            gripper, handle, q, self._logger, self._viewer
+            gripper, handle, q, self._logger, self._viewer, cancel_check=cancel_check
         )
         if result and all(seg is not None for seg in result):
             self._logger.info("Path to bar grasping planned successfully.")
@@ -663,23 +663,40 @@ class HPPPathGenerator:
         return segments
 
     def plan_place(
-        self, gripper: str, handle: str, q_init: list, target_bar_pose: list
+        self,
+        gripper: str,
+        handle: str,
+        q_init: list,
+        target_bar_pose: list,
+        cancel_check=None,
     ):
         q = np.asarray(q_init, dtype=np.float64)
         self.view(q)
         result = self._path_planner.planPathtoBarPlacement(
-            gripper, handle, q, target_bar_pose, self._logger, self._viewer
+            gripper,
+            handle,
+            q,
+            target_bar_pose,
+            self._logger,
+            self._viewer,
+            cancel_check=cancel_check,
         )
-        if result is not None:
+        if result and all(seg is not None for seg in result):
             self._logger.info("Path to bar placement planned successfully.")
             if hasattr(self, "_viewer"):
-                self._viewer.loadPath(result)
+                for seg in result:
+                    self._viewer.loadPath(seg)
         else:
             self._logger.warn("Path to bar placement planning failed.")
-            return None, None
-        traj = self.sample_trajectory(result)
-        last_q = list(traj[-1]) if traj else None
-        return traj, last_q
+            return None
+
+        segments = [
+            self.sample_trajectory(result[0]),
+            self.sample_trajectory(result[1]),
+            self.sample_trajectory(result[2]),
+            self.sample_trajectory(result[3]),
+        ]
+        return segments
 
     # == Visualisation =========================================================
 
@@ -712,3 +729,7 @@ class HPPPathGenerator:
             t = t0 + i * (tf - t0) / (n - 1)
             self._viewer(path.eval(t)[0])
             _time.sleep(dt)
+
+    def reset(self):
+        """Purge old trajectories and reset planner internal state."""
+        self._path_planner.reset()

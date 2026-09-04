@@ -4,6 +4,7 @@ from pyhpp.core import (
     RandomShortcut,
     SimpleTimeParameterization,
     ProgressiveProjector,
+    BiRRTPlanner,
 )
 from pyhpp.manipulation import TransitionPlanner
 from pyhpp.core.path import Vector as PathVector
@@ -15,6 +16,18 @@ _TORSO_MIN = 0.00  # m
 _TORSO_MAX = 0.25  # m
 _ARM_NOISE = 0.10  # rad — Gaussian std for arm joint perturbation
 _MAX_ATTEMPTS = 200  # hard cap; was 10000 — most successes happen in < 20
+
+
+class PlanningCancelled(RuntimeError):
+    """Raised when HPP planning is aborted because the caller requested a cancel.
+
+    Subclasses RuntimeError so existing `except RuntimeError` handlers still
+    catch it as a controlled failure; callers that want to distinguish a
+    genuine cancellation from a planning failure should catch this class
+    first.
+    """
+
+    pass
 
 
 def concatenatePaths(paths, logger=None):
@@ -50,11 +63,17 @@ class PathPlanner:
         """Initialize TransitionPlanner with appropriate settings for our problem."""
         self.transitionPlanner = TransitionPlanner(self.problem)
 
-        inner_problem = self.transitionPlanner.innerProblem()
+        inner_problem = self.transitionPlanner.innerProblem()  # getter, pas d'argument
+
+        birrt = BiRRTPlanner(inner_problem)
+        self.transitionPlanner.innerPlanner(
+            birrt
+        )  # setter, 2 arguments (self + planner)
+
         projector = ProgressiveProjector(
             inner_problem.distance(),
             inner_problem.steeringMethod(),
-            0.05,
+            0.08,  # step size
         )
         self.transitionPlanner.pathProjector(projector)
 
@@ -64,10 +83,26 @@ class PathPlanner:
 
         self.transitionPlanner.setTransition(self.graph.getTransition("Loop | f"))
 
+    def reset(self):
+        """Reset the transition planner and optimizers to clear residual state/memory."""
+        self._set_transition_planner()
+
     def checkConfigurationValid(self, q):
         """Check if configuration q is valid (collision-free and satisfies constraints)."""
         res, _msg = self.problem.isConfigValid(q)
         return res
+
+    def _check_cancel(self, cancel_check):
+        """Raise PlanningCancelled if `cancel_check()` returns True.
+
+        `cancel_check` is an optional zero-arg callable (typically wrapping
+        `goal_handle.is_cancel_requested`). It is called at cheap checkpoints
+        between sampling attempts / segments / optimization passes — HPP's
+        C++ calls themselves cannot be interrupted mid-call, so cancellation
+        is cooperative rather than immediate.
+        """
+        if cancel_check is not None and cancel_check():
+            raise PlanningCancelled("HPP planning cancelled by user request")
 
     def compute_base_pose_from_handle(
         self, handle_pose, current_base_pose, distance=0.4
@@ -86,7 +121,14 @@ class PathPlanner:
         return x, y, np.cos(theta), np.sin(theta)
 
     def generateGraspingConfigurations(
-        self, gripper, handle, q_init, testCollision=True, logger=None, viewer=None
+        self,
+        gripper,
+        handle,
+        q_init,
+        testCollision=True,
+        logger=None,
+        viewer=None,
+        cancel_check=None,
     ):
         ctx = f"[grasp {gripper} -> {handle}]"
         prefix = f"{gripper} > {handle} | f"
@@ -132,6 +174,8 @@ class PathPlanner:
         MAX_LOCAL_RETRIES = 10
 
         for attempt_base in range(MAX_BASE_ATTEMPTS):
+            self._check_cancel(cancel_check)
+
             # == APPROACH CONFIGURATION ==
             q = q_init.copy()
             if attempt_base == 0:
@@ -157,6 +201,8 @@ class PathPlanner:
 
             # == PREGRASP CONFIGURATION ==
             for attempt_pg in range(MAX_LOCAL_RETRIES):
+                self._check_cancel(cancel_check)
+
                 res, qpg, _ = self.graph.generateTargetConfig(
                     self.graph.getTransition(prefix + "_01"),
                     qap,
@@ -171,6 +217,8 @@ class PathPlanner:
 
                 # == GRASP CONFIG ==
                 for attempt_g in range(MAX_LOCAL_RETRIES):
+                    self._check_cancel(cancel_check)
+
                     res, qg, _ = self.graph.generateTargetConfig(
                         self.graph.getTransition(prefix + "_12"),
                         qpg,
@@ -185,6 +233,8 @@ class PathPlanner:
 
                     # == PREPLACE CONFIG ==
                     for attempt_pp in range(MAX_LOCAL_RETRIES):
+                        self._check_cancel(cancel_check)
+
                         q_seed = _seed_pp(qg, attempt_pp)
                         viewer(q_seed)
                         res, qpp, _ = self.graph.generateTargetConfig(
@@ -219,6 +269,7 @@ class PathPlanner:
         testCollision=True,
         logger=None,
         viewer=None,
+        cancel_check=None,
     ):
         ctx = f"[place {gripper} -> {handle}]"
         prefix = f"{gripper} < {handle} | 0-0"
@@ -275,6 +326,8 @@ class PathPlanner:
         MAX_LOCAL_RETRIES = 10
 
         for attempt_base in range(MAX_BASE_ATTEMPTS):
+            self._check_cancel(cancel_check)
+
             # == APPROACH CONFIGURATION ==
             q = q_init.copy()
             if attempt_base == 0:
@@ -303,6 +356,8 @@ class PathPlanner:
 
             # == PREPLACEMENT CONFIGURATION ==
             for attempt_pp in range(MAX_LOCAL_RETRIES):
+                self._check_cancel(cancel_check)
+
                 res, qpp, _ = self.graph.generateTargetConfig(
                     self.graph.getTransition(prefix + "_32"),
                     qap,
@@ -317,6 +372,8 @@ class PathPlanner:
 
                 # == PLACEMENT CONFIGURATION ==
                 for attempt_p in range(MAX_LOCAL_RETRIES):
+                    self._check_cancel(cancel_check)
+
                     q_seed = _seed_arms(qpp, attempt_p)
                     q_seed[handle_idx : handle_idx + 7] = target_bar_pose
                     res, qp, _ = self.graph.generateTargetConfig(
@@ -331,6 +388,8 @@ class PathPlanner:
 
                     # == RELEASE CONFIGURATION ==
                     for attempt_rel in range(MAX_LOCAL_RETRIES):
+                        self._check_cancel(cancel_check)
+
                         res, qrel, _ = self.graph.generateTargetConfig(
                             self.graph.getTransition(prefix + "_10"),
                             qp,
@@ -385,7 +444,7 @@ class PathPlanner:
         q_goal[0, :] = q
         return q_goal
 
-    def optimizePath(self, path, logger=None):
+    def optimizePath(self, path, logger=None, cancel_check=None):
         """Optimize a path using shortcutting and spline optimization, with logging."""
         # Ensure we always have a PathVector (required by both optimizers)
         if not isinstance(path, PathVector):
@@ -398,6 +457,7 @@ class PathPlanner:
 
         try:
             for i in range(3):
+                self._check_cancel(cancel_check)
                 p_new = self._shortcut.optimize(path_vect)
                 tr_before = path_vect.timeRange()
                 tr_after = p_new.timeRange()
@@ -412,19 +472,27 @@ class PathPlanner:
                 )
                 if dt < 1e-3:
                     break
+        except PlanningCancelled:
+            raise
         except Exception as e:
             self._log(logger, "WARN", f"  path shortcut failed: {e}")
+
+        self._check_cancel(cancel_check)
 
         try:
             path = self._time_parametrize.optimize(path_vect)
             tr = path.timeRange()
             self._log(logger, "INFO", f"  path spline: {tr.second - tr.first:.2f} s")
+        except PlanningCancelled:
+            raise
         except Exception as e:
             self._log(logger, "WARN", f"  path spline optimisation failed: {e}")
 
         return path
 
-    def planPathtoBarHandling(self, gripper, handle, q_init, logger, v):
+    def planPathtoBarHandling(
+        self, gripper, handle, q_init, logger, v, cancel_check=None
+    ):
         """
         Plan a path from the initial configuration to a grasping configuration for the specified gripper and handle.
         Args:
@@ -432,9 +500,15 @@ class PathPlanner:
             handle (str): The name of the handle (e.g., "reinforcement_bar/left").
             q_init (list): The initial configuration of the robot.
             logger: Optional logger for logging messages.
+            cancel_check: Optional zero-arg callable returning True if planning
+                should be aborted (checked between attempts/segments; raises
+                PlanningCancelled). HPP calls themselves can't be interrupted
+                mid-call.
         Returns:
             PathVector: A path vector representing the planned path, or None if planning failed.
         """
+        self._check_cancel(cancel_check)
+
         res, q_init, err = self.graph.applyStateConstraints(
             self.graph.getState("free"), q_init
         )
@@ -452,6 +526,7 @@ class PathPlanner:
             testCollision=True,
             logger=None,
             viewer=v,
+            cancel_check=cancel_check,
         )
         if qap is None or qpg is None or qg is None or qpp is None:
             self._log(logger, "WARN", "Failed to generate grasping configurations")
@@ -463,48 +538,59 @@ class PathPlanner:
         # ==================================================================
         # Segment 0: free -> approach (direct, transit_free)
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_free"))
         p0 = self.transitionPlanner.planPath(q_init, self._goals_matrix(qap), True)
         if not p0:
             self._log(logger, "WARN", "Segment 0 FAILED")
             return None
-        p0 = self.optimizePath(p0, logger=logger)
+        p0 = self.optimizePath(p0, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 1: grasp approach -> preplacement (RRT, prefix + "_01")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_01"))
         p1 = self.transitionPlanner.planPath(qap, self._goals_matrix(qpg), True)
         if not p1:
             self._log(logger, "WARN", "Segment 1 FAILED")
             return None
-        p1 = self.optimizePath(p1, logger=logger)
+        p1 = self.optimizePath(p1, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 2: pregrasp -> grasp (constrained direct, prefix + "_12")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_12"))
         res, p2, msg = self.transitionPlanner.directPath(qpg, qg, True)
         if not res:
             self._log(logger, "WARN", f"Segment 2 FAILED — {msg}")
             return None
-        p2 = self.optimizePath(p2, logger=logger)
+        p2 = self.optimizePath(p2, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 3: grasp -> preplace (constrained direct, prefix + "_23")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_23"))
         res, p3, msg = self.transitionPlanner.directPath(qg, qpp, True)
         if not res:
             self._log(logger, "WARN", f"Segment 3 FAILED — {msg}")
             return None
-        p3 = self.optimizePath(p3, logger=logger)
+        p3 = self.optimizePath(p3, logger=logger, cancel_check=cancel_check)
 
         self._log(logger, "INFO", "Grasping path planned successfully.")
         return [p0, p1, p2, p3]
 
     def planPathtoBarPlacement(
-        self, gripper, handle, q_init, target_bar_pose, logger, viewer
+        self,
+        gripper,
+        handle,
+        q_init,
+        target_bar_pose,
+        logger,
+        viewer,
+        cancel_check=None,
     ):
         self._set_transition_planner()
         """
@@ -515,9 +601,12 @@ class PathPlanner:
             q_init (list): The initial configuration of the robot (after grasping).
             target_bar_pose (list): The desired final configuration of the bar.
             logger: Optional logger for logging messages.
+            cancel_check: Optional zero-arg callable returning True if planning
+                should be aborted (see planPathtoBarHandling).
         Returns:
             PathVector: A path vector representing the planned path, or None if planning failed.
         """
+        self._check_cancel(cancel_check)
 
         res, q_init, _ = self.graph.applyStateConstraints(
             self.graph.getState(f"{gripper} grasps {handle}"), q_init
@@ -534,6 +623,7 @@ class PathPlanner:
             testCollision=True,
             logger=logger,
             viewer=viewer,
+            cancel_check=cancel_check,
         )
         if qap is None or qpp is None or qp is None or qrel is None:
             self._log(logger, "WARN", "Failed to generate placement configurations")
@@ -544,42 +634,46 @@ class PathPlanner:
         # ==================================================================
         # Segment 0: grasp approach (direct, transit_grasp)
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition("transit_grasp"))
         p0 = self.transitionPlanner.planPath(q_init, self._goals_matrix(qap), True)
         if not res:
             self._log(logger, "WARN", "Segment 0 FAILED")
             return None
-        p0 = self.optimizePath(p0, logger=logger)
+        p0 = self.optimizePath(p0, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 1: approach -> preplacement (RRT, prefix + "_32")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_32"))
         p1 = self.transitionPlanner.planPath(qap, self._goals_matrix(qpp), True)
         if not p1:
             self._log(logger, "WARN", "Segment 1 FAILED")
             return None
-        p1 = self.optimizePath(p1, logger=logger)
+        p1 = self.optimizePath(p1, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 2: preplacement -> placement (constrained direct, prefix + "_21")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_21"))
         res, p2, msg = self.transitionPlanner.directPath(qpp, qp, True)
         if not res:
             self._log(logger, "WARN", f"Segment 2 FAILED — {msg}")
             return None
-        p2 = self.optimizePath(p2, logger=logger)
+        p2 = self.optimizePath(p2, logger=logger, cancel_check=cancel_check)
 
         # ==================================================================
         # Segment 3: placement -> release (constrained direct, prefix + "_10")
         # ==================================================================
+        self._check_cancel(cancel_check)
         self.transitionPlanner.setTransition(self.graph.getTransition(prefix + "_10"))
         res, p3, msg = self.transitionPlanner.directPath(qp, qrel, True)
         if not res:
             self._log(logger, "WARN", f"Segment 3 FAILED — {msg}")
             return None
-        p3 = self.optimizePath(p3, logger=logger)
+        p3 = self.optimizePath(p3, logger=logger, cancel_check=cancel_check)
 
         self._log(logger, "INFO", "Placement path planned successfully.")
         return [p0, p1, p2, p3]
