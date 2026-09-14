@@ -1,11 +1,11 @@
 import rclpy
-from rclpy.action import ActionClient
-from rclpy.node import Node
 from control_msgs.action import GripperCommand
 from franka_msgs.action import Grasp
+from rclpy.action import ActionClient
+from rclpy.node import Node
 
 
-class FrankaGripperClient(object):
+class FrankaGripperClient:
     def __init__(self, node: Node, arm_id: str) -> None:
         self._node = node
         self.arm_id = arm_id
