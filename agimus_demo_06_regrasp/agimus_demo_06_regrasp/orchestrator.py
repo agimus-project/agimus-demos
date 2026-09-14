@@ -1,27 +1,25 @@
 """Implement the agimus_demo_06_regrasp Orchestrator"""
 
 from dataclasses import dataclass
-import numpy as np
-from typing import Tuple
 
+import numpy as np
+from geometry_msgs.msg import Pose
+from hpp.corbaserver.manipulation import Robot, loadServerPlugin
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from vision_msgs.msg import Detection2DArray
 
-from agimus_demo_06_regrasp.franka_gripper_client import FrankaGripperClient
-
-from agimus_demo_06_regrasp.manipulation_rrt_planner import ManipulationPlanner
 from agimus_demo_06_regrasp.async_subscriber import AsyncSubscriber
+from agimus_demo_06_regrasp.franka_gripper_client import FrankaGripperClient
+from agimus_demo_06_regrasp.manipulation_rrt_planner import ManipulationPlanner
 from agimus_demo_06_regrasp.trajectory_publisher import TrajectoryPublisher
 from agimus_demo_06_regrasp.utils import (
-    normalize_quaternion,
-    multiply_poses,
     XYZQuatType,
     get_traj_points_from_path,
+    multiply_poses,
+    normalize_quaternion,
 )
-from hpp.corbaserver.manipulation import loadServerPlugin, Robot
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -47,9 +45,7 @@ def get_hardcoded_initial_object_pose(object_name: str) -> list[float]:
             -0.712108373698452,
             0.6969475514873564,
         ]
-    elif object_name == "obj_26":
-        return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "cont_grasp_net_obj":
+    elif object_name == "obj_26" or object_name == "cont_grasp_net_obj":
         return [0.2, -0.15, 0.85, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
@@ -92,7 +88,7 @@ class OrchestratorParams:
     ocp_horizon: int = 40
 
 
-class Orchestrator(object):
+class Orchestrator:
     """Orchestrator of demo agimus_demo_06_regrasp"""
 
     def __init__(self):
@@ -174,7 +170,7 @@ class Orchestrator(object):
 
     def get_object_start_and_goal_pose(
         self, object_name: str, q: XYZQuatType, robot: Robot
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Return start and goal pose of the object in world frame."""
         obj_in_world_start_pose = None
         if self.use_hardcoded_poses:

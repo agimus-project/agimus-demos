@@ -2,6 +2,11 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import jinja2
+from agimus_demos_common.launch_utils import (
+    COMPOSE_REMOTE_PATH,
+    EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH,
+    FRANKA_PARAMS_REMOTE_PATH,
+)
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -22,12 +27,6 @@ from launch.substitutions import (
     PathJoinSubstitution,
 )
 from launch_ros.substitutions import FindPackageShare
-
-from agimus_demos_common.launch_utils import (
-    COMPOSE_REMOTE_PATH,
-    EXTERNAL_CONTROLLERS_PARAMS_REMOTE_PATH,
-    FRANKA_PARAMS_REMOTE_PATH,
-)
 
 
 def evaluate_compose_template(

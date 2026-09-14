@@ -1,22 +1,20 @@
-import numpy as np
-import pinocchio as pin
+import copy
 from pathlib import Path
 
+import numpy as np
 import numpy.typing as npt
-
+import pinocchio as pin
+from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
+from agimus_controller.ocp.ocp_croco_generic import (
+    OCPCrocoGeneric,
+    OCPParamsBaseCroco,
+)
+from agimus_controller.ocp_param_base import DTFactorsNSeq
 from agimus_controller.trajectory import (
     TrajectoryPoint,
     TrajectoryPointWeights,
     WeightedTrajectoryPoint,
 )
-import copy
-
-from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
-from agimus_controller.ocp.ocp_croco_generic import (
-    OCPParamsBaseCroco,
-    OCPCrocoGeneric,
-)
-from agimus_controller.ocp_param_base import DTFactorsNSeq
 
 
 class TrajecotryOptimizer:
