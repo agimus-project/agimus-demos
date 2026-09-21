@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-import pinocchio as pin
 import numpy.typing as npt
+import pinocchio as pin
 
 
 class GenericTrajectorySmoother(ABC):

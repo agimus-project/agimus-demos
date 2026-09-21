@@ -1,3 +1,6 @@
+from controller_manager.launch_utils import (
+    generate_controllers_spawner_launch_description,
+)
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -10,10 +13,6 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from controller_manager.launch_utils import (
-    generate_controllers_spawner_launch_description,  # noqa: I001
-)
 
 
 def launch_setup(

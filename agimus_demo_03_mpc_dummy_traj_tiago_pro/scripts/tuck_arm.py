@@ -16,10 +16,9 @@
 
 import time
 
+import rclpy
 from play_motion2_msgs.action import PlayMotion2
 from play_motion2_msgs.srv import IsMotionReady
-
-import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 
@@ -103,7 +102,7 @@ class PlayMotionActionClient(Node):
             self.get_logger().info("Motion succeeded")
         else:
             self._is_successful = False
-            self.get_logger().error("Motion failed with error {}".format(error))
+            self.get_logger().error(f"Motion failed with error {error}")
 
 
 def main(args=None):
@@ -114,7 +113,7 @@ def main(args=None):
     action_client.wait_for_server()
 
     for i in range(5):
-        action_client.get_logger().info("Tucking arm... Try {}".format(i))
+        action_client.get_logger().info(f"Tucking arm... Try {i}")
         action_client.send_goal("offer", True)
 
         if action_client.is_successful():
