@@ -1,12 +1,12 @@
-import numpy as np
-import xml.etree.ElementTree as ET
-import typing as T
-import pinocchio as pin
-from geometry_msgs.msg import Pose
-import numpy.typing as npt
 import os
+import typing as T
+import xml.etree.ElementTree as ET
 
+import numpy as np
+import numpy.typing as npt
+import pinocchio as pin
 from agimus_controller.trajectory import TrajectoryPoint
+from geometry_msgs.msg import Pose
 
 XYZQuatType: T.TypeAlias = tuple[float, float, float, float, float, float, float]
 
@@ -125,7 +125,7 @@ def path_move_object(path):
         return True
 
 
-class BaseObject(object):
+class BaseObject:
     def __init__(
         self,
         urdf_path: str,

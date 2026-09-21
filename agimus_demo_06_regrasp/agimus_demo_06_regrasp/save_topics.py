@@ -1,13 +1,12 @@
+import pickle
+
 import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
-from vision_msgs.msg import Detection2DArray
-from sensor_msgs.msg import JointState
-from sensor_msgs.msg import PointCloud2
-from sensor_msgs.msg import Image
 from contact_graspnet_msgs.srv import GetSceneGrasps
 from cv_bridge import CvBridge
-import pickle
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
+from sensor_msgs.msg import Image, JointState, PointCloud2
+from vision_msgs.msg import Detection2DArray
 
 
 class RecorderNode(Node):

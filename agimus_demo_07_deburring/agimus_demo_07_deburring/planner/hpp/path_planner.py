@@ -52,7 +52,7 @@ def getMaxVelocity(path):
     return res
 
 
-class PathPlanner(object):
+class PathPlanner:
     def __init__(self, ps, cg, gripper):
         self.gripper = gripper
         self.ps = ps
