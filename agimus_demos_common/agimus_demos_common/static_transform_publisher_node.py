@@ -1,13 +1,12 @@
 from launch_ros.actions import Node
-import typing as T
 
 
 def static_transform_publisher_node(
     frame_id: str,
     child_frame_id: str,
-    xyz: T.Optional[T.Tuple[float, float, float]] = None,
-    rot_xyzw: T.Optional[T.Tuple[float, float, float, float]] = None,
-    rot_rpy: T.Optional[T.Tuple[float, float, float]] = None,
+    xyz: tuple[float, float, float] | None = None,
+    rot_xyzw: tuple[float, float, float, float] | None = None,
+    rot_rpy: tuple[float, float, float] | None = None,
     node_kwargs={},
 ) -> Node:
     assert rot_rpy is None or rot_xyzw is None, (
