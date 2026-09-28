@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from CORBA import Any, TC_long, TC_double
+from CORBA import Any, TC_double, TC_long
 
 
 class Helper:
