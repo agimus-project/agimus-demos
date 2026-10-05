@@ -1,3 +1,9 @@
+from agimus_demos_common.launch_utils import (
+    generate_default_tiago_pro_args,
+    generate_include_launch,
+    get_use_sim_time,
+)
+from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     ExecuteProcess,
@@ -5,22 +11,14 @@ from launch.actions import (
     RegisterEventHandler,
 )
 from launch.conditions import IfCondition, UnlessCondition
-
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import (
-    PathJoinSubstitution,
     LaunchConfiguration,
+    PathJoinSubstitution,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from agimus_demos_common.launch_utils import (
-    generate_default_tiago_pro_args,
-    generate_include_launch,
-    get_use_sim_time,
-)
-from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 
 
 def launch_setup(
@@ -80,7 +78,7 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_03_mpc_dummy_traj_tiago_pro orchestrator_node.py --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',  #
+            f'ros2 run agimus_demo_03_mpc_dummy_traj_tiago_pro orchestrator_node.py --ros-args -p use_sim_time:={use_gazebo_bool} --params-file {trajectory_weights_yaml}"',
         ],
         output="screen",
     )

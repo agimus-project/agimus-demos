@@ -1,13 +1,20 @@
 import copy
-from pathlib import Path
-import tempfile
 import os
+import tempfile
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
 import yaml
 from agimus_controller.trajectory import TrajectoryPoint
+from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
+from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
+    GenericTrajectorySmoother,
+)
+from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
+    JointSpaceMotionGenerator,
+)
 from hpp.corbaserver import shrinkJointRange
 from hpp.corbaserver.manipulation import (
     Client,
@@ -18,22 +25,14 @@ from hpp.corbaserver.manipulation import (
     Rule,
     SecurityMargins,
     loadServerPlugin,
-)  # noqa: F811
+)
 from hpp.gepetto.manipulation import ViewerFactory
-
-from agimus_demo_07_deburring.planner.hpp.path_planner import PathPlanner
-from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
-    JointSpaceMotionGenerator,
-)
-from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
-    GenericTrajectorySmoother,
-)
 
 loadServerPlugin("corbaserver", "manipulation-corba.so")
 Client().problem.resetProblem()
 
 
-class BaseObject(object):
+class BaseObject:
     rootJointType = "freeflyer"
 
     def __init__(self, urdf_path: str, srdf_path: str, name: str):
