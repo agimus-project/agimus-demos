@@ -1,6 +1,5 @@
 import os
 
-
 try:  # python 2
     _basestr = basestring
     encoding = {"encoding": "utf-8"}
@@ -43,5 +42,5 @@ def retrieve_resource(path, dirs=None, env_var="ROS_PACKAGE_PATH"):
             abspath = os.path.join(dir, relpath)
             if os.path.isfile(abspath):
                 return abspath
-        raise IOError(f'"{path}" not found. Searched in {dirs}')
+        raise OSError(f'"{path}" not found. Searched in {dirs}')
     return path

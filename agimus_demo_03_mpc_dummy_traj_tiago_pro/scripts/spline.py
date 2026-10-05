@@ -1,4 +1,4 @@
-from hpp.corbaserver import Client, Robot, ProblemSolver, wrap_delete
+from hpp.corbaserver import Client, ProblemSolver, Robot, wrap_delete
 
 
 class SplineBezier:

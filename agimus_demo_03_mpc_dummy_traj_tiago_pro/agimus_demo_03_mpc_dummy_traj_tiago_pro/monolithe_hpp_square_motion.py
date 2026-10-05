@@ -1,14 +1,14 @@
 """HPP plan used on AGIMUS-TIAGo. Plan square motion of the end-effector."""
 
-from agimus_controller.trajectory import TrajectoryPoint
 import example_robot_data
-from hpp.corbaserver import loadServerPlugin, wrap_delete as wd
-from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
-from hpp.gepetto.manipulation import ViewerFactory
 import matplotlib.pyplot as plt
 import numpy as np
 import pinocchio as pin
-
+from agimus_controller.trajectory import TrajectoryPoint
+from hpp.corbaserver import loadServerPlugin
+from hpp.corbaserver import wrap_delete as wd
+from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
+from hpp.gepetto.manipulation import ViewerFactory
 from spline import SplineBezier, SplineBezierRobot
 
 # Enable interactive mode at the beginning
