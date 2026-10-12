@@ -1,31 +1,27 @@
 import numpy as np
 import pinocchio
-
-from geometry_msgs.msg import TransformStamped, PoseStamped
 import rclpy
-
-from tf2_ros import TransformException
-from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
-from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
-
-
-from agimus_controller_ros.ros_utils import (
-    get_params_from_node,
-    transform_msg_to_se3,
-    weighted_traj_point_to_mpc_msg,
-    se3_to_transform_msg,
-    pose_msg_to_se3,
-)
 from agimus_controller.trajectory import (
     TrajectoryPoint,
     TrajectoryPointWeights,
     WeightedTrajectoryPoint,
 )
+from agimus_controller_ros.ros_utils import (
+    get_params_from_node,
+    pose_msg_to_se3,
+    se3_to_transform_msg,
+    transform_msg_to_se3,
+    weighted_traj_point_to_mpc_msg,
+)
 from agimus_controller_ros.simple_trajectory_publisher import TrajectoryPublisherBase
 from agimus_controller_ros.trajectory_weights_parameters import (
     trajectory_weights_params,
 )
+from geometry_msgs.msg import PoseStamped, TransformStamped
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
+from tf2_ros.transform_listener import TransformListener
 
 
 def _as_list_of_size(v: list[float], size: int) -> list[float]:

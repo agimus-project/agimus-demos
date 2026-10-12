@@ -1,26 +1,25 @@
+import time
+
 from hpp.corbaserver import shrinkJointRange, wrap_delete
 from hpp.corbaserver.manipulation import (
-    Robot,
-    newProblem,
-    ProblemSolver,
     Client,
     ConstraintGraph,
     ConstraintGraphFactory,
+    ProblemSolver,
+    Robot,
     Rule,
+    newProblem,
 )
-
 from hpp.gepetto.manipulation import ViewerFactory
 from hpp.rostools import process_xacro, retrieve_resource
 
 from agimus_demo_06_regrasp.utils import (
     BaseObject,
     get_obj_goal_handles,
+    get_path_grasp_sequences,
     hack_for_ros2_support_in_hpp,
     path_move_object,
-    get_path_grasp_sequences,
 )
-
-import time
 
 
 class ManipulationPlanner:
