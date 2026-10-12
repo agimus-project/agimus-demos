@@ -1,14 +1,15 @@
-from rclpy.node import Node
-from agimus_msgs.msg import MpcInput
-import numpy as np
-from std_msgs.msg import String
-import pinocchio as pin
-from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
-from geometry_msgs.msg import Pose
 import time
 
+import numpy as np
+import pinocchio as pin
+from agimus_msgs.msg import MpcInput
+from geometry_msgs.msg import Pose
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from std_msgs.msg import String
 
-class TrajectoryPublisher(object):
+
+class TrajectoryPublisher:
     def __init__(self, node: Node):
         self._node = node
         self.pin_model = None

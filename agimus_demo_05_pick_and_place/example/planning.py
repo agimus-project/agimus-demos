@@ -1,11 +1,12 @@
+import random
+
+import eigenpy
 import numpy as np
+import pinocchio.liegroups
 from agimus_demo_05_pick_and_place.hpp_client import HPPInterface
 from agimus_demo_05_pick_and_place.orchestrator import (
     get_hardcoded_initial_object_pose,
 )
-import pinocchio.liegroups
-import eigenpy
-import random
 
 eigenpy.seed(random.randint(0, 1000))
 
