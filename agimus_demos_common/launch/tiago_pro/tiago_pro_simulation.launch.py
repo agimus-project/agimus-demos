@@ -1,3 +1,9 @@
+from agimus_demos_common.launch_utils import (
+    generate_default_tiago_pro_args,
+)
+from controller_manager.launch_utils import (
+    generate_controllers_spawner_launch_description,
+)
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     ExecuteProcess,
@@ -11,12 +17,6 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-from controller_manager.launch_utils import (
-    generate_controllers_spawner_launch_description,  # noqa: I001
-)
-from agimus_demos_common.launch_utils import (
-    generate_default_tiago_pro_args,
-)
 
 
 def launch_setup(
