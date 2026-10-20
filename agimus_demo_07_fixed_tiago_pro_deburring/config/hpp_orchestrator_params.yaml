@@ -1,0 +1,31 @@
+---
+# HPP orchestrator parameters for the TIAGo Pro deburring demo (fixed base).
+#
+# State space (nv=7): 7 right arm joints
+# Config space (nq=7): 7 right arm joints
+
+# ── Trajectory sampling ───────────────────────────────────────────────────────
+trajectory:
+  dt: 0.01          # sampling period (s) — must match agimus_controller rate
+  time_scale: 1.0   # stretch HPP path time — increase to slow down execution
+
+# ── Handle ───────────────────────────────────────────────────────────────────
+# outside: pylone/hole_right_25
+# inside:  pylone/hole_right_inside_25
+handle:
+  name: pylone/hole_right_25
+
+# ── Arm tuck configurations ───────────────────────────────────────────────────
+tuck:
+  left_arm: [0.5, -1.83, -0.47, -2.35, 0.0, -1.2, 0.0]
+  right_arm: [-0.5, -1.83, 0.47, -2.35, 0.0, -1.2, 0.0]
+
+# ── MPC weights ───────────────────────────────────────────────────────────────
+weights:
+  w_q: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]            # first guess only
+  w_qdot: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]                # light damping
+  w_qddot: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+  w_effort: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]       # torque regularization
+  w_collision: 0.0
+  w_frame_trans: [1000.0, 1000.0, 1000.0]                               # task priority
+  w_frame_rot: [500.0, 500.0, 500.0]
