@@ -21,13 +21,14 @@ or in one call: o.plan_and_execute_staged().
 Run via orchestrator_node.py (sources both ros2_config.sh and hpp_config.sh).
 """
 
+import glob
 import os
 import subprocess
 import sys
-import glob
 import tempfile
 import time
 import xml.etree.ElementTree as ET
+
 import numpy as np
 import pinocchio as pin
 import yaml
@@ -40,19 +41,16 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from pyhpp.manipulation import Device, urdf  # noqa: E402
-from pyhpp.manipulation import Graph, Problem, TransitionPlanner  # noqa: E402
-from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory  # noqa: E402
-from pyhpp.manipulation.security_margins import SecurityMargins  # noqa: E402
-from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint  # noqa: E402
-from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3  # noqa: E402
-
-import rclpy  # noqa: E402
-from rclpy.node import Node  # noqa: E402
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy  # noqa: E402
-from agimus_msgs.msg import MpcInput, MpcEEInput  # noqa: E402
-from control_msgs.msg import DynamicJointState  # noqa: E402
-
+import rclpy
+from agimus_msgs.msg import MpcEEInput, MpcInput
+from control_msgs.msg import DynamicJointState
+from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint
+from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3
+from pyhpp.manipulation import Device, Graph, Problem, TransitionPlanner, urdf
+from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory
+from pyhpp.manipulation.security_margins import SecurityMargins
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1123,7 +1121,7 @@ class Orchestrator:
         _scripts_dir = os.path.join(_PKG_DIR, "scripts")
         if _scripts_dir not in sys.path:
             sys.path.insert(0, _scripts_dir)
-        from qualisys import QualisysClient  # noqa: PLC0415
+        from qualisys import QualisysClient
 
         self._qc = QualisysClient(ip=ip, bodies=self._MOCAP_BODIES)
         time.sleep(1.0)  # let the subprocess receive its first packet
@@ -1208,7 +1206,7 @@ class Orchestrator:
             print(
                 f"  {'':4s}{'Δ [mm]':12s}  {dt_mm[0]:>+9.2f}  {dt_mm[1]:>+9.2f}  {dt_mm[2]:>+9.2f}  (|Δ|={norm_t:.1f} mm)  {flag}"
             )
-            print("")
+            print()
             print(f"  {'':4s}{'':12s}  {'roll':>9s}  {'pitch':>9s}  {'yaw':>9s}")
             print(
                 f"  {'':4s}{'mocap [°]':12s}  {rpy_m[0]:>+9.2f}  {rpy_m[1]:>+9.2f}  {rpy_m[2]:>+9.2f}"

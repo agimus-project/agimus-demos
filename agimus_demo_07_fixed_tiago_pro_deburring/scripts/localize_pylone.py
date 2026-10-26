@@ -21,11 +21,11 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pinocchio as pin
 import rclpy
+import yaml
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
-import yaml
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _PKG_DIR = os.path.join(_SCRIPTS_DIR, "..")
