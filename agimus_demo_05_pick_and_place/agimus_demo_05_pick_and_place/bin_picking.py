@@ -24,20 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
+import numpy as np
 from hpp.corbaserver import loadServerPlugin, shrinkJointRange, wrap_delete
 from hpp.corbaserver.bin_picking import Client as BpClient
-from hpp.corbaserver.manipulation import Client as ManipClient, ProblemSolver
-from hpp.corbaserver.manipulation import Constraints, Robot, Rule
+from hpp.corbaserver.manipulation import Client as ManipClient
+from hpp.corbaserver.manipulation import Constraints, ProblemSolver, Robot, Rule
 from hpp.corbaserver.problem_solver import _convertToCorbaAny as convertToAny
+
 from agimus_demo_05_pick_and_place.create_graph import makeGraph
 from agimus_demo_05_pick_and_place.utils import concatenatePaths
-import typing as T
-import numpy as np
 
 
 def generateTargetConfig(
     robot, graph, edge, qLeaf, qRand
-) -> T.Tuple[T.Optional[T.List[float]], bool, str]:
+) -> tuple[list[float] | None, bool, str]:
     # print(f"gonna segfault? {edge}")
     # node_from, node_to = graph.getNodesConnectedByEdge(edge)
     # print(graph.getConfigErrorForNode(node_from, qLeaf))
@@ -92,7 +93,7 @@ def writeHandleInSrdf(robot, handle, clearance, mask):
     return res
 
 
-class BinPicking(object):
+class BinPicking:
     """Define a bin-picking problem."""
 
     """List of object names. The part to grasp is the first one."""
@@ -431,7 +432,7 @@ class BinPicking(object):
                     + " goal configurations."
                 )
 
-    def computeFreeGrasps(self, q) -> T.Tuple[bool, T.List]:
+    def computeFreeGrasps(self, q) -> tuple[bool, list]:
         """
         For each gripper, compute list of object handles that are not in
         collision in the given configuration.

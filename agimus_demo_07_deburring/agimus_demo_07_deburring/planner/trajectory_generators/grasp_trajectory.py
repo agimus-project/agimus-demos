@@ -4,11 +4,9 @@ import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
 from agimus_controller.trajectory import TrajectoryPoint
-
 from agimus_demo_07_deburring.planner.trajectory_generators.trajectory_generator import (
     GenericTrajectoryGenerator,
 )
-
 from agimus_demo_07_deburring.planner.trajectory_generators.utils import SCurveGenerator
 
 

@@ -1,13 +1,14 @@
 """Prototype for testing HPP on AGIMUS-TIAGo"""
 
-from hpp.corbaserver import loadServerPlugin, wrap_delete as wd
-from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
-from hpp.gepetto.manipulation import ViewerFactory
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pinocchio as pin
-import time
-
+from hpp.corbaserver import loadServerPlugin
+from hpp.corbaserver import wrap_delete as wd
+from hpp.corbaserver.manipulation import Client, ProblemSolver, Robot
+from hpp.gepetto.manipulation import ViewerFactory
 from spline import SplineBezier, SplineBezierRobot
 
 # Enable interactive mode at the beginning

@@ -1,11 +1,11 @@
 import os
 import re
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Any
 
 import yaml
-
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -35,9 +35,9 @@ def safe_remove(path: Path) -> None:
 
 def parse_config(
     replacements: Mapping[str, str],
-    path: Optional[str] = None,
-    data: Optional[Dict[str, Any]] = None,
-    output_path: Optional[str] = None,
+    path: str | None = None,
+    data: dict[str, Any] | None = None,
+    output_path: str | None = None,
 ) -> str:
     """Load a YAML file, replace all occurrences of ${VAR} in keys and values,
     and optionally save the result.

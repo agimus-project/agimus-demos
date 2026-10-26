@@ -20,10 +20,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-import yaml
-import xacro
-
 import pinocchio as pin
+import xacro
+import yaml
 
 # Use __file__ so the script works from source without colcon rebuild
 _PKG_DIR = Path(__file__).resolve().parent.parent
