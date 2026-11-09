@@ -4,6 +4,7 @@ from collections import deque
 
 import numpy as np
 import pinocchio as pin
+import rclpy
 from agimus_controller.trajectory import (
     TrajectoryPoint,
     TrajectoryPointWeights,
@@ -13,7 +14,6 @@ from agimus_controller.trajectory import (
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
 from agimus_msgs.msg import MpcInput
 from geometry_msgs.msg import Vector3
-import rclpy
 from rclpy.duration import Duration
 from rclpy.exceptions import ParameterException
 from rclpy.node import Node
@@ -22,10 +22,9 @@ from rclpy.qos import (
     ReliabilityPolicy,
 )
 from std_msgs.msg import ColorRGBA, Header, Int32
-from visualization_msgs.msg import Marker
-
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from visualization_msgs.msg import Marker
 
 from agimus_demo_08_collision_avoidance.goal_publisher_parameters import (
     goal_publisher,

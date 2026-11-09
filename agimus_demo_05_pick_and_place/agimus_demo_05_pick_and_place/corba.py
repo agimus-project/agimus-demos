@@ -1,9 +1,10 @@
 import os
+import subprocess
 import sys
 import time
-import subprocess
-from hpp.corbaserver.tools import Tools
+
 from hpp.corbaserver.manipulation import Client, loadServerPlugin
+from hpp.corbaserver.tools import Tools
 from omniORB.CORBA import SystemException
 
 

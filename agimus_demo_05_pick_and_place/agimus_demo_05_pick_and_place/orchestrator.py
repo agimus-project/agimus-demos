@@ -1,34 +1,29 @@
 """Implement the agimus_demo_05_pick_and_place Orchestrator"""
 
-from typing import Tuple
+import time
 from dataclasses import dataclass
+
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
-import time
-import typing as T
-
-
-from tf2_ros import StaticTransformBroadcaster
 import rclpy
+from agimus_controller_ros.ros_utils import pose_msg_to_se3, se3_to_transform_msg
+from agimus_controller_ros.simple_trajectory_publisher import (
+    SimpleTrajectoryPublisher,
+)
+from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_system_default
-from geometry_msgs.msg import Pose, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
-from vision_msgs.msg import Detection2DArray, Detection2D
+from tf2_ros import StaticTransformBroadcaster
+from vision_msgs.msg import Detection2D, Detection2DArray
 
+from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
 from agimus_demo_05_pick_and_place.franka_gripper_client import FrankaGripperClient
-
 from agimus_demo_05_pick_and_place.hpp_client import (
     HPPInterface,
     get_q_dq_ddq_arrays_from_path,
 )
-from agimus_demo_05_pick_and_place.async_subscriber import AsyncSubscriber
-from agimus_controller_ros.simple_trajectory_publisher import (
-    SimpleTrajectoryPublisher,
-)
-
-from agimus_controller_ros.ros_utils import pose_msg_to_se3, se3_to_transform_msg
 
 
 def map_object_id(obj_id, dataset="tless"):
@@ -38,7 +33,7 @@ def map_object_id(obj_id, dataset="tless"):
 
 def get_most_confident_object_pose(
     detection_msg: Detection2DArray, object_name: str, dataset_name: str
-) -> Tuple[str, list[float]]:
+) -> tuple[str, list[float]]:
     # TODO: change the map if we want to use YCBV
     filtered_detections = [
         (d, d.results[0].hypothesis.score)
@@ -64,7 +59,7 @@ def get_most_confident_object_pose(
     ]
 
 
-def get_hardcoded_initial_object_pose(object_name: str) -> T.Tuple[str, list[float]]:
+def get_hardcoded_initial_object_pose(object_name: str) -> tuple[str, list[float]]:
     """Return initial object position in world frame."""
     frame = "panda/support_link"  # world frame
     if object_name == "obj_21":
@@ -98,9 +93,7 @@ def get_hardcoded_final_object_pose(object_name: str) -> list[float]:
         # return "dest_box/base_link", [0.1, 0.0, 0.03, 0.0, 0.0, 0.0, 1.0]
     elif object_name in ["obj_25", "obj_26"]:  # switches
         return "dest_box/base_link", [0.05, 0.0, 0.03, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_03":
-        return "dest_box/base_link", [0.05, 0.0, 0.05, 0.0, 0.0, 0.0, 1.0]
-    elif object_name == "obj_31":
+    elif object_name == "obj_03" or object_name == "obj_31":
         return "dest_box/base_link", [0.05, 0.0, 0.05, 0.0, 0.0, 0.0, 1.0]
     else:
         raise ValueError(f"Object {object_name} not found")
@@ -123,7 +116,7 @@ class OrchestratorParams:
     destination_configuration: npt.NDArray = np.zeros(0)
 
 
-class Orchestrator(object):
+class Orchestrator:
     """Orchestrator of demo agimus_demo_05_pick_and_place"""
 
     def __init__(self):
@@ -288,7 +281,7 @@ class Orchestrator(object):
 
     def get_object_start_and_goal_pose(
         self, object_name: str, use_hardcoded_poses: bool
-    ) -> T.Tuple[T.Tuple[str, float], T.Tuple[str, float]]:
+    ) -> tuple[tuple[str, float], tuple[str, float]]:
         """Return start and goal pose of the object in world frame."""
         if use_hardcoded_poses:
             # TEMP fix: just hardcode pose from happypose
@@ -394,7 +387,7 @@ class Orchestrator(object):
 
     def go_to(
         self,
-        desired_configuration: T.List[float],
+        desired_configuration: list[float],
         enable_visualization_in_gepetto_gui: bool = True,
     ) -> None:
         """Publish an hpp trajectory to go to desired configuration"""

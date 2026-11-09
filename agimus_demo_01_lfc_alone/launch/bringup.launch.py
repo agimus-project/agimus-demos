@@ -1,11 +1,10 @@
-from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction
-from launch.launch_description_entity import LaunchDescriptionEntity
-
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
 )
+from launch import LaunchContext, LaunchDescription
+from launch.actions import OpaqueFunction
+from launch.launch_description_entity import LaunchDescriptionEntity
 
 
 def launch_setup(

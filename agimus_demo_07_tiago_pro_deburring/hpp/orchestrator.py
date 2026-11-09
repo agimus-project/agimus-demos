@@ -10,11 +10,12 @@ Provides an interactive interface for step-by-step planning and execution:
 Run via orchestrator_node.py (sources both ros2_config.sh and hpp_config.sh).
 """
 
+import glob
 import os
 import sys
-import glob
 import tempfile
 import time
+
 import numpy as np
 import pinocchio as pin
 import yaml
@@ -27,20 +28,17 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from pyhpp.manipulation import Device, urdf  # noqa: E402
-from pyhpp.manipulation import Graph, Problem, TransitionPlanner  # noqa: E402
-from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory  # noqa: E402
-from pyhpp.manipulation.security_margins import SecurityMargins  # noqa: E402
-from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint  # noqa: E402
-from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3  # noqa: E402
-
-import rclpy  # noqa: E402
-from rclpy.node import Node  # noqa: E402
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy  # noqa: E402
-from agimus_msgs.msg import MpcInput  # noqa: E402
-from sensor_msgs.msg import JointState  # noqa: E402
-from nav_msgs.msg import Odometry  # noqa: E402
-
+import rclpy
+from agimus_msgs.msg import MpcInput
+from nav_msgs.msg import Odometry
+from pyhpp.constraints import ComparisonType, ComparisonTypes, LockedJoint
+from pyhpp.core import RandomShortcut, SplineGradientBased_bezier3
+from pyhpp.manipulation import Device, Graph, Problem, TransitionPlanner, urdf
+from pyhpp.manipulation.constraint_graph_factory import ConstraintGraphFactory
+from pyhpp.manipulation.security_margins import SecurityMargins
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from sensor_msgs.msg import JointState
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 

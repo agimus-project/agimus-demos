@@ -1,5 +1,13 @@
+import os
+
+import yaml
+from agimus_demos_common.launch_utils import (
+    generate_default_tiago_pro_args,
+    get_use_sim_time,
+)
+from ament_index_python.packages import get_package_share_directory
 from controller_manager.launch_utils import (
-    generate_controllers_spawner_launch_description,  # noqa: I001
+    generate_controllers_spawner_launch_description,
 )
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
@@ -12,24 +20,15 @@ from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-import os
-import yaml
-
 from launch.substitutions import (
     Command,
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
 )
-from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
-
-from agimus_demos_common.launch_utils import (
-    generate_default_tiago_pro_args,
-    get_use_sim_time,
-)
 
 
 def launch_setup(

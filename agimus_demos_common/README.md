@@ -172,8 +172,7 @@ def launch_setup(
 def generate_launch_description():
     return LaunchDescription(
         # Helper function creates launch arguments required by `franka_common.launch.py`.
-        generate_default_franka_args()
-        + [OpaqueFunction(function=launch_setup)]
+        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)]
     )
 ```
 

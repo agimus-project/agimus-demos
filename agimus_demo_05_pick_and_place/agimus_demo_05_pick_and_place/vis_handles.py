@@ -2,14 +2,15 @@
 Run this script outside of docker since `pip install robomeshcat` breaks the env
 """
 
-import pinocchio as pin
-from robomeshcat import Object, Scene, Robot
 from pathlib import Path
+
+import coal
+import pinocchio as pin
 
 # import xml.etree.ElementTree as ET
 from example_robot_data.robots_loader import PandaLoader as RobLoader
-import coal
 from lxml import etree
+from robomeshcat import Object, Robot, Scene
 
 
 def get_obj_goal_handles(srdf_path: str) -> (list[str], list[str]):

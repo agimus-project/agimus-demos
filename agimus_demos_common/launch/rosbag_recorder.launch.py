@@ -1,9 +1,9 @@
-from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, ExecuteProcess
-from launch.launch_description_entity import LaunchDescriptionEntity
 from pathlib import Path
 
 from agimus_demos_common.launch_utils import generate_default_franka_args
+from launch import LaunchContext, LaunchDescription
+from launch.actions import ExecuteProcess, OpaqueFunction
+from launch.launch_description_entity import LaunchDescriptionEntity
 
 
 def launch_setup(
