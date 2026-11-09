@@ -1,13 +1,3 @@
-from launch import LaunchContext, LaunchDescription
-from launch.actions import OpaqueFunction, RegisterEventHandler, ExecuteProcess
-from launch.event_handlers import OnProcessExit, OnShutdown
-from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import Command, FindExecutable
-from launch_ros.parameter_descriptions import ParameterValue
-
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
@@ -15,10 +5,22 @@ from agimus_demos_common.launch_utils import (
     parse_config,
     safe_remove,
 )
-
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
+from launch import LaunchContext, LaunchDescription
+from launch.actions import ExecuteProcess, OpaqueFunction, RegisterEventHandler
+from launch.event_handlers import OnProcessExit, OnShutdown
+from launch.launch_description_entity import LaunchDescriptionEntity
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
 
 
 def launch_setup(

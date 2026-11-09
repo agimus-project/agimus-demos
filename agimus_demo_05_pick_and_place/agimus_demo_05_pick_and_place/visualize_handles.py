@@ -1,12 +1,11 @@
+import time
+from pathlib import Path
+
+import example_robot_data as robex
 import numpy as np
 import pinocchio as pin
-
-from robomeshcat import Robot, Scene, Object
 from example_robot_data.robots_loader import PandaLoader as RobLoader
-import example_robot_data as robex
-from pathlib import Path
-import time
-
+from robomeshcat import Object, Robot, Scene
 
 robot = robex.load("panda")
 model = robot.model

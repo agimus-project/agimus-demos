@@ -27,6 +27,7 @@ import glob
 import os
 import sys
 import tempfile
+
 import numpy as np
 import pinocchio as pin
 
@@ -37,14 +38,13 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import rclpy  # noqa: E402
-from rclpy.node import Node  # noqa: E402
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy  # noqa: E402
-
-from agimus_msgs.msg import MpcInput  # noqa: E402
-from control_msgs.msg import DynamicJointState  # noqa: E402
-from geometry_msgs.msg import PoseStamped  # noqa: E402
-from std_msgs.msg import String  # noqa: E402
+import rclpy
+from agimus_msgs.msg import MpcInput
+from control_msgs.msg import DynamicJointState
+from geometry_msgs.msg import PoseStamped
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from std_msgs.msg import String
 
 _EE_FRAME_KW = "gripper_right_tool_holder"
 

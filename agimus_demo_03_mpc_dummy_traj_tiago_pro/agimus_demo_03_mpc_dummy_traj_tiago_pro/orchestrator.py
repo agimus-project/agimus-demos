@@ -1,11 +1,11 @@
 import time
 
+import rclpy
 from agimus_controller_ros.simple_trajectory_publisher import (
     SimpleTrajectoryPublisher,
 )
-import rclpy
-from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 
 from agimus_demo_03_mpc_dummy_traj_tiago_pro.async_subscriber import AsyncSubscriber
@@ -14,7 +14,7 @@ from agimus_demo_03_mpc_dummy_traj_tiago_pro.monolithe_hpp_square_motion import 
 )
 
 
-class Orchestrator(object):
+class Orchestrator:
     """Orchestrator of demo agimus_demo_03_mpc_dummy_traj_tiago_pro."""
 
     def __init__(self):

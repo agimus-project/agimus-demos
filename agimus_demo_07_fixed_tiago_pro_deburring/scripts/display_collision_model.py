@@ -25,10 +25,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
+import pinocchio as pin
 import xacro
 from ament_index_python.packages import get_package_share_directory
-
-import pinocchio as pin
 
 TIAGO_DESC = Path(get_package_share_directory("tiago_pro_description"))
 XACRO_PATH = TIAGO_DESC / "robots" / "tiago_pro.urdf.xacro"

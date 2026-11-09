@@ -1,7 +1,6 @@
 import numpy as np
-import pinocchio as pin
 import numpy.typing as npt
-
+import pinocchio as pin
 from agimus_demo_07_deburring.planner.trajecory_smoothers.trajectory_smoother import (
     GenericTrajectorySmoother,
 )

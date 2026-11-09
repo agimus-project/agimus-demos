@@ -91,18 +91,18 @@ python3 src/agimus-demos/agimus_demo_07_fixed_tiago_pro_deburring/hpp/orchestrat
 ### Step 3 — Plan and execute (in the IPython shell)
 
 ```python
-o.sync_from_robot()      # sync right arm position from Gazebo
-o.activate_lfc()         # switch arm to torque control
-o.plan()                 # run HPP planner
+o.sync_from_robot()  # sync right arm position from Gazebo
+o.activate_lfc()  # switch arm to torque control
+o.plan()  # run HPP planner
 
 # Execute full sequence or step by step
-o.execute()              # approach + insertion + retraction
-o.execute([o.p1])        # approach only
-o.execute([o.p1, o.p2]) # approach + insertion
+o.execute()  # approach + insertion + retraction
+o.execute([o.p1])  # approach only
+o.execute([o.p1, o.p2])  # approach + insertion
 
 # Check tracking error after execution
-o.compare_pose(o.p1)     # position/rotation error vs end of p1
-o.compare_pose()         # vs qg (insertion goal)
+o.compare_pose(o.p1)  # position/rotation error vs end of p1
+o.compare_pose()  # vs qg (insertion goal)
 
 # Or plan and execute at once (after activate_lfc)
 o.plan_and_execute()
