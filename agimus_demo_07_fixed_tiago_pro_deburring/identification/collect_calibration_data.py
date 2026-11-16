@@ -40,23 +40,21 @@ import time
 from pathlib import Path
 
 import numpy as np
-import yaml
-
+import pinocchio as pin
 import rclpy
-from rclpy.action import ActionClient
-from rclpy.node import Node
+import yaml
 from action_msgs.msg import GoalStatus
+from builtin_interfaces.msg import Duration
 from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import DynamicJointState
 from play_motion2_msgs.action import PlayMotion2
+from rclpy.action import ActionClient
+from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from builtin_interfaces.msg import Duration
-
-import pinocchio as pin
 
 _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(_SCRIPTS_DIR))
-from qualisys import QualisysClient  # noqa: E402
+from qualisys import QualisysClient
 
 _QUALISYS_IP = "140.93.1.100"
 _MOCAP_BODIES = {"pylone": 0, "tiago_endEffector": 2, "tiago_base": 1}
@@ -533,9 +531,10 @@ def main():
                     parsed.urdf
                 )
             else:
-                from ament_index_python.packages import get_package_share_directory
-                import xacro
                 import tempfile
+
+                import xacro
+                from ament_index_python.packages import get_package_share_directory
 
                 tiago_desc = Path(get_package_share_directory("tiago_pro_description"))
                 urdf_str = xacro.process_file(

@@ -25,11 +25,11 @@ Offline re-analysis:
     c.analyze()
 """
 
+import glob
 import os
 import sys
-import glob
-import time
 import tempfile
+import time
 
 import numpy as np
 import pinocchio as pin
@@ -42,10 +42,10 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import rclpy  # noqa: E402
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy  # noqa: E402
-from sensor_msgs.msg import JointState  # noqa: E402
-from std_msgs.msg import String  # noqa: E402
+import rclpy
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from sensor_msgs.msg import JointState
+from std_msgs.msg import String
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -166,7 +166,7 @@ class Calibrator:
     def connect_mocap(self, ip: str = _QUALISYS_IP) -> None:
         """Start the Qualisys mocap subprocess."""
         sys.path.insert(0, _SCRIPTS_DIR)
-        from qualisys import QualisysClient  # noqa: PLC0415
+        from qualisys import QualisysClient
 
         self._qc = QualisysClient(ip=ip, bodies=_MOCAP_BODIES)
         time.sleep(1.0)
@@ -322,7 +322,7 @@ class Calibrator:
         for i, d in enumerate(deltas):
             t_mm = np.linalg.norm(d.translation) * 1e3
             r_deg = np.degrees(np.linalg.norm(pin.log3(d.rotation)))
-            dt_mm = np.linalg.norm((d.translation - t_mean)) * 1e3
+            dt_mm = np.linalg.norm(d.translation - t_mean) * 1e3
             dr_deg = r_errs_deg[i]
             print(
                 f"    {i + 1:>3}  {t_mm:>9.1f}  {r_deg:>8.2f}  {dt_mm:>8.2f}  {dr_deg:>7.3f}"

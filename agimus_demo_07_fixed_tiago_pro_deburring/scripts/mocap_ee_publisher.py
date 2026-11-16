@@ -26,15 +26,15 @@ for _p in sorted(
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import rclpy  # noqa: E402
-from rclpy.node import Node  # noqa: E402
-from geometry_msgs.msg import PoseStamped, TransformStamped  # noqa: E402
-from tf2_ros import TransformBroadcaster  # noqa: E402
+import os
 
-import os  # noqa: E402
+import rclpy
+from geometry_msgs.msg import PoseStamped, TransformStamped
+from rclpy.node import Node
+from tf2_ros import TransformBroadcaster
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from qualisys import QualisysClient  # noqa: E402
+from qualisys import QualisysClient
 
 _QUALISYS_IP = "140.93.1.100"
 # QTM body IDs (must match the Qualisys server's body list order)

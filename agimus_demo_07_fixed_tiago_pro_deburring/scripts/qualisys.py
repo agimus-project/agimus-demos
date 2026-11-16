@@ -6,13 +6,13 @@ Thomas FLAYOLS - LAAS CNRS
 """
 
 import asyncio
-import qtm
+from ctypes import c_double
+from multiprocessing import Process
+from multiprocessing.sharedctypes import Array, Value
+
 import numpy as np
 import pinocchio
-
-from multiprocessing import Process
-from multiprocessing.sharedctypes import Value, Array
-from ctypes import c_double
+import qtm
 from pinocchio.explog import log
 
 
