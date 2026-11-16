@@ -1,24 +1,20 @@
+import builtin_interfaces
+import numpy as np
+import pinocchio
 import rclpy
 import rclpy.time
-import builtin_interfaces
-from rclpy.qos import qos_profile_system_default
-from rclpy.executors import ExternalShutdownException
-from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
+from agimus_controller_ros.ros_utils import (
+    se3_to_pose_msg,
+    transform_msg_to_se3,
+)
 from rcl_interfaces.srv import SetParameters
+from rclpy.executors import ExternalShutdownException
 from rclpy.parameter import Parameter
-
+from rclpy.qos import qos_profile_system_default
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-
-import pinocchio
-import numpy as np
-import typing as T
-
-from agimus_controller_ros.ros_utils import (
-    transform_msg_to_se3,
-    se3_to_pose_msg,
-)
+from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 
 
 def set_transform(
@@ -26,9 +22,7 @@ def set_transform(
     object_id: str,
     camera_name: str,
     base_name: str,
-    object_pose: T.Union[
-        pinocchio.SE3, tuple[float, float, float, float, float, float, float]
-    ],
+    object_pose: pinocchio.SE3 | tuple[float, float, float, float, float, float, float],
 ) -> bool:
     """
     Set the transform published by the Happypose simulation node. This is the client-side function.

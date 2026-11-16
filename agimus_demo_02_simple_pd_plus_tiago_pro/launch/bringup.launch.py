@@ -1,3 +1,8 @@
+from agimus_demos_common.launch_utils import (
+    generate_default_tiago_pro_args,
+    generate_include_launch,
+    get_use_sim_time,
+)
 from launch import LaunchContext, LaunchDescription
 from launch.actions import OpaqueFunction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
@@ -5,12 +10,6 @@ from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from agimus_demos_common.launch_utils import (
-    generate_default_tiago_pro_args,
-    generate_include_launch,
-    get_use_sim_time,
-)
 
 
 def launch_setup(

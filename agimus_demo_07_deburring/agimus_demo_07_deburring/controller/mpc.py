@@ -48,7 +48,7 @@ class DeburringMPC(MPC):
     def update_references(self) -> None:
         # Ensure that you have enough data in the buffer.
         if len(self._buffer) < self._ocp.n_controls + 1:
-            return None
+            return
         self._reference_trajectory = self._extract_horizon_from_buffer()
         self._ocp.set_reference_weighted_trajectory(self._reference_trajectory)
         self._references_updated = True
