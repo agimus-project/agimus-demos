@@ -94,7 +94,7 @@ The result is automatically written to `config/pylone_pose.yaml`.
 Once the mocap is connected (see [section 5.5](#55-mocap-qualisys-optional)), run in the IPython shell:
 
 ```python
-o.localize_pylone_from_mocap()   # reads pylone pose from mocap, saves to pylone_pose.yaml
+o.localize_pylone_from_mocap()  # reads pylone pose from mocap, saves to pylone_pose.yaml
 ```
 
 ---
@@ -171,9 +171,9 @@ automatic — no extra steps needed. In RViz you can verify the `mocap_ee` frame
 These tools are available independently of the launch-level correction:
 
 ```python
-o.connect_mocap()              # connect to Qualisys (required for all tools below)
-o.connect_mocap("192.168.x.x") # or with a custom IP
-o.disconnect_mocap()           # stop the Qualisys subprocess
+o.connect_mocap()  # connect to Qualisys (required for all tools below)
+o.connect_mocap("192.168.x.x")  # or with a custom IP
+o.disconnect_mocap()  # stop the Qualisys subprocess
 ```
 
 **Visualize mocap frames in Viser** — two live coordinate-axis frames:
@@ -186,6 +186,7 @@ o.update_mocap_frames()
 
 # Live loop
 import time
+
 while True:
     o.update_mocap_frames()
     time.sleep(0.1)
@@ -217,11 +218,11 @@ Output example:
 
 ```python
 # Record pairs (T_FK, T_mocap) at multiple arm configurations
-c = Calibrator()    # see scripts/calibrate_mocap_fk.py
+c = Calibrator()  # see scripts/calibrate_mocap_fk.py
 c.connect_mocap()
 # move arm, then:
-c.record()          # repeat 10–15 times at different configs
-c.analyze()         # prints mean error and config-to-config dispersion
+c.record()  # repeat 10–15 times at different configs
+c.analyze()  # prints mean error and config-to-config dispersion
 ```
 
 If `σ_t < 3 mm` and `σ_R < 1°`, the error is a constant FK offset and the MPC correction is reliable.
@@ -233,7 +234,7 @@ If `σ_t < 3 mm` and `σ_R < 1°`, the error is a constant FK offset and the MPC
 ```python
 # Verify pylone pose in Viser before moving
 o.init_viewer()
-o.reload_pylone_pose()   # reads pose from pylone_pose.yaml
+o.reload_pylone_pose()  # reads pose from pylone_pose.yaml
 
 # Sync arm position from robot
 o.sync_from_robot()
@@ -245,14 +246,14 @@ o.activate_lfc()
 o.plan()
 
 # Execute step by step (recommended on real robot)
-o.execute([o.p1])        # approach only — check before going further
-o.compare_pose(o.p1)     # verify tracking error before insertion
-o.execute([o.p2])        # insertion
-o.execute([o.p3])        # retraction
-o.execute([o.p4])        # retreat back to q_init
+o.execute([o.p1])  # approach only — check before going further
+o.compare_pose(o.p1)  # verify tracking error before insertion
+o.execute([o.p2])  # insertion
+o.execute([o.p3])  # retraction
+o.execute([o.p4])  # retreat back to q_init
 
 # Or full sequence at once
-o.plan_and_execute()     # p1 → p2 → p3 → p4
+o.plan_and_execute()  # p1 → p2 → p3 → p4
 ```
 
 Once `activate_lfc()` is called, the arm switches from position to torque control.

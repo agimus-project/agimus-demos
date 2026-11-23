@@ -1,19 +1,3 @@
-from launch import LaunchContext, LaunchDescription
-from launch.actions import (
-    OpaqueFunction,
-    RegisterEventHandler,
-    ExecuteProcess,
-    DeclareLaunchArgument,
-)
-from launch.event_handlers import OnProcessExit, OnShutdown
-from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import Command, FindExecutable
-from launch_ros.parameter_descriptions import ParameterValue
-
-
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
     generate_include_launch,
@@ -24,6 +8,24 @@ from agimus_demos_common.launch_utils import (
 from agimus_demos_common.static_transform_publisher_node import (
     static_transform_publisher_node,
 )
+from launch import LaunchContext, LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    OpaqueFunction,
+    RegisterEventHandler,
+)
+from launch.event_handlers import OnProcessExit, OnShutdown
+from launch.launch_description_entity import LaunchDescriptionEntity
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
 
 
 def launch_setup(
@@ -169,7 +171,7 @@ def launch_setup(
             "-hold",
             "-e",
             'bash -c "source /opt/ros/humble/setup.bash && '
-            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} -p arm_id:={arm_id_str} --params-file {trajectory_weights_yaml_file}"',  #
+            f'ros2 run agimus_demo_05_pick_and_place pick_and_place_node --ros-args -p use_sim_time:={use_gazebo_bool} -p vision_type:={vision_type} -p dataset_name:={dataset_name} -p arm_id:={arm_id_str} --params-file {trajectory_weights_yaml_file}"',
         ],
         output="screen",
     )

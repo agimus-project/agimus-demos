@@ -6,8 +6,7 @@ from rclpy.exceptions import ParameterException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
 from rclpy.qos_overriding_options import QoSOverridingOptions
-
-from sensor_msgs.msg import JointState  # noqa: I001
+from sensor_msgs.msg import JointState
 
 
 class WaitForNonZeroJoints(Node):

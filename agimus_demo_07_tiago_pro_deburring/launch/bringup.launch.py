@@ -7,8 +7,14 @@ Usage:
 """
 
 import os
-import yaml
 
+import yaml
+from agimus_demos_common.launch_utils import (
+    generate_default_tiago_pro_args,
+    generate_include_launch,
+    get_use_sim_time,
+)
+from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -25,13 +31,6 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from agimus_demos_common.launch_utils import (
-    generate_default_tiago_pro_args,
-    generate_include_launch,
-    get_use_sim_time,
-)
-from agimus_demos_common.mpc_debugger_node import mpc_debugger_node
 
 PKG = "agimus_demo_07_tiago_pro_deburring"
 

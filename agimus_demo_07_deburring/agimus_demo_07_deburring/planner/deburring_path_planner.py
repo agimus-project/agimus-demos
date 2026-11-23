@@ -1,15 +1,15 @@
 import copy
-import xml.etree.ElementTree as ET
-from collections import deque
+import pickle
 import threading
 import time
-
+import xml.etree.ElementTree as ET
+from collections import deque
 from pathlib import Path
-import pickle
 
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
+import rclpy
 from agimus_controller.trajectory import (
     TrajectoryPoint,
     TrajectoryPointWeights,
@@ -17,9 +17,27 @@ from agimus_controller.trajectory import (
     interpolate_weights,
 )
 from agimus_controller_ros.ros_utils import weighted_traj_point_to_mpc_msg
+from agimus_demo_07_deburring.deburring_path_planner_parameters import (
+    deburring_path_planner,
+)
+from agimus_demo_07_deburring.planner.trajecory_smoothers.basic_interpolation import (
+    BasicInterpolationSmoother,
+)
+from agimus_demo_07_deburring.planner.trajecory_smoothers.ocp_smoother import (
+    OCPSmoother,
+)
+from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory import (
+    GraspPathGenerator,
+)
+from agimus_demo_07_deburring.planner.trajectory_generators.metal_deburring_trajectory import (
+    MetalDeburringPathGenerator,
+)
+from agimus_demo_07_deburring.planner.trajectory_generators.plastic_deburring_trajectory import (
+    PlasticDeburringPathGenerator,
+)
+from agimus_msgs.action import DeburringPlanner
 from agimus_msgs.msg import MpcInputArray
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Vector3
-import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
@@ -34,33 +52,10 @@ from rclpy.qos import (
 from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA, Header, Int64, String
 from std_srvs.srv import SetBool
-from visualization_msgs.msg import Marker, MarkerArray
-
-from agimus_msgs.action import DeburringPlanner
-
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-
-from agimus_demo_07_deburring.deburring_path_planner_parameters import (
-    deburring_path_planner,
-)
-from agimus_demo_07_deburring.planner.trajectory_generators.plastic_deburring_trajectory import (
-    PlasticDeburringPathGenerator,
-)
-from agimus_demo_07_deburring.planner.trajectory_generators.metal_deburring_trajectory import (
-    MetalDeburringPathGenerator,
-)
-from agimus_demo_07_deburring.planner.trajectory_generators.grasp_trajectory import (
-    GraspPathGenerator,
-)
-
-from agimus_demo_07_deburring.planner.trajecory_smoothers.basic_interpolation import (
-    BasicInterpolationSmoother,
-)
-from agimus_demo_07_deburring.planner.trajecory_smoothers.ocp_smoother import (
-    OCPSmoother,
-)
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class DeburringPathPlanner(Node):
@@ -738,7 +733,7 @@ class DeburringPathPlanner(Node):
             except Exception as e:
                 # Log the exception as an error and forward it
                 self.get_logger().error(
-                    f"Failed to initialize generators! Reason: {str(e)}",
+                    f"Failed to initialize generators! Reason: {e!s}",
                 )
                 raise e
 
@@ -1024,7 +1019,7 @@ class DeburringPathPlanner(Node):
                 self._trajectory_buffer.clear()
             error_msg = (
                 "Failed to plan a trajectory to a handle "
-                + f"'{handle_name}'. Reason: {str(e)}"
+                + f"'{handle_name}'. Reason: {e!s}"
             )
             self.get_logger().error(error_msg)
             result = DeburringPlanner.Result()
