@@ -1,11 +1,11 @@
+from agimus_demo_07_deburring.planner.diffusion.conditioning import (
+    ConditioningEncoder,
+)
 from agimus_demo_07_deburring.planner.diffusion.diffusion_motion import (
     DiffusionMotion,
 )
 from agimus_demo_07_deburring.planner.diffusion.transformer_encoder_decoder import (
     TransformerDiffusionEncoderDecoder,
-)
-from agimus_demo_07_deburring.planner.diffusion.conditioning import (
-    ConditioningEncoder,
 )
 
 

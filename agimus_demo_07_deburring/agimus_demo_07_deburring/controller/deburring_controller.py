@@ -4,24 +4,24 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pinocchio as pin
-import yaml
 import resource_retriever as r
+import yaml
 from agimus_controller.factory.robot_model import RobotModelParameters, RobotModels
 from agimus_controller.mpc_data import OCPResults
 from agimus_controller.ocp.ocp_croco_generic import (
     OCPParamsBaseCroco,
     add_modules,
 )
-from agimus_controller.warm_start_shift_previous_solution_force_feedback import (
-    WarmStartShiftPreviousSolutionForceFeedback,
-)
-from agimus_controller.ocp_param_base import DTFactorsNSeq
-from agimus_controller.trajectory import TrajectoryBuffer, TrajectoryPoint
 from agimus_controller.ocp.ocp_croco_generic_force_feedback import (
     OCPCrocoForceFeedbackGeneric,
     get_globals,
 )
+from agimus_controller.ocp_param_base import DTFactorsNSeq
+from agimus_controller.trajectory import TrajectoryBuffer, TrajectoryPoint
 from agimus_controller.warm_start_reference import WarmStartReference
+from agimus_controller.warm_start_shift_previous_solution_force_feedback import (
+    WarmStartShiftPreviousSolutionForceFeedback,
+)
 from agimus_controller_ros.ros_utils import (
     mpc_debug_data_to_msg,
     mpc_msg_to_weighted_traj_point,
@@ -33,7 +33,6 @@ from std_msgs.msg import Int64, String
 from tf2_msgs.msg import TFMessage
 
 from agimus_demo_07_deburring.controller.mpc import DeburringMPC
-
 
 try:
     import crocoddyl_plotter

@@ -1,9 +1,9 @@
 """Bridge node: forwards base velocity commands from the MPC to the mobile base controller."""
 
 import rclpy
+from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from geometry_msgs.msg import Twist
 
 
 class BaseCmdBridge(Node):
